@@ -16,7 +16,6 @@ from src.data.cleaning import (
     COL_MES_GANHO_DATA,
     COL_MES_VEICULACAO_DATA,
     COL_VENCIMENTO_DATA,
-    SEM_STATUS,
     converter_mes_ano,
     converter_valor,
     desdobrar_vencimento,
@@ -41,10 +40,12 @@ class TestNormalizacaoStatus:
         assert normalizar_status("faturado") == "FATURADO"
         assert normalizar_status("Direto") == "DIRETO"
 
-    def test_vazio_vira_sem_status(self):
-        assert normalizar_status("") == SEM_STATUS
-        assert normalizar_status("   ") == SEM_STATUS
-        assert normalizar_status(None) == SEM_STATUS
+    def test_vazio_vira_string_vazia(self):
+        """O campo STATUS é obrigatório na planilha; um branco vira "" e é
+        capturado pelo alerta de status desconhecido (sem categoria interna)."""
+        assert normalizar_status("") == ""
+        assert normalizar_status("   ") == ""
+        assert normalizar_status(None) == ""
 
     def test_status_desconhecido_nao_e_corrigido(self):
         # Detecção é papel do alerta 4 de qualidade, não da limpeza
@@ -227,7 +228,7 @@ class TestLimparDataframe:
     def test_normalizacoes_aplicadas_em_conjunto(self):
         limpo = limpar_dataframe(_df_bruto_minimo())
         assert limpo.loc[0, "STATUS"] == "FATURADO"
-        assert limpo.loc[1, "STATUS"] == SEM_STATUS
+        assert limpo.loc[1, "STATUS"] == ""
         assert limpo.loc[0, "VEICULO"] == "93 FM"
         assert limpo.loc[0, "CLIENTE"] == "SEBRAE"
         assert limpo.loc[0, "PI"] == "12345"

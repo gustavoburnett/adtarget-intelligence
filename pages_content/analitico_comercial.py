@@ -1,12 +1,14 @@
-"""Página 2: Analítico Faturamento (documento 04).
+"""Página 2: Analítico Comercial (ex-Analítico Faturamento).
 
-Cards: Faturamento Realizado, Pipeline, Cancelado/Bonificado (contagem),
-Alertas de Qualidade. Gráfico por status. Tabela linha a linha (auditoria),
-pesquisável, ordenável e exportável em CSV. Todos os filtros finos do MVP.
+Cards: Vendas (com decomposição Faturado), Em Aberto, Cancelado/Bonificado
+(contagem), Alertas de Qualidade. Gráfico por status. Tabela linha a linha
+(auditoria), pesquisável, ordenável e exportável em CSV. Todos os filtros
+finos do MVP.
 
 Métricas de metrics.py; alertas de quality_checks.py. Nada é calculado aqui.
 Os Alertas de Qualidade são calculados sobre a BASE COMPLETA carregada
-(qualidade é atributo da fonte, não do recorte de filtros — documento 02).
+(qualidade é atributo da fonte, não do recorte de filtros).
+Regra de indicadores vigente: Vendas / Faturado / Em Aberto (2026-07-09).
 """
 
 from __future__ import annotations
@@ -68,12 +70,17 @@ def render(df: pd.DataFrame) -> None:
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
+        detalhado = metrics.vendas_detalhado(df_ano, valor)
         cards.card_moeda(
-            "Faturamento Realizado", metrics.faturamento_realizado(df_ano, valor)
+            "Vendas",
+            detalhado["total"],
+            legenda=f"Faturado: {cards.formatar_moeda(detalhado['faturado'])}",
         )
     with c2:
         cards.card_moeda(
-            "Pipeline em Aberto", metrics.pipeline_em_aberto(df_ano, valor)
+            "Em Aberto",
+            metrics.em_aberto(df_ano, valor),
+            legenda="vendido, ainda não faturado",
         )
     with c3:
         cards.card_cancelado_bonificado(metrics.cancelado_bonificado(df_ano))
@@ -95,12 +102,6 @@ def render(df: pd.DataFrame) -> None:
         for alerta in alertas:
             icone = "🔴" if alerta.possui_ocorrencias else "🟢"
             st.markdown(f"{icone} **{alerta.titulo}**: {alerta.quantidade}")
-            if alerta.codigo == "2" and alerta.possui_ocorrencias:
-                st.caption(
-                    "Valor envolvido: "
-                    f"{cards.formatar_moeda(alerta.detalhes['valor_bruto'])} bruto / "
-                    f"{cards.formatar_moeda(alerta.detalhes['valor_liquido'])} líquido"
-                )
             if alerta.codigo == "3" and alerta.possui_ocorrencias:
                 for veiculo, grupos in alerta.detalhes["veiculos"].items():
                     st.caption(f"“{veiculo}” aparece em: {', '.join(grupos)}")
@@ -152,7 +153,7 @@ def render(df: pd.DataFrame) -> None:
     st.download_button(
         "Exportar CSV",
         tabela[colunas_presentes].to_csv(index=False).encode("utf-8-sig"),
-        file_name=f"analitico_faturamento_{ano}.csv",
+        file_name=f"analitico_comercial_{ano}.csv",
         mime="text/csv",
         key=f"{_CHAVE}_csv",
     )

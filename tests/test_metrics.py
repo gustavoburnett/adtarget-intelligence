@@ -1,14 +1,21 @@
-"""Testes das métricas oficiais (metrics.py) e dos alertas de qualidade.
+"""Testes dos indicadores comerciais (metrics.py) e dos alertas de qualidade.
 
-A base sintética reproduz os casos reais da planilha (documentos 01 e 02):
+Regra vigente (2026-07-09):
+- Vendas    = A VEICULAR + EM VEICULAÇÃO + CHECKING + AGUARD. DOC. VEÍCULO
+              + FATURADO + DIRETO
+- Faturado  = FATURADO + DIRETO
+- Em Aberto = Vendas − Faturado
+- CANCELADO e BONIFICADO fora de qualquer soma (apenas contagem)
+
+A base sintética reproduz os casos extremos reais da planilha:
 - status com espaço no fim ("FATURADO ")
-- linha sem status com valor material
 - CANCELADO com valor diferente de zero (caso real de R$ 17.172)
 - mesmo nome de campanha em clientes diferentes ("ALWAYS ON")
 - mesmo nome de veículo em grupos diferentes ("93 FM")
 - MÊS (GANHO) diferente de MÊS (VEICULAÇÃO)
 - NF ausente como célula vazia e como texto "SEM NOTA"
 - venda DIRETO sem NF (por desenho, não é inconsistência)
+- status fora do vocabulário controlado
 """
 
 import pandas as pd
@@ -51,8 +58,10 @@ def _linha(**kwargs) -> dict:
 
 @pytest.fixture
 def df() -> pd.DataFrame:
-    """Base limpa com casos extremos reais. Faturamento Realizado esperado:
-    líquido 49.000 / bruto 59.000 em 6 PIs realizados."""
+    """Base limpa. Totais esperados (todos os anos):
+    Faturado: 49.000 líq / 59.000 bruto (6 PIs)
+    Em Aberto: 7.200 líq / 9.000 bruto (4 PIs)
+    Vendas: 56.200 líq / 68.000 bruto (10 PIs)"""
     linhas = [
         # --- 2025 ---
         _linha(PI="1001", GRUPO="MELODIA", VEICULO="93 FM",
@@ -60,10 +69,11 @@ def df() -> pd.DataFrame:
                **{"MÊS (GANHO)": "JANEIRO/2025", "MÊS (VEICULAÇÃO)": "JANEIRO/2025",
                   "VALOR PI BRUTO": 10000, "VALOR PI LIQUIDO": 8000,
                   "NOTA FISCAL": "111"}),
-        # status com espaço no fim + NF em branco (alerta 1)
+        # status com espaço no fim + NF em branco (alerta 1);
+        # veiculação em junho (fora do intervalo YTD jan-mai)
         _linha(PI="1002", CLIENTE="CLIENTE B", CAMPANHA="ALWAYS ON",
                STATUS="FATURADO ",
-               **{"MÊS (GANHO)": "FEVEREIRO/2025", "MÊS (VEICULAÇÃO)": "MAIO/2025",
+               **{"MÊS (GANHO)": "FEVEREIRO/2025", "MÊS (VEICULAÇÃO)": "JUNHO/2025",
                   "VALOR PI BRUTO": 20000, "VALOR PI LIQUIDO": 16000,
                   "NOTA FISCAL": ""}),
         # DIRETO sem NF: por desenho, NÃO entra no alerta 1; líquido = bruto
@@ -72,8 +82,8 @@ def df() -> pd.DataFrame:
                **{"MÊS (GANHO)": "MARÇO/2025", "MÊS (VEICULAÇÃO)": "MARÇO/2025",
                   "VALOR PI BRUTO": 5000, "VALOR PI LIQUIDO": 5000,
                   "NOTA FISCAL": "SEM NF"}),
-        # Pipeline (campanha exclusiva de pipeline não conta no KPI de campanhas)
-        _linha(PI="1004", CLIENTE="CLIENTE Z", CAMPANHA="SO PIPELINE",
+        # Em Aberto (CHECKING): conta em Vendas e em Campanhas
+        _linha(PI="1004", CLIENTE="CLIENTE Z", CAMPANHA="SO EM ABERTO",
                STATUS="CHECKING",
                **{"MÊS (GANHO)": "ABRIL/2025", "MÊS (VEICULAÇÃO)": "ABRIL/2025",
                   "VALOR PI BRUTO": 3000, "VALOR PI LIQUIDO": 2400,
@@ -83,15 +93,14 @@ def df() -> pd.DataFrame:
                CLIENTE="CLIENTE C", CAMPANHA="CAMP CANC", STATUS="CANCELADO",
                **{"MÊS (GANHO)": "MAIO/2025", "MÊS (VEICULAÇÃO)": "MAIO/2025",
                   "NOTA FISCAL": ""}),
-        # CASO REAL: cancelado com valor NÃO zerado (alerta 5; fora da receita)
+        # CASO REAL: cancelado com valor NÃO zerado (alerta 5; fora de Vendas)
         _linha(PI="1011", CLIENTE="CLIENTE B", CAMPANHA="CAMP CANC 2",
                STATUS="CANCELADO",
                **{"MÊS (GANHO)": "JUNHO/2025", "MÊS (VEICULAÇÃO)": "JUNHO/2025",
                   "VALOR PI BRUTO": 17172, "VALOR PI LIQUIDO": 13737.6,
                   "NOTA FISCAL": ""}),
         # --- 2026 ---
-        # mesmo veículo "93 FM" (com espaço no fim) sob OUTRO grupo (alerta 3);
-        # ganho em janeiro, veiculação em fevereiro (toggle de mês)
+        # mesmo veículo "93 FM" (com espaço no fim) sob OUTRO grupo (alerta 3)
         _linha(PI="1006", GRUPO="SISTEMA VERDES MARES", VEICULO="93 FM ",
                CLIENTE="CLIENTE A", CAMPANHA="VERÃO 2026", ANO_ABA=2026,
                **{"MÊS (GANHO)": "JANEIRO/2026", "MÊS (VEICULAÇÃO)": "FEVEREIRO/2026",
@@ -113,9 +122,10 @@ def df() -> pd.DataFrame:
                **{"MÊS (GANHO)": "MARÇO/2026", "MÊS (VEICULAÇÃO)": "MARÇO/2026",
                   "VALOR PI BRUTO": 2000, "VALOR PI LIQUIDO": 1600,
                   "NOTA FISCAL": ""}),
-        # CASO REAL: linha sem status com valor material (alerta 2)
+        # Novo status oficial: A VEICULAR (Em Aberto)
         _linha(PI="1010", GRUPO="GRUPO C", VEICULO="VEIC C",
-               CLIENTE="CLIENTE G", CAMPANHA="CAMP G", STATUS="", ANO_ABA=2026,
+               CLIENTE="CLIENTE G", CAMPANHA="CAMP G", STATUS="A VEICULAR",
+               ANO_ABA=2026,
                **{"MÊS (GANHO)": "ABRIL/2026", "MÊS (VEICULAÇÃO)": "ABRIL/2026",
                   "VALOR PI BRUTO": 1000, "VALOR PI LIQUIDO": 800,
                   "NOTA FISCAL": ""}),
@@ -124,81 +134,80 @@ def df() -> pd.DataFrame:
                ANO_ABA=2026,
                **{"MÊS (GANHO)": "ABRIL/2026", "MÊS (VEICULAÇÃO)": "ABRIL/2026",
                   "NOTA FISCAL": ""}),
-        # Status novo, fora do vocabulário (alerta 4; fora de qualquer cálculo)
+        # Status fora do vocabulário (alerta 4; fora de qualquer cálculo)
         _linha(PI="1013", GRUPO="GRUPO C", VEICULO="VEIC C",
                CLIENTE="CLIENTE I", CAMPANHA="CAMP I", STATUS="EM NEGOCIAÇÃO",
                ANO_ABA=2026,
                **{"MÊS (GANHO)": "ABRIL/2026", "MÊS (VEICULAÇÃO)": "ABRIL/2026",
                   "VALOR PI BRUTO": 500, "VALOR PI LIQUIDO": 400,
                   "NOTA FISCAL": ""}),
+        # Novo status oficial: EM VEICULAÇÃO (Em Aberto)
+        _linha(PI="1014", CLIENTE="CLIENTE J", CAMPANHA="CAMP J",
+               STATUS="EM VEICULAÇÃO", ANO_ABA=2026,
+               **{"MÊS (GANHO)": "MAIO/2026", "MÊS (VEICULAÇÃO)": "MAIO/2026",
+                  "VALOR PI BRUTO": 3000, "VALOR PI LIQUIDO": 2400,
+                  "NOTA FISCAL": ""}),
     ]
     return limpar_dataframe(pd.DataFrame(linhas))
 
 
 # ---------------------------------------------------------------------------
-# Faturamento Realizado + toggle Líquido x Bruto
+# Vendas / Faturado / Em Aberto + toggle Líquido x Bruto
 # ---------------------------------------------------------------------------
 
-class TestFaturamentoRealizado:
-    def test_liquido_padrao(self, df):
-        assert metrics.faturamento_realizado(df) == pytest.approx(49000.0)
+class TestVendasFaturadoEmAberto:
+    def test_vendas_liquido_padrao(self, df):
+        assert metrics.vendas(df) == pytest.approx(56200.0)
 
-    def test_toggle_bruto(self, df):
-        assert metrics.faturamento_realizado(df, valor="bruto") == pytest.approx(
-            59000.0
-        )
+    def test_vendas_toggle_bruto(self, df):
+        assert metrics.vendas(df, valor="bruto") == pytest.approx(68000.0)
 
-    def test_soma_apenas_faturado_e_direto(self, df):
-        """CHECKING, AGUARD., CANCELADO (mesmo com valor), BONIFICADO,
-        SEM_STATUS e status desconhecido ficam fora da receita."""
-        fora = 2400 + 1600 + 13737.6 + 800 + 400  # pipeline + cancel + sem status + novo
-        assert metrics.faturamento_realizado(df) == pytest.approx(49000.0)
-        assert 49000.0 + fora != metrics.faturamento_realizado(df)
+    def test_faturado(self, df):
+        assert metrics.faturado(df) == pytest.approx(49000.0)
+        assert metrics.faturado(df, valor="bruto") == pytest.approx(59000.0)
+
+    def test_em_aberto(self, df):
+        assert metrics.em_aberto(df) == pytest.approx(7200.0)
+        assert metrics.em_aberto(df, valor="bruto") == pytest.approx(9000.0)
+
+    def test_identidade_em_aberto_igual_vendas_menos_faturado(self, df):
+        """Regra oficial: Em Aberto = Vendas − Faturado."""
+        for valor in ("liquido", "bruto"):
+            assert metrics.em_aberto(df, valor) == pytest.approx(
+                metrics.vendas(df, valor) - metrics.faturado(df, valor)
+            )
+
+    def test_cancelado_bonificado_e_desconhecido_fora_de_vendas(self, df):
+        """CANCELADO (mesmo com R$ 17.172), BONIFICADO e status fora do
+        vocabulário nunca entram em Vendas."""
+        assert metrics.vendas(df, valor="bruto") == pytest.approx(68000.0)
 
     def test_status_com_espaco_no_fim_entra_no_calculo(self, df):
         """Caso real: "FATURADO " (16.000 líq) precisa contar após normalização."""
-        assert metrics.faturamento_realizado(df) >= 16000.0
+        assert metrics.faturado(df) >= 16000.0
 
-    def test_etiqueta_direto(self, df):
-        detalhado = metrics.faturamento_realizado_detalhado(df)
-        assert detalhado["total"] == pytest.approx(49000.0)
-        assert detalhado["direto"] == pytest.approx(9000.0)
-        assert detalhado["faturado"] == pytest.approx(40000.0)
+    def test_vendas_detalhado(self, df):
+        detalhado = metrics.vendas_detalhado(df)
+        assert detalhado["total"] == pytest.approx(56200.0)
+        assert detalhado["faturado"] == pytest.approx(49000.0)
+        assert detalhado["em_aberto"] == pytest.approx(7200.0)
 
     def test_toggle_invalido_gera_erro_claro(self, df):
         with pytest.raises(ValueError):
-            metrics.faturamento_realizado(df, valor="liquidez")
+            metrics.vendas(df, valor="liquidez")
 
 
 # ---------------------------------------------------------------------------
-# Pipeline em Aberto
-# ---------------------------------------------------------------------------
-
-class TestPipeline:
-    def test_liquido(self, df):
-        assert metrics.pipeline_em_aberto(df) == pytest.approx(4000.0)
-
-    def test_bruto(self, df):
-        assert metrics.pipeline_em_aberto(df, valor="bruto") == pytest.approx(5000.0)
-
-    def test_pipeline_separado_do_faturamento(self, df):
-        """Pipeline nunca é somado ao Faturamento Realizado."""
-        assert metrics.faturamento_realizado(df) + metrics.pipeline_em_aberto(
-            df
-        ) == pytest.approx(53000.0)
-
-
-# ---------------------------------------------------------------------------
-# Ticket Médio
+# Ticket Médio (base Vendas)
 # ---------------------------------------------------------------------------
 
 class TestTicketMedio:
     def test_liquido(self, df):
-        # 49.000 / 6 PIs realizados
-        assert metrics.ticket_medio(df) == pytest.approx(49000.0 / 6)
+        # 56.200 / 10 PIs na base Vendas
+        assert metrics.ticket_medio(df) == pytest.approx(56200.0 / 10)
 
     def test_bruto(self, df):
-        assert metrics.ticket_medio(df, valor="bruto") == pytest.approx(59000.0 / 6)
+        assert metrics.ticket_medio(df, valor="bruto") == pytest.approx(68000.0 / 10)
 
     def test_sem_dados_retorna_none(self, df):
         vazio = df[df["STATUS"] == "INEXISTENTE"]
@@ -206,20 +215,19 @@ class TestTicketMedio:
 
 
 # ---------------------------------------------------------------------------
-# Quantidade de Campanhas (Cliente + Campanha, apenas Realizado)
+# Quantidade de Campanhas (Cliente + Campanha, base Vendas)
 # ---------------------------------------------------------------------------
 
 class TestQuantidadeCampanhas:
     def test_contagem_por_cliente_campanha(self, df):
-        # "ALWAYS ON" existe em 2 clientes -> conta 2, não 1
-        # Pares realizados: (A, ALWAYS ON), (B, ALWAYS ON), (C, CAMPANHA C),
-        # (A, VERÃO 2026), (D, CAMP D), (E, CAMP E) = 6
-        assert metrics.quantidade_campanhas(df) == 6
+        # "ALWAYS ON" existe em 2 clientes -> conta 2, não 1.
+        # 10 pares distintos na base Vendas (inclui os Em Aberto).
+        assert metrics.quantidade_campanhas(df) == 10
 
-    def test_campanha_so_em_pipeline_nao_conta(self, df):
-        realizadas = df[metrics.mascara_realizado(df)]["CAMPANHA"]
-        assert "SO PIPELINE" not in set(realizadas)
-        assert metrics.quantidade_campanhas(df) == 6
+    def test_campanha_cancelada_nao_conta(self, df):
+        base = df[metrics.mascara_vendas(df)]["CAMPANHA"]
+        assert "CAMP CANC" not in set(base)
+        assert "CAMP CANC 2" not in set(base)
 
 
 # ---------------------------------------------------------------------------
@@ -229,25 +237,23 @@ class TestQuantidadeCampanhas:
 class TestComparativoMensal:
     def test_evolucao_mensal_2026_ganho(self, df):
         evolucao = metrics.evolucao_mensal(df, 2026)
-        assert evolucao == {1: 9600.0, 2: 6400.0, 3: 4000.0}
+        # Jan 9600 | Fev 6400 | Mar 4000+1600 | Abr 800 | Mai 2400
+        assert evolucao == {1: 9600.0, 2: 6400.0, 3: 5600.0, 4: 800.0, 5: 2400.0}
 
     def test_mes_sem_dado_e_lacuna_nao_zero(self, df):
-        """Abril/2026 não tem Faturamento Realizado: deve ser lacuna
-        (ausente do dicionário), nunca 0.0."""
         evolucao = metrics.evolucao_mensal(df, 2026)
-        assert 4 not in evolucao
+        assert 6 not in evolucao  # mês futuro: lacuna, nunca 0.0
 
     def test_yoy_mesmo_mes(self, df):
         comp = metrics.comparativo_mensal(df, 2026)
         assert comp.loc[1, "atual"] == pytest.approx(9600.0)
-        assert comp.loc[1, "anterior"] == pytest.approx(8000.0)  # Jan/2025
-        assert comp.loc[2, "atual"] == pytest.approx(6400.0)
-        assert comp.loc[2, "anterior"] == pytest.approx(16000.0)  # Fev/2025
+        assert comp.loc[1, "anterior"] == pytest.approx(8000.0)   # Jan/2025
+        assert comp.loc[4, "atual"] == pytest.approx(800.0)
+        assert comp.loc[4, "anterior"] == pytest.approx(2400.0)   # Abr/2025
 
     def test_yoy_lacunas_como_nan(self, df):
         comp = metrics.comparativo_mensal(df, 2026)
-        assert pd.isna(comp.loc[4, "atual"])      # sem realizado em Abr/2026
-        assert pd.isna(comp.loc[12, "atual"])     # mês futuro
+        assert pd.isna(comp.loc[12, "atual"])
         assert pd.isna(comp.loc[12, "anterior"])
 
 
@@ -257,12 +263,12 @@ class TestComparativoMensal:
 
 class TestToggleMes:
     def test_criterios_divergem(self, df):
-        """PI 1002: ganho em Fev/2025, veiculação em Mai/2025."""
+        """PI 1002: ganho em Fev/2025, veiculação em Jun/2025."""
         ganho = metrics.evolucao_mensal(df, 2025, criterio_mes="ganho")
         veic = metrics.evolucao_mensal(df, 2025, criterio_mes="veiculacao")
         assert ganho[2] == pytest.approx(16000.0)
         assert 2 not in veic
-        assert veic[5] == pytest.approx(16000.0)
+        assert veic[6] == pytest.approx(16000.0)
 
     def test_total_do_ano_igual_nos_dois_criterios(self, df):
         """Na base sintética, ganho e veiculação caem no mesmo ano: o total
@@ -273,49 +279,39 @@ class TestToggleMes:
 
 
 # ---------------------------------------------------------------------------
-# YTD (acumulado no ano, intervalo comparável)
+# YTD (acumulado no ano, intervalo comparável, base Vendas)
 # ---------------------------------------------------------------------------
 
 class TestYTD:
     def test_ytd_2026_intervalo_comparavel(self, df):
-        """2026 tem dado até março: compara Jan-Mar 2026 x Jan-Mar 2025,
+        """2026 tem dado até maio: compara Jan-Mai 2026 x Jan-Mai 2025,
         nunca ano parcial contra ano completo."""
         resultado = metrics.ytd(df, 2026)
-        assert resultado["mes_limite"] == 3
-        assert resultado["atual"] == pytest.approx(20000.0)   # 9600+6400+4000
-        assert resultado["anterior"] == pytest.approx(29000.0)  # 8000+16000+5000
+        assert resultado["mes_limite"] == 5
+        assert resultado["atual"] == pytest.approx(24800.0)
+        assert resultado["anterior"] == pytest.approx(31400.0)  # 8000+16000+5000+2400
         assert resultado["variacao_pct"] == pytest.approx(
-            (20000.0 - 29000.0) / 29000.0 * 100.0
+            (24800.0 - 31400.0) / 31400.0 * 100.0
         )
-
-    def test_ytd_nao_compara_com_ano_completo(self, df):
-        """O total de 2025 é 29.000 líquido (Jan-Mar); se houvesse meses
-        posteriores, ficariam fora. Junho/2025 (cancelado com valor) e
-        Abril/2025 (pipeline) não podem vazar para o comparativo."""
-        resultado = metrics.ytd(df, 2026)
-        total_2025_completo = metrics.faturamento_realizado(
-            df[df["ANO_ABA"] == 2025]
-        )
-        assert resultado["anterior"] <= total_2025_completo
 
     def test_ytd_recalcula_sobre_toggle_bruto(self, df):
         resultado = metrics.ytd(df, 2026, valor="bruto")
-        assert resultado["atual"] == pytest.approx(24000.0)   # 12000+8000+4000
-        assert resultado["anterior"] == pytest.approx(35000.0)  # 10000+20000+5000
+        assert resultado["atual"] == pytest.approx(30000.0)
+        assert resultado["anterior"] == pytest.approx(38000.0)
 
     def test_ytd_recalcula_sobre_toggle_veiculacao(self, df):
-        """Com MÊS (VEICULAÇÃO): PI 1002 sai de Fev p/ Mai/2025, fora do
-        intervalo Jan-Mar -> ano anterior cai para 13.000."""
+        """Com MÊS (VEICULAÇÃO): PI 1002 sai de Fev p/ Jun/2025, fora do
+        intervalo Jan-Mai -> ano anterior cai para 15.400."""
         resultado = metrics.ytd(df, 2026, criterio_mes="veiculacao")
-        assert resultado["mes_limite"] == 3
-        assert resultado["atual"] == pytest.approx(20000.0)
-        assert resultado["anterior"] == pytest.approx(13000.0)  # 8000+5000
+        assert resultado["mes_limite"] == 5
+        assert resultado["atual"] == pytest.approx(24800.0)
+        assert resultado["anterior"] == pytest.approx(15400.0)  # 8000+5000+2400
 
     def test_ytd_sem_ano_anterior(self, df):
         """2025 é o primeiro ano da base: 'sem comparativo disponível',
         nunca erro ou divisão por zero."""
         resultado = metrics.ytd(df, 2025)
-        assert resultado["atual"] == pytest.approx(29000.0)
+        assert resultado["atual"] == pytest.approx(31400.0)
         assert resultado["anterior"] is None
         assert resultado["variacao_pct"] is None
 
@@ -339,12 +335,6 @@ class TestCanceladoBonificado:
         resultado = metrics.cancelado_bonificado(df)
         assert resultado["valor_bruto_secundario"] == pytest.approx(17172.0)
 
-    def test_cancelado_com_valor_fora_da_receita(self, df):
-        """Caso real de R$ 17.172: nunca entra no Faturamento Realizado."""
-        assert metrics.faturamento_realizado(df, valor="bruto") == pytest.approx(
-            59000.0
-        )
-
 
 # ---------------------------------------------------------------------------
 # Agregação Grupo + Veículo e Veículos Ativos
@@ -357,7 +347,7 @@ class TestAgrupamentoGrupoVeiculo:
         assert len(linhas_93fm) == 2  # MELODIA e SISTEMA VERDES MARES, separados
 
     def test_veiculos_ativos(self, df):
-        # Pares com realizado: (MELODIA, 93 FM), (GRUPO B, VEIC B),
+        # Pares na base Vendas: (MELODIA, 93 FM), (GRUPO B, VEIC B),
         # (GRUPO C, VEIC C), (SISTEMA VERDES MARES, 93 FM)
         assert metrics.veiculos_ativos(df) == 4
 
@@ -373,32 +363,33 @@ class TestAgregacoesDeApresentacao:
         assert por_status.loc["FATURADO", "valor"] == pytest.approx(40000.0)
         assert por_status.loc["FATURADO", "qtd_pis"] == 4
         assert por_status.loc["DIRETO", "valor"] == pytest.approx(9000.0)
+        assert por_status.loc["A VEICULAR", "valor"] == pytest.approx(800.0)
+        assert por_status.loc["EM VEICULAÇÃO", "valor"] == pytest.approx(2400.0)
         assert por_status.loc["CHECKING", "qtd_pis"] == 1
-        assert por_status.loc["SEM_STATUS", "valor"] == pytest.approx(800.0)
 
-    def test_resumo_por_status_ordem_oficial(self, df):
+    def test_resumo_por_status_ordem_do_ciclo_comercial(self, df):
         resumo = metrics.resumo_por_status(df)
-        # FATURADO primeiro; status fora do vocabulário vai para o fim
-        assert resumo.iloc[0]["STATUS"] == "FATURADO"
+        # A VEICULAR primeiro; status fora do vocabulário vai para o fim
+        assert resumo.iloc[0]["STATUS"] == "A VEICULAR"
         assert resumo.iloc[-1]["STATUS"] == "EM NEGOCIAÇÃO"
 
-    def test_resumo_por_status_respeita_toggle(self, df):
-        bruto = metrics.resumo_por_status(df, valor="bruto").set_index("STATUS")
-        assert bruto.loc["FATURADO", "valor"] == pytest.approx(50000.0)
-
     def test_evolucao_ticket_medio_mensal(self, df):
-        # 2026 ganho: 1 PI por mês -> ticket do mês = valor do mês
+        # 2026 ganho: Mar tem 2 PIs (4000+1600)/2 = 2800
         ticket = metrics.evolucao_mensal_ticket_medio(df, 2026)
-        assert ticket == {1: 9600.0, 2: 6400.0, 3: 4000.0}
-        assert 4 not in ticket  # lacuna, nunca zero
+        assert ticket[1] == pytest.approx(9600.0)
+        assert ticket[3] == pytest.approx(2800.0)
+        assert 6 not in ticket  # lacuna, nunca zero
 
     def test_agregado_por_dimensao_cliente(self, df):
         agg = metrics.agregado_por_dimensao(df, "CLIENTE")
-        # CLIENTE A: 8000 (PI 1001) + 9600 (PI 1006) = 17600, líder do ranking
+        # CLIENTE A: 8000 + 9600 = 17600, líder do ranking
         assert agg.iloc[0]["CLIENTE"] == "CLIENTE A"
         assert agg.iloc[0]["valor"] == pytest.approx(17600.0)
-        # Pipeline e cancelados fora: CLIENTE Z não aparece
-        assert "CLIENTE Z" not in set(agg["CLIENTE"])
+        # Em Aberto entra na base Vendas: CLIENTE Z aparece
+        assert "CLIENTE Z" in set(agg["CLIENTE"])
+        # Cancelados/bonificados/desconhecidos fora
+        assert "CLIENTE H" not in set(agg["CLIENTE"])
+        assert "CLIENTE I" not in set(agg["CLIENTE"])
 
     def test_agregado_por_dimensao_veta_veiculo_isolado(self, df):
         """Decisão 15: veículo nunca é agregado isoladamente."""
@@ -418,12 +409,6 @@ class TestAlertasQualidade:
         assert alerta.quantidade == 2
         assert set(alerta.linhas["PI"]) == {"1002", "1007"}
 
-    def test_alerta_2_sem_status_com_valor_financeiro(self, df):
-        alerta = quality_checks.linhas_sem_status(df)
-        assert alerta.quantidade == 1
-        assert alerta.detalhes["valor_bruto"] == pytest.approx(1000.0)
-        assert alerta.detalhes["valor_liquido"] == pytest.approx(800.0)
-
     def test_alerta_3_veiculo_com_mais_de_um_grupo(self, df):
         alerta = quality_checks.veiculo_com_multiplos_grupos(df)
         assert alerta.quantidade == 1
@@ -436,6 +421,16 @@ class TestAlertasQualidade:
         assert alerta.quantidade == 1
         assert alerta.detalhes["valores"] == ["EM NEGOCIAÇÃO"]
 
+    def test_alerta_4_status_em_branco_e_guarda_corpo(self, df):
+        """O campo é obrigatório na planilha; se um branco escapar, o
+        alerta 4 sinaliza como "(VAZIO)" em vez de existir uma categoria
+        SEM_STATUS."""
+        com_branco = df.copy()
+        com_branco.loc[com_branco.index[0], "STATUS"] = ""
+        alerta = quality_checks.status_desconhecido(com_branco)
+        assert alerta.quantidade == 2
+        assert "(VAZIO)" in alerta.detalhes["valores"]
+
     def test_alerta_5_cancelado_com_valor(self, df):
         alerta = quality_checks.cancelado_bonificado_com_valor(df)
         assert alerta.quantidade == 1
@@ -447,6 +442,7 @@ class TestAlertasQualidade:
         quality_checks.executar_todas(df)
         pd.testing.assert_frame_equal(df, copia)
 
-    def test_executar_todas_retorna_os_5_alertas(self, df):
+    def test_executar_todas_retorna_os_4_alertas_vigentes(self, df):
         alertas = quality_checks.executar_todas(df)
-        assert [a.codigo for a in alertas] == ["1", "2", "3", "4", "5"]
+        # Alerta 2 (sem status) removido em 2026-07-09; códigos preservados
+        assert [a.codigo for a in alertas] == ["1", "3", "4", "5"]

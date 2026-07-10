@@ -1,12 +1,13 @@
-"""Página 3: Analítico Veículos (documento 04).
+"""Página 3: Analítico Veículos.
 
-Cards: Faturamento Realizado do recorte, Ticket Médio, Veículos Ativos.
-Gráficos: Faturamento por Grupo (barra), drill-down por veículo dentro do
-grupo, rankings completos (Veículos, Agências, Clientes).
+Cards: Vendas do recorte, Ticket Médio, Veículos Ativos.
+Gráficos: Vendas por Grupo (barra), drill-down Vendas por Veículo dentro
+do grupo, rankings completos (Veículos, Agências, Clientes).
 Tabela agregada por Grupo + Veículo com % do total.
 Filtros: Ano, Grupo, Agência, Cliente.
 
 Agregação SEMPRE por Grupo + Veículo (decisão 15). Métricas de metrics.py.
+Regra de indicadores vigente: base Vendas (2026-07-09).
 """
 
 from __future__ import annotations
@@ -25,17 +26,15 @@ def _tabela_formatada(agregado: pd.DataFrame) -> pd.DataFrame:
     """Formata a tabela agregada para exibição (moeda pt-BR, % com vírgula)."""
     tabela = agregado.copy()
     tabela["Veículo"] = tabela[COL_GRUPO] + filters.SEPARADOR_PAR + tabela[COL_VEICULO]
-    tabela["Faturamento Bruto"] = tabela["faturamento_bruto"].map(cards.formatar_moeda)
-    tabela["Faturamento Líquido"] = tabela["faturamento_liquido"].map(
-        cards.formatar_moeda
-    )
+    tabela["Vendas (Bruto)"] = tabela["vendas_bruto"].map(cards.formatar_moeda)
+    tabela["Vendas (Líquido)"] = tabela["vendas_liquido"].map(cards.formatar_moeda)
     tabela["Ticket Médio"] = tabela["ticket_medio"].map(cards.formatar_moeda)
     tabela["Qtd PIs"] = tabela["qtd_pis"]
     tabela["% do Total"] = tabela["pct_do_total"].map(
         lambda v: f"{v:.1f}".replace(".", ",") + "%"
     )
     return tabela[
-        ["Veículo", "Faturamento Bruto", "Faturamento Líquido",
+        ["Veículo", "Vendas (Bruto)", "Vendas (Líquido)",
          "Ticket Médio", "Qtd PIs", "% do Total"]
     ]
 
@@ -57,14 +56,12 @@ def render(df: pd.DataFrame) -> None:
 
     df_ano = filters.recorte_do_ano(df_dim, ano, criterio_mes)
     agregado = metrics.agregado_por_grupo_veiculo(df_ano, valor)
-    coluna_ref = "faturamento_liquido" if valor == "liquido" else "faturamento_bruto"
+    coluna_ref = "vendas_liquido" if valor == "liquido" else "vendas_bruto"
 
     # --------------------------------------------------------------- cards
     c1, c2, c3 = st.columns(3)
     with c1:
-        cards.card_moeda(
-            "Faturamento Realizado", metrics.faturamento_realizado(df_ano, valor)
-        )
+        cards.card_moeda("Vendas", metrics.vendas(df_ano, valor))
     with c2:
         cards.card_moeda(
             "Ticket Médio",
@@ -75,15 +72,15 @@ def render(df: pd.DataFrame) -> None:
         cards.card_numero(
             "Veículos Ativos",
             metrics.veiculos_ativos(df_ano),
-            legenda="pares Grupo+Veículo com PI realizado",
+            legenda="pares Grupo+Veículo com PI na base Vendas",
         )
 
     st.divider()
 
-    # -------------------------------------------------- faturamento por grupo
+    # ------------------------------------------------------ vendas por grupo
     por_grupo = metrics.agregado_por_dimensao(df_ano, COL_GRUPO, valor)
     charts.grafico_barra_horizontal(
-        por_grupo, COL_GRUPO, "valor", "Faturamento por Grupo"
+        por_grupo, COL_GRUPO, "valor", "Vendas por Grupo"
     )
 
     # ------------------------------------------------ drill-down por veículo
@@ -99,7 +96,7 @@ def render(df: pd.DataFrame) -> None:
             detalhe,
             COL_VEICULO,
             coluna_ref,
-            f"Faturamento por veículo — {grupo_escolhido}",
+            f"Vendas por Veículo — {grupo_escolhido}",
         )
 
     st.divider()
@@ -114,23 +111,23 @@ def render(df: pd.DataFrame) -> None:
     with aba_agencia:
         st.dataframe(
             metrics.agregado_por_dimensao(df_ano, COL_AGENCIA, valor).rename(
-                columns={"valor": "Faturamento", "qtd_pis": "Qtd PIs"}
+                columns={"valor": "Vendas", "qtd_pis": "Qtd PIs"}
             ),
             width="stretch",
             hide_index=True,
             column_config={
-                "Faturamento": st.column_config.NumberColumn(format="R$ %.2f")
+                "Vendas": st.column_config.NumberColumn(format="R$ %.2f")
             },
         )
     with aba_cliente:
         st.dataframe(
             metrics.agregado_por_dimensao(df_ano, COL_CLIENTE, valor).rename(
-                columns={"valor": "Faturamento", "qtd_pis": "Qtd PIs"}
+                columns={"valor": "Vendas", "qtd_pis": "Qtd PIs"}
             ),
             width="stretch",
             hide_index=True,
             column_config={
-                "Faturamento": st.column_config.NumberColumn(format="R$ %.2f")
+                "Vendas": st.column_config.NumberColumn(format="R$ %.2f")
             },
         )
 

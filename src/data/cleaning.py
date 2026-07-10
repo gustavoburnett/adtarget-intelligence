@@ -28,20 +28,23 @@ import pandas as pd
 # Vocabulário controlado e nomes de colunas (documentos 01 e 02)
 # ---------------------------------------------------------------------------
 
-#: Status reconhecidos pelo vocabulário controlado (documento 01, coluna STATUS)
+#: Vocabulário controlado de STATUS — 8 status oficiais (regra comercial
+#: definida pelo responsável do projeto em 2026-07-09, supersedendo a
+#: versão 0.2 da documentação). O campo STATUS passou a ser obrigatório na
+#: planilha; não existe mais a categoria SEM_STATUS. Um status em branco ou
+#: fora deste vocabulário é sinalizado pelo alerta de status desconhecido.
 STATUS_VALIDOS = frozenset(
     {
-        "FATURADO",
-        "DIRETO",
+        "A VEICULAR",
+        "EM VEICULAÇÃO",
         "CHECKING",
         "AGUARD. DOC. VEÍCULO",
+        "FATURADO",
+        "DIRETO",
         "CANCELADO",
         "BONIFICADO",
     }
 )
-
-#: Categoria interna para linhas sem STATUS preenchido (documento 01)
-SEM_STATUS = "SEM_STATUS"
 
 #: Nomes canônicos das colunas dimensionais (documento 01). Ponto único de
 #: verdade: metrics.py e quality_checks.py importam daqui, nunca repetem
@@ -125,17 +128,15 @@ def normalizar_texto(valor: Any) -> str:
 
 
 def normalizar_status(valor: Any) -> str:
-    """Normaliza STATUS: trim + caixa alta; vazio/nulo vira SEM_STATUS.
+    """Normaliza STATUS: trim + caixa alta.
 
     Unifica duplicidades por formatação (ex: "FATURADO " -> "FATURADO").
-    Status fora do vocabulário controlado NÃO são corrigidos aqui — apenas
-    normalizados; a detecção de status desconhecido é papel do alerta 4 de
-    quality_checks.py.
+    O campo é obrigatório na planilha: um valor em branco vira string vazia
+    e é capturado pelo alerta de status desconhecido (guarda-corpo), sem
+    nenhuma categoria interna especial. Status fora do vocabulário NÃO são
+    corrigidos aqui — detecção é papel de quality_checks.py.
     """
-    texto = normalizar_texto(valor)
-    if not texto:
-        return SEM_STATUS
-    return texto
+    return normalizar_texto(valor)
 
 
 def normalizar_pi(valor: Any) -> str:

@@ -14,7 +14,7 @@ import pandas as pd
 import streamlit as st
 
 from pages_content import (
-    analitico_faturamento,
+    analitico_comercial,
     analitico_veiculos,
     performance_comercial,
 )
@@ -81,11 +81,11 @@ dados = limpar_dataframe(dados_brutos)
 
 # ---------------------------------------------------------------- páginas
 aba1, aba2, aba3 = st.tabs(
-    ["Performance Comercial", "Analítico Faturamento", "Analítico Veículos"]
+    ["Performance Comercial", "Analítico Comercial", "Analítico Veículos"]
 )
 with aba1:
     performance_comercial.render(dados)
 with aba2:
-    analitico_faturamento.render(dados)
+    analitico_comercial.render(dados)
 with aba3:
     analitico_veiculos.render(dados)

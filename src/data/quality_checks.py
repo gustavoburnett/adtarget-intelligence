@@ -23,7 +23,6 @@ from src.data.cleaning import (
     COL_VALOR_BRUTO,
     COL_VALOR_LIQUIDO,
     COL_VEICULO,
-    SEM_STATUS,
     STATUS_VALIDOS,
 )
 
@@ -77,26 +76,6 @@ def faturado_sem_nota_fiscal(df: pd.DataFrame) -> AlertaQualidade:
     )
 
 
-def linhas_sem_status(df: pd.DataFrame) -> AlertaQualidade:
-    """Alerta 2: linhas sem STATUS preenchido (categoria SEM_STATUS).
-
-    Exibe contagem E o valor financeiro somado (bruto e líquido), porque o
-    valor envolvido é material e não deve ficar escondido atrás de uma
-    contagem pequena (decisão 23 / documento 02).
-    """
-    afetadas = df[df[COL_STATUS] == SEM_STATUS]
-    return AlertaQualidade(
-        codigo="2",
-        titulo="Linhas sem STATUS preenchido",
-        quantidade=len(afetadas),
-        detalhes={
-            "valor_bruto": float(afetadas[COL_VALOR_BRUTO].sum()),
-            "valor_liquido": float(afetadas[COL_VALOR_LIQUIDO].sum()),
-        },
-        linhas=afetadas,
-    )
-
-
 def veiculo_com_multiplos_grupos(df: pd.DataFrame) -> AlertaQualidade:
     """Alerta 3: veículo associado a mais de um Grupo na base carregada.
 
@@ -121,19 +100,22 @@ def veiculo_com_multiplos_grupos(df: pd.DataFrame) -> AlertaQualidade:
 
 
 def status_desconhecido(df: pd.DataFrame) -> AlertaQualidade:
-    """Alerta 4: status fora do vocabulário controlado.
+    """Alerta 4: status fora do vocabulário controlado (8 status oficiais).
 
-    SEM_STATUS não conta aqui (já é coberto pelo alerta 2); este alerta
-    captura categorias NOVAS que a aplicação ainda não conhece.
+    Como o campo STATUS é obrigatório na planilha, um valor em branco
+    também é sinalizado aqui (exibido como "(VAZIO)"), funcionando de
+    guarda-corpo caso a regra de preenchimento seja violada na origem.
     """
-    reconhecidos = STATUS_VALIDOS | {SEM_STATUS}
-    mascara = ~df[COL_STATUS].isin(reconhecidos)
+    mascara = ~df[COL_STATUS].isin(STATUS_VALIDOS)
     afetadas = df[mascara]
+    valores = sorted(
+        ("(VAZIO)" if v == "" else v) for v in afetadas[COL_STATUS].unique()
+    )
     return AlertaQualidade(
         codigo="4",
         titulo="Status não reconhecido pelo vocabulário controlado",
         quantidade=len(afetadas),
-        detalhes={"valores": sorted(afetadas[COL_STATUS].unique().tolist())},
+        detalhes={"valores": valores},
         linhas=afetadas,
     )
 
@@ -162,10 +144,15 @@ def cancelado_bonificado_com_valor(df: pd.DataFrame) -> AlertaQualidade:
 
 
 def executar_todas(df: pd.DataFrame) -> list[AlertaQualidade]:
-    """Executa as 5 verificações oficiais, na ordem do documento 02."""
+    """Executa as 4 verificações vigentes.
+
+    O antigo alerta 2 (linhas sem status) foi removido em 2026-07-09:
+    o campo STATUS passou a ser obrigatório na planilha. Os códigos dos
+    demais alertas foram preservados para rastreabilidade com a
+    documentação original.
+    """
     return [
         faturado_sem_nota_fiscal(df),
-        linhas_sem_status(df),
         veiculo_com_multiplos_grupos(df),
         status_desconhecido(df),
         cancelado_bonificado_com_valor(df),

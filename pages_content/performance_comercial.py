@@ -1,12 +1,14 @@
-"""Página 1: Performance Comercial — visão executiva (documento 04).
+"""Página 1: Performance Comercial — visão executiva.
 
-Cards: Faturamento Realizado (com etiqueta DIRETO), YTD vs Ano Anterior,
-Ticket Médio, Quantidade de Campanhas, Pipeline em Aberto.
-Gráficos: evolução mensal comparativa e evolução do Ticket Médio.
-Rankings: Top 5 Veículos (Grupo+Veículo), Agências e Clientes.
+Cards: Vendas (com decomposição Faturado), YTD vs Ano Anterior, Ticket
+Médio, Quantidade de Campanhas, Em Aberto.
+Gráficos: evolução mensal das Vendas (comparativa) e evolução do Ticket
+Médio. Rankings: Top 5 Veículos (Grupo+Veículo), Agências e Clientes.
 Filtros: Ano e Grupo (filtros finos ficam nas páginas analíticas).
 
 Toda métrica vem de metrics.py; esta página só filtra, formata e exibe.
+Regra de indicadores vigente: Vendas / Faturado / Em Aberto (2026-07-09),
+com Em Aberto = Vendas − Faturado.
 """
 
 from __future__ import annotations
@@ -38,11 +40,11 @@ def render(df: pd.DataFrame) -> None:
     # --------------------------------------------------------------- cards
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
-        detalhado = metrics.faturamento_realizado_detalhado(df_ano, valor)
+        detalhado = metrics.vendas_detalhado(df_ano, valor)
         cards.card_moeda(
-            "Faturamento Realizado",
+            "Vendas",
             detalhado["total"],
-            legenda=f"sendo {cards.formatar_moeda(detalhado['direto'])} em DIRETO",
+            legenda=f"sendo {cards.formatar_moeda(detalhado['faturado'])} já faturado",
         )
     with c2:
         cards.card_ytd(
@@ -55,13 +57,13 @@ def render(df: pd.DataFrame) -> None:
         cards.card_numero(
             "Campanhas",
             metrics.quantidade_campanhas(df_ano),
-            legenda="Cliente + Campanha distintos (só Realizado)",
+            legenda="Cliente + Campanha distintos (base Vendas)",
         )
     with c5:
         cards.card_moeda(
-            "Pipeline em Aberto",
-            metrics.pipeline_em_aberto(df_ano, valor),
-            legenda="CHECKING + AGUARD. DOC. VEÍCULO",
+            "Em Aberto",
+            metrics.em_aberto(df_ano, valor),
+            legenda="vendido, ainda não faturado",
         )
 
     st.divider()
@@ -70,7 +72,7 @@ def render(df: pd.DataFrame) -> None:
     charts.grafico_evolucao_comparativa(
         metrics.comparativo_mensal(df_dim, ano, valor, criterio_mes),
         ano,
-        "Evolução mensal do Faturamento Realizado",
+        "Evolução das Vendas",
     )
     charts.grafico_linha_mensal(
         metrics.evolucao_mensal_ticket_medio(df_dim, ano, valor, criterio_mes),
@@ -90,7 +92,7 @@ def render(df: pd.DataFrame) -> None:
                 + top_veiculos[COL_VEICULO]
             )
             coluna_ref = (
-                "faturamento_liquido" if valor == "liquido" else "faturamento_bruto"
+                "vendas_liquido" if valor == "liquido" else "vendas_bruto"
             )
             charts.grafico_barra_horizontal(
                 top_veiculos, "rotulo", coluna_ref, "Top 5 Veículos", top_n=5

@@ -1,19 +1,30 @@
-"""Cálculo de métricas oficiais (documento 02 — Regras de Negócio e Métricas).
+"""Cálculo dos indicadores comerciais oficiais.
+
+REGRA VIGENTE (definida pelo responsável do projeto em 2026-07-09,
+supersedendo a versão 0.2 da documentação — pendente registro v0.3):
+
+| Indicador    | Status somados                                            |
+|--------------|-----------------------------------------------------------|
+| **Vendas**   | A VEICULAR, EM VEICULAÇÃO, CHECKING, AGUARD. DOC. VEÍCULO,|
+|              | FATURADO, DIRETO                                          |
+| **Faturado** | FATURADO, DIRETO                                          |
+| **Em Aberto**| A VEICULAR, EM VEICULAÇÃO, CHECKING, AGUARD. DOC. VEÍCULO |
+
+Identidade garantida: **Em Aberto = Vendas − Faturado**.
+CANCELADO e BONIFICADO ficam fora de qualquer soma (apenas contagem).
 
 Todas as funções:
 - operam sobre o DataFrame já limpo por cleaning.limpar_dataframe
 - recalculam tudo a partir das linhas brutas tratadas — nenhum total
-  pré-calculado da planilha é lido (decisão 16)
+  pré-calculado da planilha é lido
 - aceitam os dois toggles oficiais:
     * valor: "liquido" (padrão) ou "bruto"
     * criterio_mes: "ganho" (padrão) ou "veiculacao"
-  Os comparativos (YTD e mês a mês) recalculam sobre o toggle ativo
-  (decisão 26), nunca ficam fixos numa combinação só.
+  Os comparativos (YTD e mês a mês) recalculam sobre o toggle ativo.
 
-Classificação de status (documento 02):
-- Faturamento Realizado = FATURADO + DIRETO
-- Pipeline em Aberto    = CHECKING + AGUARD. DOC. VEÍCULO (exibido separado)
-- Fora do cálculo       = CANCELADO, BONIFICADO, SEM_STATUS
+As métricas derivadas (YTD, evolução mensal, Ticket Médio, Quantidade de
+Campanhas, rankings e agregações) usam a base **Vendas**, coerente com o
+indicador principal da visão comercial.
 """
 
 from __future__ import annotations
@@ -53,10 +64,13 @@ COLUNAS_MES: dict[str, str] = {
     "veiculacao": COL_MES_VEICULACAO_DATA,
 }
 
-#: Buckets oficiais de status (documento 02)
-STATUS_REALIZADO = frozenset({"FATURADO", "DIRETO"})
-STATUS_PIPELINE = frozenset({"CHECKING", "AGUARD. DOC. VEÍCULO"})
-STATUS_FORA_DO_CALCULO = frozenset({"CANCELADO", "BONIFICADO", "SEM_STATUS"})
+#: Buckets oficiais (regra comercial de 2026-07-09)
+STATUS_FATURADO = frozenset({"FATURADO", "DIRETO"})
+STATUS_EM_ABERTO = frozenset(
+    {"A VEICULAR", "EM VEICULAÇÃO", "CHECKING", "AGUARD. DOC. VEÍCULO"}
+)
+STATUS_VENDAS = STATUS_FATURADO | STATUS_EM_ABERTO
+STATUS_FORA_DO_CALCULO = frozenset({"CANCELADO", "BONIFICADO"})
 
 
 def coluna_valor(valor: Valor = "liquido") -> str:
@@ -73,80 +87,82 @@ def coluna_mes(criterio_mes: CriterioMes = "ganho") -> str:
     return COLUNAS_MES[criterio_mes]
 
 
-def mascara_realizado(df: pd.DataFrame) -> pd.Series:
-    """Linhas classificadas como Faturamento Realizado (FATURADO + DIRETO)."""
-    return df[COL_STATUS].isin(STATUS_REALIZADO)
+def mascara_vendas(df: pd.DataFrame) -> pd.Series:
+    """Linhas classificadas como Vendas (tudo exceto cancelado/bonificado
+    e status fora do vocabulário)."""
+    return df[COL_STATUS].isin(STATUS_VENDAS)
 
 
-def mascara_pipeline(df: pd.DataFrame) -> pd.Series:
-    """Linhas classificadas como Pipeline em Aberto."""
-    return df[COL_STATUS].isin(STATUS_PIPELINE)
+def mascara_faturado(df: pd.DataFrame) -> pd.Series:
+    """Linhas já faturadas (FATURADO + DIRETO)."""
+    return df[COL_STATUS].isin(STATUS_FATURADO)
+
+
+def mascara_em_aberto(df: pd.DataFrame) -> pd.Series:
+    """Linhas vendidas e ainda não faturadas."""
+    return df[COL_STATUS].isin(STATUS_EM_ABERTO)
 
 
 # ---------------------------------------------------------------------------
-# KPIs principais
+# Indicadores principais
 # ---------------------------------------------------------------------------
 
-def faturamento_realizado(df: pd.DataFrame, valor: Valor = "liquido") -> float:
-    """Faturamento Realizado = soma de FATURADO + DIRETO no recorte."""
-    return float(df.loc[mascara_realizado(df), coluna_valor(valor)].sum())
+def vendas(df: pd.DataFrame, valor: Valor = "liquido") -> float:
+    """Vendas = soma dos 6 status de venda, no recorte de filtros."""
+    return float(df.loc[mascara_vendas(df), coluna_valor(valor)].sum())
 
 
-def faturamento_realizado_detalhado(
-    df: pd.DataFrame, valor: Valor = "liquido"
-) -> dict[str, float]:
-    """Faturamento Realizado com a etiqueta secundária de vendas DIRETO.
+def faturado(df: pd.DataFrame, valor: Valor = "liquido") -> float:
+    """Faturado = soma de FATURADO + DIRETO."""
+    return float(df.loc[mascara_faturado(df), coluna_valor(valor)].sum())
 
-    O valor originado de DIRETO é identificado separadamente porque não
-    carrega comissão de agência (documento 02).
+
+def em_aberto(df: pd.DataFrame, valor: Valor = "liquido") -> float:
+    """Em Aberto = campanhas vendidas ainda não faturadas.
+
+    Por construção dos buckets, equivale a Vendas − Faturado.
     """
-    col = coluna_valor(valor)
-    realizado = df[mascara_realizado(df)]
-    direto = float(realizado.loc[realizado[COL_STATUS] == "DIRETO", col].sum())
-    total = float(realizado[col].sum())
-    return {"total": total, "direto": direto, "faturado": total - direto}
+    return float(df.loc[mascara_em_aberto(df), coluna_valor(valor)].sum())
 
 
-def pipeline_em_aberto(df: pd.DataFrame, valor: Valor = "liquido") -> float:
-    """Pipeline em Aberto = soma de CHECKING + AGUARD. DOC. VEÍCULO.
-
-    Exibido sempre separado do Faturamento Realizado, nunca somado a ele.
-    """
-    return float(df.loc[mascara_pipeline(df), coluna_valor(valor)].sum())
+def vendas_detalhado(df: pd.DataFrame, valor: Valor = "liquido") -> dict[str, float]:
+    """Vendas com a decomposição oficial: total, faturado e em aberto."""
+    total = vendas(df, valor)
+    ja_faturado = faturado(df, valor)
+    return {
+        "total": total,
+        "faturado": ja_faturado,
+        "em_aberto": total - ja_faturado,
+    }
 
 
 def ticket_medio(df: pd.DataFrame, valor: Valor = "liquido") -> Optional[float]:
-    """Ticket Médio = Faturamento Realizado ÷ quantidade de PIs realizados.
+    """Ticket Médio = Vendas ÷ quantidade de PIs na base Vendas.
 
-    Retorna None quando não há PI realizado no recorte (a interface exibe
+    Retorna None quando não há PI no recorte (a interface exibe
     "Sem dados no recorte selecionado", nunca erro de divisão por zero).
     """
-    realizado = df[mascara_realizado(df)]
-    if realizado.empty:
+    base = df[mascara_vendas(df)]
+    if base.empty:
         return None
-    return float(realizado[coluna_valor(valor)].sum()) / len(realizado)
+    return float(base[coluna_valor(valor)].sum()) / len(base)
 
 
 def quantidade_campanhas(df: pd.DataFrame) -> int:
-    """Quantidade de Campanhas = combinações distintas de Cliente + Campanha.
-
-    Considera APENAS linhas de Faturamento Realizado (decisão 27): campanhas
-    que existem só em Pipeline não entram, porque o KPI mede volume
-    operacional já concretizado.
-    """
-    realizado = df[mascara_realizado(df)]
-    if realizado.empty:
+    """Quantidade de Campanhas = combinações distintas de Cliente + Campanha
+    na base Vendas (cancelados/bonificados fora)."""
+    base = df[mascara_vendas(df)]
+    if base.empty:
         return 0
-    return int(realizado[[COL_CLIENTE, COL_CAMPANHA]].drop_duplicates().shape[0])
+    return int(base[[COL_CLIENTE, COL_CAMPANHA]].drop_duplicates().shape[0])
 
 
 def cancelado_bonificado(df: pd.DataFrame) -> dict[str, float]:
-    """Indicador de Cancelado/Bonificado como CONTAGEM de PIs (documento 02).
+    """Indicador de Cancelado/Bonificado como CONTAGEM de PIs.
 
-    Não é soma monetária: na base real esses status já vêm com valor zerado.
-    O valor monetário eventualmente diferente de zero (situação excepcional,
-    coberta pelo alerta 5 de qualidade) é retornado como informação
-    secundária, nunca como número principal do bloco.
+    Não é soma monetária: esses status vêm com valor zerado na origem.
+    O valor eventualmente diferente de zero (excepcional, coberto pelo
+    alerta de qualidade) é retornado como informação secundária.
     """
     cancelados = df[df[COL_STATUS] == "CANCELADO"]
     bonificados = df[df[COL_STATUS] == "BONIFICADO"]
@@ -164,19 +180,19 @@ def cancelado_bonificado(df: pd.DataFrame) -> dict[str, float]:
 
 
 # ---------------------------------------------------------------------------
-# Séries temporais e comparativos
+# Séries temporais e comparativos (base Vendas)
 # ---------------------------------------------------------------------------
 
-def _realizado_do_ano(
+def _vendas_do_ano(
     df: pd.DataFrame, ano: int, criterio_mes: CriterioMes
 ) -> pd.DataFrame:
-    """Linhas de Faturamento Realizado cujo mês (no critério ativo) cai no ano.
+    """Linhas da base Vendas cujo mês (no critério ativo) cai no ano.
 
     Linhas com mês inválido/não preenchido (NaT) ficam fora das métricas
     temporais — elas continuam contando nos KPIs não temporais.
     """
     col_mes = coluna_mes(criterio_mes)
-    base = df[mascara_realizado(df)]
+    base = df[mascara_vendas(df)]
     return base[base[col_mes].dt.year == ano]
 
 
@@ -186,18 +202,33 @@ def evolucao_mensal(
     valor: Valor = "liquido",
     criterio_mes: CriterioMes = "ganho",
 ) -> dict[int, float]:
-    """Faturamento Realizado por mês do ano selecionado.
+    """Vendas por mês do ano selecionado.
 
     Retorna {número do mês: valor} APENAS para meses com dado. Meses sem
     dado (incluindo meses futuros) não aparecem no dicionário — a camada de
-    gráfico os renderiza como lacuna, nunca como zero (documento 02).
+    gráfico os renderiza como lacuna, nunca como zero.
     """
-    recorte = _realizado_do_ano(df, ano, criterio_mes)
+    recorte = _vendas_do_ano(df, ano, criterio_mes)
     if recorte.empty:
         return {}
     serie = recorte.groupby(recorte[coluna_mes(criterio_mes)].dt.month)[
         coluna_valor(valor)
     ].sum()
+    return {int(mes): float(v) for mes, v in serie.items()}
+
+
+def evolucao_mensal_ticket_medio(
+    df: pd.DataFrame,
+    ano: int,
+    valor: Valor = "liquido",
+    criterio_mes: CriterioMes = "ganho",
+) -> dict[int, float]:
+    """Ticket Médio (base Vendas) mês a mês, com lacuna em mês sem dado."""
+    recorte = _vendas_do_ano(df, ano, criterio_mes)
+    if recorte.empty:
+        return {}
+    grupos = recorte.groupby(recorte[coluna_mes(criterio_mes)].dt.month)
+    serie = grupos[coluna_valor(valor)].sum() / grupos.size()
     return {int(mes): float(v) for mes, v in serie.items()}
 
 
@@ -232,10 +263,10 @@ def ytd(
     valor: Valor = "liquido",
     criterio_mes: CriterioMes = "ganho",
 ) -> dict[str, Optional[float]]:
-    """YTD: acumulado de janeiro até o último mês com dado no ano selecionado,
-    comparado ao MESMO intervalo do ano anterior.
+    """YTD de Vendas: acumulado de janeiro até o último mês com dado no ano
+    selecionado, comparado ao MESMO intervalo do ano anterior.
 
-    Nunca compara ano parcial atual com ano completo anterior (documento 02).
+    Nunca compara ano parcial atual com ano completo anterior.
 
     Retorno:
     - "atual": soma do ano selecionado até o mês limite
@@ -244,7 +275,7 @@ def ytd(
     - "variacao_pct": percentual de variação, ou None quando não calculável
     - "mes_limite": último mês com dado no ano selecionado, ou None
     """
-    recorte_atual = _realizado_do_ano(df, ano, criterio_mes)
+    recorte_atual = _vendas_do_ano(df, ano, criterio_mes)
     col_mes = coluna_mes(criterio_mes)
     col_val = coluna_valor(valor)
 
@@ -255,7 +286,7 @@ def ytd(
         mes_limite = int(recorte_atual[col_mes].dt.month.max())
         total_atual = float(recorte_atual[col_val].sum())
 
-    recorte_anterior = _realizado_do_ano(df, ano - 1, criterio_mes)
+    recorte_anterior = _vendas_do_ano(df, ano - 1, criterio_mes)
     if recorte_anterior.empty:
         # Sem dado algum do ano anterior: "sem comparativo disponível"
         return {
@@ -296,21 +327,21 @@ def agregado_por_grupo_veiculo(
 ) -> pd.DataFrame:
     """Agregação SEMPRE pela dupla Grupo + Veículo, nunca veículo isolado.
 
-    Motivo (documento 02): existem veículos com o mesmo nome comercial em
-    grupos diferentes; agregar só pelo nome misturaria entidades distintas.
+    Motivo: existem veículos com o mesmo nome comercial em grupos
+    diferentes; agregar só pelo nome misturaria entidades distintas.
 
-    Retorna, por par Grupo+Veículo (apenas Faturamento Realizado):
-    faturamento bruto, líquido, ticket médio, quantidade de PIs e % do total
-    (calculado sobre o toggle de valor ativo).
+    Retorna, por par Grupo+Veículo (base Vendas): vendas bruto, vendas
+    líquido, ticket médio, quantidade de PIs e % do total (calculado sobre
+    o toggle de valor ativo).
     """
-    realizado = df[mascara_realizado(df)]
-    if realizado.empty:
+    base = df[mascara_vendas(df)]
+    if base.empty:
         return pd.DataFrame(
             columns=[
                 COL_GRUPO,
                 COL_VEICULO,
-                "faturamento_bruto",
-                "faturamento_liquido",
+                "vendas_bruto",
+                "vendas_liquido",
                 "ticket_medio",
                 "qtd_pis",
                 "pct_do_total",
@@ -318,16 +349,14 @@ def agregado_por_grupo_veiculo(
         )
 
     agg = (
-        realizado.groupby([COL_GRUPO, COL_VEICULO], as_index=False)
+        base.groupby([COL_GRUPO, COL_VEICULO], as_index=False)
         .agg(
-            faturamento_bruto=(COL_VALOR_BRUTO, "sum"),
-            faturamento_liquido=(COL_VALOR_LIQUIDO, "sum"),
+            vendas_bruto=(COL_VALOR_BRUTO, "sum"),
+            vendas_liquido=(COL_VALOR_LIQUIDO, "sum"),
             qtd_pis=(COL_STATUS, "size"),
         )
     )
-    col_ref = (
-        "faturamento_liquido" if valor == "liquido" else "faturamento_bruto"
-    )
+    col_ref = "vendas_liquido" if valor == "liquido" else "vendas_bruto"
     agg["ticket_medio"] = agg[col_ref] / agg["qtd_pis"]
     total = agg[col_ref].sum()
     agg["pct_do_total"] = (agg[col_ref] / total * 100.0) if total else 0.0
@@ -335,36 +364,35 @@ def agregado_por_grupo_veiculo(
 
 
 def veiculos_ativos(df: pd.DataFrame) -> int:
-    """Veículos Ativos = pares Grupo+Veículo com >=1 PI em Faturamento Realizado."""
-    realizado = df[mascara_realizado(df)]
-    if realizado.empty:
+    """Veículos Ativos = pares Grupo+Veículo com >=1 PI na base Vendas."""
+    base = df[mascara_vendas(df)]
+    if base.empty:
         return 0
-    return int(realizado[[COL_GRUPO, COL_VEICULO]].drop_duplicates().shape[0])
+    return int(base[[COL_GRUPO, COL_VEICULO]].drop_duplicates().shape[0])
 
 
 # ---------------------------------------------------------------------------
-# Agregações de apresentação (consumidas pela interface — documento 04).
-# Nenhuma regra de negócio nova: apenas reorganizam os mesmos buckets e
-# toggles oficiais para os gráficos e rankings dos wireframes.
+# Agregações de apresentação (consumidas pela interface)
 # ---------------------------------------------------------------------------
 
-#: Ordem oficial de exibição dos status (documento 04, gráfico por status)
+#: Ordem oficial de exibição dos status (ciclo de vida comercial)
 ORDEM_STATUS = [
-    "FATURADO",
-    "DIRETO",
+    "A VEICULAR",
+    "EM VEICULAÇÃO",
     "CHECKING",
     "AGUARD. DOC. VEÍCULO",
+    "FATURADO",
+    "DIRETO",
     "CANCELADO",
     "BONIFICADO",
-    "SEM_STATUS",
 ]
 
 
 def resumo_por_status(df: pd.DataFrame, valor: Valor = "liquido") -> pd.DataFrame:
     """Valor e contagem de PIs por status, na ordem oficial de exibição.
 
-    Alimenta o gráfico de saúde da carteira da página Analítico Faturamento
-    (documento 04). Status sem ocorrência no recorte não aparecem.
+    Alimenta o gráfico de saúde da carteira da página Analítico Comercial.
+    Status sem ocorrência no recorte não aparecem.
     """
     col = coluna_valor(valor)
     if df.empty:
@@ -379,46 +407,26 @@ def resumo_por_status(df: pd.DataFrame, valor: Valor = "liquido") -> pd.DataFram
     return agg.sort_values("_ordem").drop(columns="_ordem").reset_index(drop=True)
 
 
-def evolucao_mensal_ticket_medio(
-    df: pd.DataFrame,
-    ano: int,
-    valor: Valor = "liquido",
-    criterio_mes: CriterioMes = "ganho",
-) -> dict[int, float]:
-    """Ticket Médio por mês do ano selecionado (documento 04, página 1).
-
-    Mesma definição oficial do Ticket Médio (Faturamento Realizado ÷ PIs
-    realizados), aplicada mês a mês. Meses sem dado não aparecem no
-    dicionário (lacuna no gráfico, nunca zero).
-    """
-    recorte = _realizado_do_ano(df, ano, criterio_mes)
-    if recorte.empty:
-        return {}
-    grupos = recorte.groupby(recorte[coluna_mes(criterio_mes)].dt.month)
-    serie = grupos[coluna_valor(valor)].sum() / grupos.size()
-    return {int(mes): float(v) for mes, v in serie.items()}
-
-
 def agregado_por_dimensao(
     df: pd.DataFrame, coluna: str, valor: Valor = "liquido"
 ) -> pd.DataFrame:
-    """Faturamento Realizado agregado por uma dimensão (Agência, Cliente...).
+    """Vendas agregadas por uma dimensão (Grupo, Agência, Cliente...).
 
-    Alimenta os rankings Top 5 e completos dos wireframes. Apenas linhas de
-    Faturamento Realizado, ordenado do maior para o menor. Para veículo,
-    usar SEMPRE agregado_por_grupo_veiculo (decisão 15), nunca esta função.
+    Alimenta os rankings Top 5 e completos. Base Vendas, ordenado do maior
+    para o menor. Para veículo, usar SEMPRE agregado_por_grupo_veiculo
+    (decisão 15), nunca esta função.
     """
     if coluna == COL_VEICULO:
         raise ValueError(
             "Agregação por veículo deve usar agregado_por_grupo_veiculo "
             "(sempre Grupo + Veículo, nunca veículo isolado — decisão 15)."
         )
-    realizado = df[mascara_realizado(df)]
-    if realizado.empty:
+    base = df[mascara_vendas(df)]
+    if base.empty:
         return pd.DataFrame(columns=[coluna, "valor", "qtd_pis"])
     col = coluna_valor(valor)
     agg = (
-        realizado.groupby(coluna)
+        base.groupby(coluna)
         .agg(valor=(col, "sum"), qtd_pis=(coluna, "size"))
         .reset_index()
     )
