@@ -46,25 +46,39 @@ def card_moeda(
         st.caption(legenda)
 
 
-def card_ytd(titulo: str, ytd_resultado: dict) -> None:
+#: Abreviações de mês para o rótulo do período comparado
+_MESES_ABREV = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
+                "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+
+
+def rotulo_periodo(mes_limite: int, ano: int) -> str:
+    """Rótulo do intervalo comparado: "Jan–Jul/2025" ou "Jan–Dez/2025"."""
+    return f"Jan–{_MESES_ABREV[mes_limite - 1]}/{ano}"
+
+
+def card_ytd(titulo: str, ytd_resultado: dict, ano: int) -> None:
     """Card do KPI principal de YTD (documento 04, página 1).
 
     Exibe o acumulado do ano e a variação contra o mesmo intervalo do ano
-    anterior. Sem dado do ano anterior -> "sem comparativo disponível".
+    anterior, com o período comparado explícito no texto auxiliar
+    (ex: "vs Jan–Jul/2025" no ano corrente; "vs Jan–Dez/2024" em ano
+    encerrado). Sem dado do ano anterior -> "sem comparativo disponível".
     """
     variacao = ytd_resultado.get("variacao_pct")
+    mes_limite = ytd_resultado.get("mes_limite") or 12
     st.metric(
         titulo,
         formatar_moeda(ytd_resultado.get("atual", 0.0)),
         delta=formatar_pct(variacao) if variacao is not None else None,
     )
     anterior = ytd_resultado.get("anterior")
-    mes_limite = ytd_resultado.get("mes_limite")
+    periodo_atual = rotulo_periodo(mes_limite, ano)
     if anterior is None:
-        st.caption(SEM_COMPARATIVO)
+        st.caption(f"{periodo_atual} — {SEM_COMPARATIVO}")
     else:
+        periodo_anterior = rotulo_periodo(mes_limite, ano - 1)
         st.caption(
-            f"Ano anterior (jan–mês {mes_limite}): {formatar_moeda(anterior)}"
+            f"{periodo_atual} vs {periodo_anterior}: {formatar_moeda(anterior)}"
         )
 
 

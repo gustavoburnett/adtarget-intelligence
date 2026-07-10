@@ -50,6 +50,7 @@ def render(df: pd.DataFrame) -> None:
         cards.card_ytd(
             "YTD vs Ano Anterior",
             metrics.ytd(df_dim, ano, valor, criterio_mes),
+            ano,
         )
     with c3:
         cards.card_moeda("Ticket Médio", metrics.ticket_medio(df_ano, valor))

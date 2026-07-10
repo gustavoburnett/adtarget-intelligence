@@ -36,7 +36,7 @@ Regras explícitas:
 
 | Comparativo | Onde aparece | Lógica de cálculo |
 |---|---|---|
-| **YTD (acumulado no ano)** | KPI principal da página Performance Comercial | Soma de Vendas de janeiro até o último mês com dado no ano selecionado, comparado ao mesmo intervalo (janeiro até o mês equivalente) do ano anterior. Nunca compara ano parcial atual com ano completo anterior. |
+| **YTD (acumulado no ano)** | KPI principal da página Performance Comercial | **Ano corrente**: soma de Vendas de janeiro até o MÊS ATUAL, comparada ao mesmo intervalo do ano anterior (ex: em julho/2026, Jan–Jul/2026 vs Jan–Jul/2025); meses futuros do ano corrente, como veiculações já agendadas, ficam fora. **Ano encerrado**: ano completo (Jan–Dez) contra o ano anterior completo. Nunca compara ano parcial atual com ano completo anterior. O texto auxiliar do card exibe o período comparado. *(Regra refinada em 2026-07-10; até então o limite era o último mês com dado.)* |
 | **Mês a mês** | Gráfico de evolução mensal | Cada mês do ano selecionado comparado isoladamente ao mesmo mês do ano anterior (Jan vs Jan, Fev vs Fev...), sem acumular. |
 
 ## Comportamento dos filtros (regra transversal, válida nas 3 páginas)

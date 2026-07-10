@@ -30,6 +30,7 @@ indicador principal da visão comercial.
 
 from __future__ import annotations
 
+import datetime as _dt
 from typing import Literal, Optional
 
 import pandas as pd
@@ -278,29 +279,42 @@ def ytd(
     ano: int,
     valor: Valor = "liquido",
     criterio_mes: CriterioMes = CRITERIO_MES_OFICIAL,
+    hoje: Optional[_dt.date] = None,
 ) -> dict[str, Optional[float]]:
-    """YTD de Vendas: acumulado de janeiro até o último mês com dado no ano
-    selecionado, comparado ao MESMO intervalo do ano anterior.
+    """YTD de Vendas em intervalo comparável.
 
-    Nunca compara ano parcial atual com ano completo anterior.
+    Regra do mês limite:
+    - **Ano selecionado é o ano corrente**: acumulado de janeiro até o MÊS
+      ATUAL (hoje), comparado ao mesmo intervalo do ano anterior. Ex: em
+      julho/2026, Jan–Jul/2026 vs Jan–Jul/2025. Meses futuros do ano
+      corrente (ex: veiculações já agendadas) ficam FORA do acumulado.
+    - **Ano encerrado (ou futuro)**: ano completo (Jan–Dez) contra o ano
+      anterior completo.
+
+    Nunca compara ano parcial atual com ano completo anterior. O parâmetro
+    ``hoje`` existe para testes determinísticos; em produção usa a data
+    corrente.
 
     Retorno:
     - "atual": soma do ano selecionado até o mês limite
     - "anterior": soma do ano anterior no mesmo intervalo, ou None quando
       não existe nenhum dado do ano anterior ("sem comparativo disponível")
     - "variacao_pct": percentual de variação, ou None quando não calculável
-    - "mes_limite": último mês com dado no ano selecionado, ou None
+    - "mes_limite": mês final do intervalo comparado (mês atual no ano
+      corrente; 12 em ano encerrado)
     """
-    recorte_atual = _vendas_do_ano(df, ano, criterio_mes)
+    hoje = hoje or _dt.date.today()
+    mes_limite = hoje.month if ano == hoje.year else 12
+
     col_mes = coluna_mes(criterio_mes)
     col_val = coluna_valor(valor)
 
-    if recorte_atual.empty:
-        mes_limite: Optional[int] = None
-        total_atual = 0.0
-    else:
-        mes_limite = int(recorte_atual[col_mes].dt.month.max())
-        total_atual = float(recorte_atual[col_val].sum())
+    recorte_atual = _vendas_do_ano(df, ano, criterio_mes)
+    total_atual = float(
+        recorte_atual.loc[
+            recorte_atual[col_mes].dt.month <= mes_limite, col_val
+        ].sum()
+    )
 
     recorte_anterior = _vendas_do_ano(df, ano - 1, criterio_mes)
     if recorte_anterior.empty:
@@ -312,13 +326,11 @@ def ytd(
             "mes_limite": mes_limite,
         }
 
-    if mes_limite is None:
-        total_anterior = 0.0
-    else:
-        comparavel = recorte_anterior[
-            recorte_anterior[col_mes].dt.month <= mes_limite
-        ]
-        total_anterior = float(comparavel[col_val].sum())
+    total_anterior = float(
+        recorte_anterior.loc[
+            recorte_anterior[col_mes].dt.month <= mes_limite, col_val
+        ].sum()
+    )
 
     variacao: Optional[float]
     if total_anterior == 0.0:

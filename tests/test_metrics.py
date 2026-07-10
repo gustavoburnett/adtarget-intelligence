@@ -18,11 +18,17 @@ A base sintética reproduz os casos extremos reais da planilha:
 - status fora do vocabulário controlado
 """
 
+import datetime
+
 import pandas as pd
 import pytest
 
 from src.data import metrics, quality_checks
 from src.data.cleaning import limpar_dataframe
+
+#: Data de referência fixa para testes de YTD (determinístico, sem relógio)
+HOJE_JUL_2026 = datetime.date(2026, 7, 15)
+HOJE_MAR_2026 = datetime.date(2026, 3, 15)
 
 
 # ---------------------------------------------------------------------------
@@ -284,10 +290,10 @@ class TestToggleMes:
 
 class TestYTD:
     def test_ytd_2026_intervalo_comparavel(self, df):
-        """2026 tem dado até maio: compara Jan-Mai 2026 x Jan-Mai 2025,
-        nunca ano parcial contra ano completo."""
-        resultado = metrics.ytd(df, 2026, criterio_mes="ganho")
-        assert resultado["mes_limite"] == 5
+        """Ano corrente (hoje = jul/2026): compara Jan-Jul 2026 x Jan-Jul
+        2025, nunca ano parcial contra ano completo."""
+        resultado = metrics.ytd(df, 2026, criterio_mes="ganho", hoje=HOJE_JUL_2026)
+        assert resultado["mes_limite"] == 7
         assert resultado["atual"] == pytest.approx(24800.0)
         assert resultado["anterior"] == pytest.approx(31400.0)  # 8000+16000+5000+2400
         assert resultado["variacao_pct"] == pytest.approx(
@@ -295,14 +301,19 @@ class TestYTD:
         )
 
     def test_ytd_recalcula_sobre_toggle_bruto(self, df):
-        resultado = metrics.ytd(df, 2026, valor="bruto", criterio_mes="ganho")
+        resultado = metrics.ytd(
+            df, 2026, valor="bruto", criterio_mes="ganho", hoje=HOJE_JUL_2026
+        )
         assert resultado["atual"] == pytest.approx(30000.0)
         assert resultado["anterior"] == pytest.approx(38000.0)
 
     def test_ytd_recalcula_sobre_toggle_veiculacao(self, df):
-        """Com MÊS (VEICULAÇÃO): PI 1002 sai de Fev p/ Jun/2025, fora do
-        intervalo Jan-Mai -> ano anterior cai para 15.400."""
-        resultado = metrics.ytd(df, 2026, criterio_mes="veiculacao")
+        """Com MÊS (VEICULAÇÃO) e hoje = mai/2026: PI 1002 (veic Jun/2025)
+        fica fora do intervalo Jan-Mai -> ano anterior cai para 15.400."""
+        resultado = metrics.ytd(
+            df, 2026, criterio_mes="veiculacao",
+            hoje=datetime.date(2026, 5, 20),
+        )
         assert resultado["mes_limite"] == 5
         assert resultado["atual"] == pytest.approx(24800.0)
         assert resultado["anterior"] == pytest.approx(15400.0)  # 8000+5000+2400
@@ -310,7 +321,7 @@ class TestYTD:
     def test_ytd_sem_ano_anterior(self, df):
         """2025 é o primeiro ano da base: 'sem comparativo disponível',
         nunca erro ou divisão por zero."""
-        resultado = metrics.ytd(df, 2025, criterio_mes="ganho")
+        resultado = metrics.ytd(df, 2025, criterio_mes="ganho", hoje=HOJE_JUL_2026)
         assert resultado["atual"] == pytest.approx(31400.0)
         assert resultado["anterior"] is None
         assert resultado["variacao_pct"] is None
@@ -319,6 +330,51 @@ class TestYTD:
         resultado = metrics.ytd(df, 2030)
         assert resultado["atual"] == 0.0
         assert resultado["variacao_pct"] is None
+
+
+class TestYTDAnoCorrenteVsEncerrado:
+    """Regra do YTD verdadeiro: ano corrente corta no mês atual;
+    ano encerrado compara ano completo contra ano completo."""
+
+    def test_ano_corrente_corta_no_mes_atual_ganho(self, df):
+        """Hoje = mar/2026: Jan-Mar/2026 x Jan-Mar/2025 (critério Ganho)."""
+        resultado = metrics.ytd(df, 2026, criterio_mes="ganho", hoje=HOJE_MAR_2026)
+        assert resultado["mes_limite"] == 3
+        assert resultado["atual"] == pytest.approx(21600.0)   # 9600+6400+5600
+        assert resultado["anterior"] == pytest.approx(29000.0)  # 8000+16000+5000
+
+    def test_ano_corrente_corta_no_mes_atual_veiculacao(self, df):
+        """Hoje = mar/2026: Jan-Mar/2026 x Jan-Mar/2025 (critério oficial,
+        Veiculação)."""
+        resultado = metrics.ytd(
+            df, 2026, criterio_mes="veiculacao", hoje=HOJE_MAR_2026
+        )
+        assert resultado["mes_limite"] == 3
+        assert resultado["atual"] == pytest.approx(21600.0)   # 16000 (Fev) + 5600 (Mar)
+        assert resultado["anterior"] == pytest.approx(13000.0)  # 8000 (Jan) + 5000 (Mar)
+
+    def test_ano_corrente_exclui_meses_futuros(self, df):
+        """Vendas com mês além do mês atual (ex: veiculações agendadas para
+        Abr/Mai) NÃO entram no acumulado do ano corrente."""
+        resultado = metrics.ytd(
+            df, 2026, criterio_mes="veiculacao", hoje=HOJE_MAR_2026
+        )
+        assert resultado["atual"] == pytest.approx(21600.0)  # sem 800 (Abr) e 2400 (Mai)
+
+    def test_ano_encerrado_compara_ano_completo_ganho(self, df):
+        """2025 encerrado (hoje em 2026): Jan-Dez/2025 x Jan-Dez/2024."""
+        resultado = metrics.ytd(df, 2025, criterio_mes="ganho", hoje=HOJE_JUL_2026)
+        assert resultado["mes_limite"] == 12
+        assert resultado["atual"] == pytest.approx(31400.0)  # ano completo
+
+    def test_ano_encerrado_compara_ano_completo_veiculacao(self, df):
+        """Ano encerrado no critério oficial: Jun/2025 (16.000) INCLUÍDO —
+        nada do ano encerrado fica de fora."""
+        resultado = metrics.ytd(
+            df, 2025, criterio_mes="veiculacao", hoje=HOJE_JUL_2026
+        )
+        assert resultado["mes_limite"] == 12
+        assert resultado["atual"] == pytest.approx(31400.0)  # 8000+5000+2400+16000
 
 
 # ---------------------------------------------------------------------------
