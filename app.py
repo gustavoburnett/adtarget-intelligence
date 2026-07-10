@@ -16,6 +16,7 @@ import streamlit as st
 from pages_content import (
     analitico_comercial,
     analitico_veiculos,
+    auditoria_vendas,  # TEMPORÁRIO: remover junto com a aba de auditoria
     performance_comercial,
 )
 from src.auth.gate import exigir_autenticacao
@@ -80,8 +81,16 @@ except ErroDeCarga as erro:
 dados = limpar_dataframe(dados_brutos)
 
 # ---------------------------------------------------------------- páginas
-aba1, aba2, aba3 = st.tabs(
-    ["Performance Comercial", "Analítico Comercial", "Analítico Veículos"]
+# A 4ª aba é uma FERRAMENTA TEMPORÁRIA de diagnóstico (auditoria de
+# Vendas 2026). Remover a aba, o import acima, pages_content/
+# auditoria_vendas.py e src/data/auditoria.py após o fechamento.
+aba1, aba2, aba3, aba4 = st.tabs(
+    [
+        "Performance Comercial",
+        "Analítico Comercial",
+        "Analítico Veículos",
+        "🔧 Auditoria de Vendas 2026",
+    ]
 )
 with aba1:
     performance_comercial.render(dados)
@@ -89,3 +98,5 @@ with aba2:
     analitico_comercial.render(dados)
 with aba3:
     analitico_veiculos.render(dados)
+with aba4:
+    auditoria_vendas.render(dados)
