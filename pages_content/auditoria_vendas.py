@@ -38,7 +38,10 @@ def render(df: pd.DataFrame) -> None:
             "Vendas (indicador do sistema)",
             cards.formatar_moeda(resultado["vendas_sistema"]),
         )
-        st.caption("Base Vendas, MÊS (GANHO) dentro do ano — como no card")
+        st.caption(
+            f"Base Vendas, {auditoria.ROTULO_CRITERIO_OFICIAL} dentro do "
+            "ano — critério oficial, como no card"
+        )
     with c3:
         st.metric(
             "Diferença",
@@ -75,9 +78,10 @@ def render(df: pd.DataFrame) -> None:
         st.divider()
         st.subheader("Linhas de outras abas contadas pelo sistema no ano")
         st.caption(
-            f"PIs com MÊS (GANHO) em {_ANO_AUDITADO} lançados em outra aba: "
-            "entram no indicador do sistema, mas não na soma da aba "
-            f"{_ANO_AUDITADO}. Sem elas a conciliação não fecharia."
+            f"PIs com {auditoria.ROTULO_CRITERIO_OFICIAL} em {_ANO_AUDITADO} "
+            "lançados em outra aba: entram no indicador do sistema, mas não "
+            f"na soma da aba {_ANO_AUDITADO}. Sem elas a conciliação não "
+            "fecharia."
         )
         st.dataframe(
             outras[["PI", "CLIENTE", "CAMPANHA", "VALOR PI LIQUIDO",

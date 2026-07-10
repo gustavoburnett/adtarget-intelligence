@@ -42,3 +42,13 @@ Redefinição da regra comercial de indicadores e alinhamento de nomenclatura, d
 - **Métricas derivadas passam à base Vendas**: YTD, comparativo mês a mês, Ticket Médio, Quantidade de Campanhas, rankings (Top 5 e completos), Veículos Ativos e agregações por Grupo+Veículo e por dimensão.
 - **Nomenclatura comercial corrigida nas telas**: "Faturamento" substituído por "Vendas" nas páginas comerciais; página "Analítico Faturamento" renomeada para **"Analítico Comercial"**; títulos de gráficos atualizados (Evolução das Vendas; Vendas por Grupo; Vendas por Veículo; Vendas por Agência; Vendas por Cliente). Sem alteração de layout, identidade visual, filtros ou navegação.
 - Convenção da versão 0.2 mantida: nenhuma informação previamente aprovada foi removida dos documentos; regras superadas foram marcadas como históricas, com referência a esta versão.
+
+## Versão 0.4 (2026-07-10)
+
+Definição do critério temporal oficial do KPI de Vendas, estabelecida após a auditoria de dados, a validação da base e a confirmação da área de negócio. Supersede a decisão 12 (v0.1).
+
+- **REGRA OFICIAL: o indicador de Vendas utiliza MÊS (VEICULAÇÃO) como critério temporal.** Sempre que alguém perguntar "quanto vendemos em <ano>", a resposta oficial usa Veiculação. **Este é o KPI oficial da AdTarget.**
+- **MÊS (GANHO) permanece disponível apenas para análises alternativas**, através do toggle existente — a funcionalidade não foi removida.
+- **Regra única em todo o produto**: o padrão vale para todas as páginas (Performance Comercial, Analítico Comercial, Analítico Veículos e qualquer outra que exiba o indicador oficial), sem variação de comportamento entre telas.
+- **Fonte única de verdade**: a definição está centralizada na constante de negócio `CRITERIO_MES_OFICIAL` (`src/data/metrics.py`). Todas as funções de métrica usam essa constante como padrão e o toggle da interface inicializa a partir dela; a ferramenta temporária de auditoria segue o mesmo critério. Nenhum valor fixo espalhado pelo código.
+- Todos os indicadores que dependem do critério temporal (Vendas, Evolução das Vendas, YTD, Ticket Médio e sua evolução, Quantidade de Campanhas, Faturado, Em Aberto, rankings) permanecem calculados pelo mesmo pipeline e matematicamente consistentes entre si, verificado por testes automatizados e smoke test.

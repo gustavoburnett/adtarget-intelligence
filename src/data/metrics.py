@@ -19,7 +19,8 @@ Todas as funções:
   pré-calculado da planilha é lido
 - aceitam os dois toggles oficiais:
     * valor: "liquido" (padrão) ou "bruto"
-    * criterio_mes: "ganho" (padrão) ou "veiculacao"
+    * criterio_mes: CRITERIO_MES_OFICIAL ("veiculacao", regra oficial
+      v0.4) como padrão, "ganho" como análise alternativa
   Os comparativos (YTD e mês a mês) recalculam sobre o toggle ativo.
 
 As métricas derivadas (YTD, evolução mensal, Ticket Médio, Quantidade de
@@ -64,6 +65,21 @@ COLUNAS_MES: dict[str, str] = {
     "veiculacao": COL_MES_VEICULACAO_DATA,
 }
 
+#: REGRA OFICIAL DE NEGÓCIO (v0.4, 2026-07-10) — FONTE ÚNICA DE VERDADE.
+#: O KPI oficial de Vendas da AdTarget usa MÊS (VEICULAÇÃO) como critério
+#: temporal padrão, em todo o produto. MÊS (GANHO) permanece disponível
+#: apenas como análise alternativa, via toggle. Nenhum outro ponto do
+#: código define o critério padrão: toda função de métrica usa esta
+#: constante como default, e o toggle da interface inicializa a partir
+#: dela (src/components/filters.py).
+CRITERIO_MES_OFICIAL: CriterioMes = "veiculacao"
+
+#: Rótulos de exibição do critério temporal (uso em interface/relatórios)
+ROTULOS_CRITERIO_MES: dict[str, str] = {
+    "ganho": "Mês (Ganho)",
+    "veiculacao": "Mês (Veiculação)",
+}
+
 #: Buckets oficiais (regra comercial de 2026-07-09)
 STATUS_FATURADO = frozenset({"FATURADO", "DIRETO"})
 STATUS_EM_ABERTO = frozenset(
@@ -80,7 +96,7 @@ def coluna_valor(valor: Valor = "liquido") -> str:
     return COLUNAS_VALOR[valor]
 
 
-def coluna_mes(criterio_mes: CriterioMes = "ganho") -> str:
+def coluna_mes(criterio_mes: CriterioMes = CRITERIO_MES_OFICIAL) -> str:
     """Resolve o toggle de critério de mês para o nome da coluna."""
     if criterio_mes not in COLUNAS_MES:
         raise ValueError(f"Toggle de mês inválido: {criterio_mes!r}")
@@ -200,7 +216,7 @@ def evolucao_mensal(
     df: pd.DataFrame,
     ano: int,
     valor: Valor = "liquido",
-    criterio_mes: CriterioMes = "ganho",
+    criterio_mes: CriterioMes = CRITERIO_MES_OFICIAL,
 ) -> dict[int, float]:
     """Vendas por mês do ano selecionado.
 
@@ -221,7 +237,7 @@ def evolucao_mensal_ticket_medio(
     df: pd.DataFrame,
     ano: int,
     valor: Valor = "liquido",
-    criterio_mes: CriterioMes = "ganho",
+    criterio_mes: CriterioMes = CRITERIO_MES_OFICIAL,
 ) -> dict[int, float]:
     """Ticket Médio (base Vendas) mês a mês, com lacuna em mês sem dado."""
     recorte = _vendas_do_ano(df, ano, criterio_mes)
@@ -236,7 +252,7 @@ def comparativo_mensal(
     df: pd.DataFrame,
     ano: int,
     valor: Valor = "liquido",
-    criterio_mes: CriterioMes = "ganho",
+    criterio_mes: CriterioMes = CRITERIO_MES_OFICIAL,
 ) -> pd.DataFrame:
     """Comparativo mês a mês: cada mês do ano contra o mesmo mês do anterior.
 
@@ -261,7 +277,7 @@ def ytd(
     df: pd.DataFrame,
     ano: int,
     valor: Valor = "liquido",
-    criterio_mes: CriterioMes = "ganho",
+    criterio_mes: CriterioMes = CRITERIO_MES_OFICIAL,
 ) -> dict[str, Optional[float]]:
     """YTD de Vendas: acumulado de janeiro até o último mês com dado no ano
     selecionado, comparado ao MESMO intervalo do ano anterior.

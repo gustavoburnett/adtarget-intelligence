@@ -16,7 +16,7 @@ Este documento descreve KPIs, gráficos, filtros, tabelas e lógica de cálculo 
 
 ### Gráficos
 
-- **Evolução das Vendas**: linha do ano selecionado, com linha pontilhada do ano anterior no mesmo mês (comparativo mês a mês). Toggle de critério de data: MÊS (GANHO) como padrão, MÊS (VEICULAÇÃO) como alternativa. Toggle de métrica: Valor Líquido como padrão, Valor Bruto como alternativa.
+- **Evolução das Vendas**: linha do ano selecionado, com linha pontilhada do ano anterior no mesmo mês (comparativo mês a mês). Toggle de critério de data: **MÊS (VEICULAÇÃO) como padrão (critério oficial, v0.4)**, MÊS (GANHO) como análise alternativa. Toggle de métrica: Valor Líquido como padrão, Valor Bruto como alternativa.
   Decisão: identificar sazonalidade e comparar o ritmo do ano com o anterior.
 - **Evolução mensal do Ticket Médio**: mesmo critério de mês do gráfico anterior.
   Decisão: saber se o ticket está subindo, estável ou caindo mês a mês, independente do volume total.
@@ -97,7 +97,7 @@ Ano, Grupo, Agência, Cliente.
 
 - Toda agregação por veículo usa sempre Grupo + Veículo, nunca veículo isolado. O filtro de Veículo sempre exibe o rótulo como "Grupo — Veículo".
 - Métrica de valor padrão é sempre Valor Líquido, com opção de alternar para Valor Bruto em qualquer bloco monetário.
-- Critério de data padrão é sempre MÊS (GANHO), com opção de alternar para MÊS (VEICULAÇÃO). YTD e comparativo mês a mês recalculam sobre o toggle ativo.
+- Critério de data padrão é sempre **MÊS (VEICULAÇÃO)** (critério oficial do KPI de Vendas — v0.4), com opção de alternar para MÊS (GANHO) em análises específicas. Regra única em todas as páginas. YTD e comparativo mês a mês recalculam sobre o toggle ativo.
 - Nenhum total é lido de célula pré-calculada da planilha; tudo é recalculado a partir das linhas brutas tratadas.
 - Filtro Ano é de seleção única, com o ano mais recente disponível marcado por padrão; ano anterior é sempre calculado automaticamente (ano selecionado − 1). Demais filtros (Grupo, Veículo, Agência, Cliente, Status, Executivo) são de seleção múltipla, com todos os valores marcados por padrão.
 - Recorte de filtro sem nenhuma linha resultante exibe "R$ 0,00" ou "Sem dados no recorte selecionado", nunca erro.

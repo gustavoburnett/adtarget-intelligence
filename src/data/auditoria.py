@@ -17,7 +17,6 @@ import pandas as pd
 
 from src.data import metrics
 from src.data.cleaning import (
-    COL_MES_GANHO_DATA,
     COL_STATUS,
     COL_VALOR_LIQUIDO,
     STATUS_VALIDOS,
@@ -25,6 +24,11 @@ from src.data.cleaning import (
 from src.data.loader import COL_ANO_ABA
 
 COL_MOTIVO = "MOTIVO_EXCLUSAO"
+
+#: Rótulo do critério temporal oficial (fonte única: metrics.py)
+ROTULO_CRITERIO_OFICIAL = metrics.ROTULOS_CRITERIO_MES[
+    metrics.CRITERIO_MES_OFICIAL
+]
 
 #: Colunas exibidas na tabela de auditoria
 COLUNAS_RELATORIO = [
@@ -35,8 +39,9 @@ COLUNAS_RELATORIO = [
 def classificar_exclusao(linha: pd.Series, ano: int) -> Optional[str]:
     """Motivo pelo qual a linha NÃO entra em Vendas do ano; None se entra.
 
-    Espelha (sem redefinir) as regras vigentes da v0.3 e o recorte temporal
-    padrão do dashboard (MÊS GANHO dentro do ano selecionado).
+    Espelha (sem redefinir) as regras vigentes (buckets da v0.3) e o
+    recorte temporal OFICIAL do dashboard, lido de
+    metrics.CRITERIO_MES_OFICIAL (v0.4: Mês Veiculação).
     """
     status = linha[COL_STATUS]
     if status in metrics.STATUS_FORA_DO_CALCULO:
@@ -47,16 +52,17 @@ def classificar_exclusao(linha: pd.Series, ano: int) -> Optional[str]:
             f"Status '{rotulo}' não reconhecido pelo vocabulário oficial "
             "(alerta de qualidade nº 4) — fora de todos os indicadores"
         )
-    mes_ganho = linha[COL_MES_GANHO_DATA]
-    if pd.isna(mes_ganho):
+    mes_oficial = linha[metrics.coluna_mes(metrics.CRITERIO_MES_OFICIAL)]
+    if pd.isna(mes_oficial):
         return (
-            "MÊS (GANHO) vazio ou inválido — fora do recorte temporal "
-            "de qualquer ano no critério padrão"
+            f"{ROTULO_CRITERIO_OFICIAL.upper()} vazio ou inválido — fora do "
+            "recorte temporal de qualquer ano no critério oficial"
         )
-    if mes_ganho.year != ano:
+    if mes_oficial.year != ano:
         return (
-            f"MÊS (GANHO) = {mes_ganho.strftime('%m/%Y')} — fora do recorte "
-            f"de {ano} no critério padrão (Mês Ganho)"
+            f"{ROTULO_CRITERIO_OFICIAL.upper()} = "
+            f"{mes_oficial.strftime('%m/%Y')} — fora do recorte de {ano} "
+            f"no critério oficial ({ROTULO_CRITERIO_OFICIAL})"
         )
     return None
 
@@ -82,10 +88,11 @@ def auditar_vendas_ano(df: pd.DataFrame, ano: int) -> dict:
     total_aba = float(aba[COL_VALOR_LIQUIDO].sum())
 
     # Indicador do sistema calculado pela PRÓPRIA função oficial
-    # (metrics.vendas) sobre o mesmo recorte temporal do dashboard —
-    # nenhum cálculo paralelo nesta auditoria.
-    ganho_no_ano = df[COL_MES_GANHO_DATA].dt.year == ano
-    vendas_sistema = metrics.vendas(df[ganho_no_ano])
+    # (metrics.vendas) sobre o recorte temporal OFICIAL do dashboard
+    # (metrics.CRITERIO_MES_OFICIAL) — nenhum cálculo paralelo.
+    col_mes_oficial = metrics.coluna_mes(metrics.CRITERIO_MES_OFICIAL)
+    no_ano = df[col_mes_oficial].dt.year == ano
+    vendas_sistema = metrics.vendas(df[no_ano])
     na_base_vendas = metrics.mascara_vendas(df)
 
     if aba.empty:
@@ -94,7 +101,7 @@ def auditar_vendas_ano(df: pd.DataFrame, ano: int) -> dict:
         aba[COL_MOTIVO] = aba.apply(classificar_exclusao, axis=1, ano=ano)
         excluidas = aba[aba[COL_MOTIVO].notna()]
 
-    outras_abas = df[na_base_vendas & ganho_no_ano & (df[COL_ANO_ABA] != ano)]
+    outras_abas = df[na_base_vendas & no_ano & (df[COL_ANO_ABA] != ano)]
 
     total_excluidas = float(excluidas[COL_VALOR_LIQUIDO].sum())
     total_outras = float(outras_abas[COL_VALOR_LIQUIDO].sum())

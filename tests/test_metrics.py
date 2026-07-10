@@ -236,23 +236,23 @@ class TestQuantidadeCampanhas:
 
 class TestComparativoMensal:
     def test_evolucao_mensal_2026_ganho(self, df):
-        evolucao = metrics.evolucao_mensal(df, 2026)
+        evolucao = metrics.evolucao_mensal(df, 2026, criterio_mes="ganho")
         # Jan 9600 | Fev 6400 | Mar 4000+1600 | Abr 800 | Mai 2400
         assert evolucao == {1: 9600.0, 2: 6400.0, 3: 5600.0, 4: 800.0, 5: 2400.0}
 
     def test_mes_sem_dado_e_lacuna_nao_zero(self, df):
-        evolucao = metrics.evolucao_mensal(df, 2026)
+        evolucao = metrics.evolucao_mensal(df, 2026, criterio_mes="ganho")
         assert 6 not in evolucao  # mês futuro: lacuna, nunca 0.0
 
     def test_yoy_mesmo_mes(self, df):
-        comp = metrics.comparativo_mensal(df, 2026)
+        comp = metrics.comparativo_mensal(df, 2026, criterio_mes="ganho")
         assert comp.loc[1, "atual"] == pytest.approx(9600.0)
         assert comp.loc[1, "anterior"] == pytest.approx(8000.0)   # Jan/2025
         assert comp.loc[4, "atual"] == pytest.approx(800.0)
         assert comp.loc[4, "anterior"] == pytest.approx(2400.0)   # Abr/2025
 
     def test_yoy_lacunas_como_nan(self, df):
-        comp = metrics.comparativo_mensal(df, 2026)
+        comp = metrics.comparativo_mensal(df, 2026, criterio_mes="ganho")
         assert pd.isna(comp.loc[12, "atual"])
         assert pd.isna(comp.loc[12, "anterior"])
 
@@ -286,7 +286,7 @@ class TestYTD:
     def test_ytd_2026_intervalo_comparavel(self, df):
         """2026 tem dado até maio: compara Jan-Mai 2026 x Jan-Mai 2025,
         nunca ano parcial contra ano completo."""
-        resultado = metrics.ytd(df, 2026)
+        resultado = metrics.ytd(df, 2026, criterio_mes="ganho")
         assert resultado["mes_limite"] == 5
         assert resultado["atual"] == pytest.approx(24800.0)
         assert resultado["anterior"] == pytest.approx(31400.0)  # 8000+16000+5000+2400
@@ -295,7 +295,7 @@ class TestYTD:
         )
 
     def test_ytd_recalcula_sobre_toggle_bruto(self, df):
-        resultado = metrics.ytd(df, 2026, valor="bruto")
+        resultado = metrics.ytd(df, 2026, valor="bruto", criterio_mes="ganho")
         assert resultado["atual"] == pytest.approx(30000.0)
         assert resultado["anterior"] == pytest.approx(38000.0)
 
@@ -310,7 +310,7 @@ class TestYTD:
     def test_ytd_sem_ano_anterior(self, df):
         """2025 é o primeiro ano da base: 'sem comparativo disponível',
         nunca erro ou divisão por zero."""
-        resultado = metrics.ytd(df, 2025)
+        resultado = metrics.ytd(df, 2025, criterio_mes="ganho")
         assert resultado["atual"] == pytest.approx(31400.0)
         assert resultado["anterior"] is None
         assert resultado["variacao_pct"] is None
@@ -375,7 +375,7 @@ class TestAgregacoesDeApresentacao:
 
     def test_evolucao_ticket_medio_mensal(self, df):
         # 2026 ganho: Mar tem 2 PIs (4000+1600)/2 = 2800
-        ticket = metrics.evolucao_mensal_ticket_medio(df, 2026)
+        ticket = metrics.evolucao_mensal_ticket_medio(df, 2026, criterio_mes="ganho")
         assert ticket[1] == pytest.approx(9600.0)
         assert ticket[3] == pytest.approx(2800.0)
         assert 6 not in ticket  # lacuna, nunca zero
@@ -395,6 +395,51 @@ class TestAgregacoesDeApresentacao:
         """Decisão 15: veículo nunca é agregado isoladamente."""
         with pytest.raises(ValueError):
             metrics.agregado_por_dimensao(df, "VEICULO")
+
+
+# ---------------------------------------------------------------------------
+# Critério temporal oficial (regra v0.4: MÊS VEICULAÇÃO — fonte única)
+# ---------------------------------------------------------------------------
+
+class TestCriterioOficial:
+    def test_regra_oficial_e_veiculacao(self):
+        """REGRA OFICIAL v0.4: 'quanto vendemos' responde por Veiculação."""
+        assert metrics.CRITERIO_MES_OFICIAL == "veiculacao"
+
+    def test_coluna_mes_padrao_segue_a_constante(self):
+        assert metrics.coluna_mes() == metrics.COLUNAS_MES[
+            metrics.CRITERIO_MES_OFICIAL
+        ]
+
+    def test_funcoes_temporais_padrao_seguem_a_constante(self, df):
+        """Sem argumento explícito, toda função temporal usa a fonte única
+        de verdade — nenhum 'ganho' hardcoded como default."""
+        oficial = metrics.CRITERIO_MES_OFICIAL
+        assert metrics.evolucao_mensal(df, 2026) == metrics.evolucao_mensal(
+            df, 2026, criterio_mes=oficial
+        )
+        assert metrics.ytd(df, 2026) == metrics.ytd(
+            df, 2026, criterio_mes=oficial
+        )
+        assert metrics.evolucao_mensal_ticket_medio(
+            df, 2026
+        ) == metrics.evolucao_mensal_ticket_medio(df, 2026, criterio_mes=oficial)
+        pd.testing.assert_frame_equal(
+            metrics.comparativo_mensal(df, 2026),
+            metrics.comparativo_mensal(df, 2026, criterio_mes=oficial),
+        )
+
+    def test_default_e_veiculacao_na_pratica(self, df):
+        """PI 1006 tem ganho em Jan e veiculação em Fev: no default oficial,
+        o valor precisa cair em fevereiro."""
+        evolucao = metrics.evolucao_mensal(df, 2026)
+        assert evolucao[2] == pytest.approx(16000.0)  # 9600 (1006) + 6400 (1007)
+        assert 1 not in evolucao  # nada em janeiro no critério oficial
+
+    def test_ganho_permanece_disponivel_como_alternativa(self, df):
+        """O toggle analítico não pode ter sido removido."""
+        alternativa = metrics.evolucao_mensal(df, 2026, criterio_mes="ganho")
+        assert alternativa[1] == pytest.approx(9600.0)
 
 
 # ---------------------------------------------------------------------------

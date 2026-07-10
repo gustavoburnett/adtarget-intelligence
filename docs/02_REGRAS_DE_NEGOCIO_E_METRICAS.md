@@ -25,11 +25,12 @@ Regras explícitas:
 - **Métrica alternável: VALOR PI BRUTO.** Disponível via botão/toggle em qualquer bloco que envolva valor monetário, para quem precisa ver o volume de negócio intermediado, não só a receita líquida da AdTarget.
 - Comissão observada nos dados: aproximadamente 20% flat (líquido = bruto × 0,80) na maioria dos PIs. Em vendas DIRETO, a relação se aproxima de 1:1 (sem comissão).
 
-## Mês de referência
+## Mês de referência (regra oficial — v0.4, 2026-07-10)
 
-- **Padrão: MÊS (GANHO).** Representa quando o negócio foi comercialmente fechado. É o critério padrão em todos os gráficos e KPIs de evolução temporal.
-- **Alternável: MÊS (VEICULAÇÃO).** Representa quando o anúncio efetivamente rodou. Disponível via toggle, principalmente relevante para leitura de entrega/faturamento.
+- **CRITÉRIO OFICIAL: MÊS (VEICULAÇÃO).** Decisão validada pela auditoria de dados e confirmada pela área de negócio: sempre que alguém perguntar "quanto vendemos em <ano>", a resposta oficial usa MÊS (VEICULAÇÃO) como critério temporal. **Este é o KPI oficial da AdTarget.** É o padrão de todos os gráficos e KPIs de evolução temporal, em TODAS as páginas do produto — a regra é única, sem variação entre telas.
+- **Análise alternativa: MÊS (GANHO).** Representa quando o negócio foi comercialmente fechado. Permanece disponível via toggle, exclusivamente para análises específicas — nunca como padrão.
 - Os dois critérios divergem em cerca de 38% das linhas. Por isso a escolha do critério muda o resultado do gráfico de evolução mensal, e ambos precisam estar disponíveis, nunca só um.
+- **Implementação**: o critério oficial é definido numa única constante de negócio (`CRITERIO_MES_OFICIAL`, em `src/data/metrics.py`). Todas as funções de métrica usam essa constante como padrão e o toggle da interface inicializa a partir dela — não existe valor fixo espalhado pelo código.
 
 ## Comparativos temporais (base Vendas)
 
@@ -46,7 +47,7 @@ Regras explícitas:
 - **Veículo**: sempre listado e exibido como o par "Grupo — Veículo" (nunca o nome do veículo isolado), pelo mesmo motivo do agrupamento descrito acima. Se nenhum Grupo estiver selecionado, o filtro de Veículo lista todos os pares Grupo—Veículo existentes no ano selecionado.
 - **Recorte de filtro sem nenhuma linha resultante**: qualquer card mostra "R$ 0,00" ou "Sem dados no recorte selecionado", nunca erro ou tela em branco.
 - **Meses futuros sem dado no gráfico de evolução mensal**: aparecem como lacuna (sem ponto/linha), nunca como valor zero. Isso evita que um mês futuro sem dado seja lido visualmente como uma queda de vendas.
-- **YTD e comparativo mês a mês respeitam os toggles ativos no momento da visualização**: se o usuário estiver com Valor Bruto e MÊS (VEICULAÇÃO) selecionados, os comparativos são recalculados sobre essa base, não ficam fixos em Valor Líquido/MÊS (GANHO). O padrão inicial de todo carregamento é Valor Líquido + MÊS (GANHO), conforme definido acima.
+- **YTD e comparativo mês a mês respeitam os toggles ativos no momento da visualização**: se o usuário trocar o critério ou a métrica de valor, os comparativos são recalculados sobre essa base. O padrão inicial de todo carregamento é **Valor Líquido + MÊS (VEICULAÇÃO)** (critério oficial da v0.4), em todas as páginas.
 
 ## Ticket Médio
 

@@ -65,7 +65,7 @@ Uma única planilha Google Sheets, intitulada "Planilha de Vendas AdTarget", com
 9. *(histórico — superada pela decisão 28)* Pipeline em Aberto definido como soma de status CHECKING + AGUARD. DOC. VEÍCULO, exibido separado do faturamento.
 10. *(histórico — parcialmente superada pelas decisões 28 e 30)* CANCELADO e BONIFICADO não entram em nenhum cálculo de receita, aparecem apenas como status de controle/qualidade. *(A exclusão de CANCELADO/BONIFICADO permanece válida; a categoria SEM_STATUS deixou de existir.)*
 11. Valor Líquido é a métrica principal de valor; Valor Bruto fica disponível como alternativa.
-12. MÊS (GANHO) é o critério padrão de data; MÊS (VEICULAÇÃO) fica disponível como alternativa.
+12. *(histórico — superada pela decisão 33)* MÊS (GANHO) é o critério padrão de data; MÊS (VEICULAÇÃO) fica disponível como alternativa.
 13. Comparativo com ano anterior: mês a mês no gráfico da evolução mensal, e YTD (acumulado no ano) como KPI principal da página executiva.
 14. Quantidade de Campanhas contada por combinação distinta de Cliente + Campanha.
 15. Agrupamento de veículo sempre pela dupla Grupo + Veículo, nunca veículo isolado.
@@ -86,6 +86,7 @@ Uma única planilha Google Sheets, intitulada "Planilha de Vendas AdTarget", com
 30. **(v0.3)** Categoria SEM_STATUS extinta e alerta de "linhas sem status" removido. Status vazio ou não reconhecido pelo vocabulário gera o alerta de qualidade de status não reconhecido e fica fora de todos os indicadores — nunca entra silenciosamente em nenhuma soma.
 31. **(v0.3)** Nomenclatura comercial corrigida nas telas: "Faturamento" substituído por "Vendas"; página "Analítico Faturamento" renomeada para "Analítico Comercial"; títulos de gráficos atualizados. Sem mudança de layout, identidade visual, filtros ou navegação.
 32. **(v0.3)** Métricas derivadas (YTD, comparativo mês a mês, Ticket Médio, Quantidade de Campanhas, rankings, Veículos Ativos e agregações) calculadas sobre a base **Vendas**, coerentes com o indicador principal.
+33. **(v0.4, 2026-07-10)** Regra oficial de critério temporal, supersedendo a decisão 12, validada pela auditoria de dados e confirmada pela área de negócio: o KPI oficial de Vendas da AdTarget usa **MÊS (VEICULAÇÃO)** como critério temporal padrão, em **todas as páginas do produto** (regra única, sem variação entre telas). MÊS (GANHO) permanece disponível apenas como análise alternativa, via toggle. A definição é centralizada numa única constante de negócio (`CRITERIO_MES_OFICIAL` em `src/data/metrics.py`) — fonte única de verdade: funções de métrica e toggle da interface derivam dela.
 
 ## Status atual
 

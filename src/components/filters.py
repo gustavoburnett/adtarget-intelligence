@@ -5,7 +5,10 @@
 - Demais dimensões: seleção múltipla com TODOS os valores marcados por padrão
 - Veículo: sempre exibido como o par "Grupo — Veículo", em cascata dentro
   dos grupos selecionados
-- Toggles: Valor Líquido + MÊS (GANHO) como padrão de todo carregamento
+- Toggles: Valor Líquido como padrão; o critério temporal padrão vem de
+  metrics.CRITERIO_MES_OFICIAL (regra oficial v0.4: Mês Veiculação),
+  NUNCA de um valor fixo neste módulo. MÊS (GANHO) permanece disponível
+  como análise alternativa.
 
 Este módulo apenas FILTRA linhas; nenhuma métrica é calculada aqui.
 """
@@ -34,7 +37,14 @@ def selecionar_ano(df: pd.DataFrame, chave: str) -> int:
 
 def selecionar_toggles(chave: str) -> tuple[str, str]:
     """Toggles oficiais. Retorna (valor, criterio_mes) no vocabulário de
-    metrics.py: ("liquido"|"bruto", "ganho"|"veiculacao")."""
+    metrics.py: ("liquido"|"bruto", "ganho"|"veiculacao").
+
+    O critério temporal inicia SEMPRE em metrics.CRITERIO_MES_OFICIAL
+    (fonte única de verdade da regra de negócio), em todas as páginas.
+    """
+    indice_oficial = list(_OPCOES_MES.values()).index(
+        metrics.CRITERIO_MES_OFICIAL
+    )
     col1, col2 = st.columns(2)
     with col1:
         rotulo_valor = st.radio(
@@ -47,6 +57,7 @@ def selecionar_toggles(chave: str) -> tuple[str, str]:
         rotulo_mes = st.radio(
             "Critério de mês",
             list(_OPCOES_MES),
+            index=indice_oficial,
             horizontal=True,
             key=f"{chave}_mes",
         )

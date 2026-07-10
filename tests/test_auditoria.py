@@ -10,11 +10,12 @@ from src.data import auditoria
 from src.data.cleaning import limpar_dataframe
 
 
-def _linha(pi, status, ganho, liq, cliente="CLIENTE X", ano=2026):
+def _linha(pi, status, ganho, liq, cliente="CLIENTE X", ano=2026, veic=None):
     return {
         "PRAÇA": "BRASÍLIA", "EXECUTIVO": "E", "GRUPO": "G", "VEICULO": "V",
         "PI": pi, "AGENCIA": "A", "CLIENTE": cliente, "CAMPANHA": f"CAMP {pi}",
-        "MÊS (GANHO)": ganho, "MÊS (VEICULAÇÃO)": ganho, "INÍCIO": "", "FIM": "",
+        "MÊS (GANHO)": ganho, "MÊS (VEICULAÇÃO)": veic or ganho,
+        "INÍCIO": "", "FIM": "",
         "VALOR PI BRUTO": liq * 1.25, "VALOR PI LIQUIDO": liq,
         "VENCIMENTO PI": "CONTRA APRESENT.", "STATUS": status,
         "NOTA FISCAL": "1", "DATA DE CRIAÇÃO": "", "OBSERVAÇÃO": "",
@@ -73,6 +74,20 @@ class TestAuditoriaVendas:
         assert resultado["total_aba"] == 0.0
         assert resultado["excluidas"].empty
         assert resultado["residuo"] == pytest.approx(0.0)
+
+    def test_recorte_usa_criterio_oficial_veiculacao(self):
+        """Regra v0.4: PI com GANHO em 2026 mas VEICULAÇÃO em 2025 fica
+        FORA de Vendas 2026 — a auditoria segue o critério oficial."""
+        df = limpar_dataframe(pd.DataFrame([
+            _linha("1", "FATURADO", "DEZEMBRO/2026", 1000),
+            _linha("2", "FATURADO", "JANEIRO/2026", 500,
+                   veic="DEZEMBRO/2025"),
+        ]))
+        resultado = auditoria.auditar_vendas_ano(df, 2026)
+        assert resultado["vendas_sistema"] == pytest.approx(1000.0)
+        excluidas = resultado["excluidas"].set_index("PI")
+        assert "12/2025" in excluidas.loc["2", auditoria.COL_MOTIVO]
+        assert resultado["residuo"] == pytest.approx(0.0, abs=0.01)
 
     def test_auditoria_nao_altera_os_dados(self, df):
         copia = df.copy(deep=True)
