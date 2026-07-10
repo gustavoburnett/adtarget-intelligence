@@ -72,13 +72,14 @@ def card_ytd(titulo: str, ytd_resultado: dict, ano: int) -> None:
         delta=formatar_pct(variacao) if variacao is not None else None,
     )
     anterior = ytd_resultado.get("anterior")
-    periodo_atual = rotulo_periodo(mes_limite, ano)
     if anterior is None:
-        st.caption(f"{periodo_atual} — {SEM_COMPARATIVO}")
+        st.caption(f"{rotulo_periodo(mes_limite, ano)} — {SEM_COMPARATIVO}")
     else:
-        periodo_anterior = rotulo_periodo(mes_limite, ano - 1)
+        # O valor exibido é EXATAMENTE o "anterior" usado no percentual
+        # (mesmo dicionário retornado por metrics.ytd), nunca um recálculo.
         st.caption(
-            f"{periodo_atual} vs {periodo_anterior}: {formatar_moeda(anterior)}"
+            f"Ano anterior ({rotulo_periodo(mes_limite, ano - 1)}): "
+            f"{formatar_moeda(anterior)}"
         )
 
 
