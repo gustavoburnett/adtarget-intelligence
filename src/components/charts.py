@@ -20,11 +20,13 @@ MESES_ROTULOS = [
     "Jul", "Ago", "Set", "Out", "Nov", "Dez",
 ]
 
-#: Cores NEUTRAS de série de dados (Sprint 2A, item 2): a paleta padrão do
-#: Plotly pinta o 2º trace de vermelho (#EF553B), que é reservado a
-#: sentimento negativo. Séries de dados usam sempre neutros explícitos.
-COR_SERIE_PRINCIPAL = "#2C5F6E"    # azul petróleo (mesmo accent do tema)
-COR_SERIE_COMPARATIVA = "#9CA3AF"  # cinza (ano anterior, pontilhado)
+#: Cores de série (Sprint 2B, adendo C10): ano corrente na COR DE MARCA
+#: (identidade, sem carga de sentimento); ano anterior em cinza tracejado.
+#: A paleta padrão do Plotly nunca é usada (2º trace seria vermelho).
+COR_SERIE_PRINCIPAL = "#0B7A66"    # cor de marca AdTarget
+COR_SERIE_COMPARATIVA = "#9AA2AC"  # cinza (ano anterior, tracejado)
+_COR_GRID = "#EDEFF2"
+_COR_ZONA_FUTURA = "#F2F4F6"
 
 _FORMATO_MOEDA_HOVER = "R$ %{y:,.2f}"
 
@@ -113,6 +115,95 @@ def grafico_barra_horizontal(
         yaxis=dict(autorange="reversed"),  # maior no topo
         margin=dict(t=60, b=20),
     )
+    st.plotly_chart(fig, width="stretch")
+
+
+def _aplicar_estilo_hero(fig: go.Figure, ano: int, mes_limite: Optional[int]) -> None:
+    """Estilo do Gráfico Hero (2B.7): grid sutil, fundo branco, zona de
+    meses futuros esmaecida com rótulo "sem dado disponível"."""
+    fig.update_layout(
+        plot_bgcolor="#FFFFFF",
+        paper_bgcolor="rgba(0,0,0,0)",
+        hovermode="x unified",
+        legend=dict(orientation="h", y=-0.18, font=dict(size=11)),
+        margin=dict(t=16, b=8, l=8, r=8),
+        height=320,
+        xaxis=dict(
+            tickmode="array",
+            tickvals=list(range(1, 13)),
+            ticktext=MESES_ROTULOS,
+            showgrid=False,
+            range=[0.5, 12.5],
+        ),
+        yaxis=dict(gridcolor=_COR_GRID, zerolinecolor=_COR_GRID),
+    )
+    if mes_limite is not None and mes_limite < 12:
+        fig.add_vrect(
+            x0=mes_limite + 0.5, x1=12.5,
+            fillcolor=_COR_ZONA_FUTURA, opacity=0.9,
+            layer="below", line_width=0,
+        )
+        fig.add_annotation(
+            x=(mes_limite + 0.5 + 12.5) / 2, y=0.5, yref="paper",
+            text="<i>sem dado disponível</i>", showarrow=False,
+            font=dict(size=11, color="#8B93A1"),
+        )
+
+
+def grafico_hero_vendas(
+    comparativo: pd.DataFrame, ano: int, mes_limite: Optional[int]
+) -> None:
+    """Aba "Vendas" do Gráfico Hero: ano corrente sólido em cor de marca,
+    ano anterior tracejado cinza, rótulos no pico e no último mês com dado.
+    Recebe o DataFrame de metrics.comparativo_mensal (nenhum cálculo aqui).
+    """
+    meses = list(range(1, 13))
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=meses, y=list(comparativo["anterior"]), name=f"{ano - 1} (ano anterior)",
+        mode="lines", line=dict(dash="dash", color=COR_SERIE_COMPARATIVA, width=2),
+        connectgaps=False, hovertemplate=_FORMATO_MOEDA_HOVER,
+    ))
+    fig.add_trace(go.Scatter(
+        x=meses, y=list(comparativo["atual"]), name=f"{ano} (ano selecionado)",
+        mode="lines+markers",
+        line=dict(color=COR_SERIE_PRINCIPAL, width=2.5),
+        marker=dict(size=7),
+        connectgaps=False, hovertemplate=_FORMATO_MOEDA_HOVER,
+    ))
+    atual = comparativo["atual"].dropna()
+    if not atual.empty:
+        from src.components.cards import formatar_moeda_executiva
+        mes_pico = int(atual.idxmax())
+        fig.add_annotation(
+            x=mes_pico, y=float(atual.max()), yshift=14, showarrow=False,
+            text=f"<b>{formatar_moeda_executiva(float(atual.max()))}</b>",
+            font=dict(size=11, color=COR_SERIE_PRINCIPAL),
+        )
+        ultimo_mes = int(atual.index.max())
+        if ultimo_mes != mes_pico:
+            fig.add_annotation(
+                x=ultimo_mes, y=float(atual.loc[ultimo_mes]), yshift=-16,
+                showarrow=False,
+                text=f"<b>{formatar_moeda_executiva(float(atual.loc[ultimo_mes]))}</b>",
+                font=dict(size=10, color=COR_SERIE_PRINCIPAL),
+            )
+    _aplicar_estilo_hero(fig, ano, mes_limite)
+    st.plotly_chart(fig, width="stretch")
+
+
+def grafico_hero_ticket(
+    por_mes: dict[int, float], ano: int, mes_limite: Optional[int]
+) -> None:
+    """Aba "Ticket Médio" do Gráfico Hero (linha única do ano, com lacunas)."""
+    meses = list(range(1, 13))
+    fig = go.Figure(go.Scatter(
+        x=meses, y=[por_mes.get(m) for m in meses], name=f"{ano}",
+        mode="lines+markers",
+        line=dict(color=COR_SERIE_PRINCIPAL, width=2.5), marker=dict(size=7),
+        connectgaps=False, hovertemplate=_FORMATO_MOEDA_HOVER,
+    ))
+    _aplicar_estilo_hero(fig, ano, mes_limite)
     st.plotly_chart(fig, width="stretch")
 
 

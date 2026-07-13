@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>AdTarget Intelligence — Mockup Performance Comercial</title>
+<style>
+  :root{
+    --bg-page:#F5F6F8;
+    --bg-surface:#FFFFFF;
+    --bg-surface-muted:#FAFBFC;
+    --border:#E3E6EA;
+    --border-soft:#EDEFF2;
+    --text-primary:#14171C;
+    --text-secondary:#5B6472;
+    --text-muted:#8B93A1;
+
+    --brand:#0B7A66;
+    --brand-soft:#E7F3F0;
+
+    --positive:#1E9E52;
+    --positive-soft:#E9F8EE;
+
+    --negative:#DC4545;
+    --negative-soft:#FDEDED;
+
+    --amber:#C97F12;
+    --amber-soft:#FBF1DE;
+
+    --neutral:#9AA2AC;
+
+    --radius-card:12px;
+    --radius-control:8px;
+    --radius-pill:999px;
+
+    --shadow-sm:0 1px 2px rgba(20,23,28,.04), 0 1px 3px rgba(20,23,28,.05);
+    --shadow-md:0 6px 16px rgba(20,23,28,.09);
+
+    --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-6:24px; --sp-8:32px; --sp-12:48px; --sp-16:64px;
+
+    --font: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:var(--font);
+    background:var(--bg-page);
+    color:var(--text-primary);
+    -webkit-font-smoothing:antialiased;
+  }
+  .num{ font-variant-numeric: tabular-nums; }
+
+  /* ---------- mockup banner ---------- */
+  .mockup-banner{
+    background:#14171C;
+    color:#fff;
+    text-align:center;
+    font-size:12px;
+    letter-spacing:.04em;
+    padding:8px 16px;
+    font-weight:600;
+  }
+  .mockup-banner span{ color:#9AA2AC; font-weight:400; }
+
+  /* ---------- app shell ---------- */
+  .app{ display:flex; min-height:calc(100vh - 34px); }
+
+  /* ---------- sidebar ---------- */
+  .sidebar{
+    width:236px;
+    flex-shrink:0;
+    background:var(--bg-surface);
+    border-right:1px solid var(--border);
+    display:flex;
+    flex-direction:column;
+    padding:28px 18px;
+  }
+  .logo{ margin-bottom:32px; padding-left:4px; }
+  .logo .word{ font-size:19px; font-weight:700; color:var(--text-primary); }
+  .logo .word b{ color:var(--brand); }
+  .logo .sub{ font-size:10px; letter-spacing:.14em; color:var(--text-muted); font-weight:600; margin-top:1px; }
+
+  .nav{ display:flex; flex-direction:column; gap:2px; }
+  .nav-item{
+    display:flex; align-items:center; gap:10px;
+    padding:10px 12px;
+    border-radius:var(--radius-control);
+    font-size:13.5px; font-weight:500;
+    color:var(--text-secondary);
+    border-left:3px solid transparent;
+    cursor:default;
+  }
+  .nav-item .dot{ width:7px; height:7px; border-radius:50%; background:currentColor; opacity:.55; }
+  .nav-item.active{
+    background:var(--brand-soft);
+    color:var(--brand);
+    font-weight:600;
+    border-left:3px solid var(--brand);
+  }
+  .nav-item.active .dot{ opacity:1; }
+
+  .sidebar-spacer{ flex:1; }
+
+  .status-block{
+    border-top:1px solid var(--border-soft);
+    padding-top:16px;
+    display:flex; flex-direction:column; gap:4px;
+  }
+  .status-line1{ display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:var(--text-primary); }
+  .status-dot{ width:7px; height:7px; border-radius:50%; background:var(--positive); box-shadow:0 0 0 3px var(--positive-soft); }
+  .status-caption{ font-size:11.5px; color:var(--text-muted); margin-left:13px; }
+
+  /* ---------- main ---------- */
+  .main{ flex:1; padding:28px 40px 56px; max-width:1360px; }
+
+  /* ---------- masthead ---------- */
+  .masthead{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; }
+  .masthead h1{ font-size:23px; font-weight:700; letter-spacing:-.01em; }
+  .masthead .subtitle{ font-size:13.5px; color:var(--text-secondary); margin-top:3px; }
+  .masthead-right{ display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
+  .updated-caption{ font-size:11.5px; color:var(--text-muted); }
+  .masthead-actions{ display:flex; gap:8px; }
+  .btn{
+    display:flex; align-items:center; gap:6px;
+    font-size:12.5px; font-weight:600;
+    padding:8px 12px;
+    border-radius:var(--radius-control);
+    border:1px solid var(--border);
+    background:var(--bg-surface);
+    color:var(--text-secondary);
+    box-shadow:var(--shadow-sm);
+  }
+  .btn.icon-only{ padding:8px 10px; }
+  .btn svg{ width:14px; height:14px; }
+
+  /* ---------- filters ---------- */
+  .filters{
+    display:flex; align-items:center; gap:20px;
+    padding:14px 0; margin-bottom:22px;
+    border-bottom:1px solid var(--border-soft);
+  }
+  .filter-group{ display:flex; align-items:center; gap:10px; }
+  .filter-label{ font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; }
+
+  .segmented{
+    display:flex; background:var(--bg-page); border:1px solid var(--border);
+    border-radius:var(--radius-control); padding:3px; gap:2px;
+  }
+  .segmented .seg{ padding:5px 12px; font-size:12.5px; font-weight:600; color:var(--text-muted); border-radius:6px; }
+  .segmented .seg.active{ background:var(--bg-surface); color:var(--brand); box-shadow:var(--shadow-sm); }
+
+  .chips{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .chip{
+    display:flex; align-items:center; gap:6px;
+    background:var(--brand-soft); color:var(--brand);
+    font-size:12px; font-weight:600;
+    padding:5px 6px 5px 12px;
+    border-radius:var(--radius-pill);
+  }
+  .chip .x{ width:16px; height:16px; border-radius:50%; background:rgba(11,122,102,.14); display:flex; align-items:center; justify-content:center; font-size:11px; }
+  .chip.more{ background:var(--bg-surface); border:1px solid var(--border); color:var(--text-secondary); padding:5px 12px; }
+
+  .filters-clear{ margin-left:auto; font-size:12.5px; font-weight:600; color:var(--text-muted); }
+
+  /* ---------- kpi row ---------- */
+  .kpi-row{ display:flex; gap:16px; margin-bottom:22px; align-items:stretch; }
+
+  .card{ background:var(--bg-surface); border:1px solid var(--border-soft); border-radius:var(--radius-card); box-shadow:var(--shadow-sm); }
+
+  .kpi-hero{ flex:1.55; padding:26px 26px 24px; display:flex; flex-direction:column; justify-content:center; }
+  .kpi-hero .eyebrow{ font-size:11px; font-weight:700; letter-spacing:.06em; color:var(--brand); text-transform:uppercase; margin-bottom:10px; }
+  .kpi-hero .hero-value{ display:flex; align-items:baseline; gap:10px; }
+  .kpi-hero .arrow{ font-size:26px; color:var(--positive); }
+  .kpi-hero .hero-number{ font-size:42px; font-weight:700; color:var(--positive); letter-spacing:-.02em; }
+  .kpi-hero .hero-caption{ font-size:12.5px; color:var(--text-secondary); margin-top:10px; }
+
+  .kpi-secondary{ flex:1; padding:20px 20px 18px; display:flex; flex-direction:column; gap:10px; }
+  .kpi-secondary .label{ font-size:12px; font-weight:600; color:var(--text-muted); }
+  .kpi-secondary .value{ font-size:27px; font-weight:600; letter-spacing:-.01em; }
+  .kpi-secondary .value.positive{ color:var(--positive); }
+  .kpi-secondary .value.amber{ color:var(--amber); }
+  .kpi-secondary .caption{ font-size:11.5px; color:var(--text-muted); }
+  .kpi-secondary .caption.amber-tag{ color:var(--amber); font-weight:600; }
+
+  /* ---------- insights ---------- */
+  .insights{ display:flex; gap:14px; margin-bottom:22px; }
+  .insight{
+    flex:1; background:var(--bg-surface-muted); border:1px solid var(--border-soft);
+    border-radius:var(--radius-card); padding:13px 16px;
+    display:flex; align-items:flex-start; gap:10px;
+    font-size:12.5px; color:var(--text-secondary); line-height:1.4;
+  }
+  .insight .ic{ font-size:15px; line-height:1; margin-top:1px; }
+
+  /* ---------- chart card ---------- */
+  .chart-card{ padding:22px 24px 20px; margin-bottom:22px; }
+  .chart-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:10px; }
+  .chart-title{ font-size:15px; font-weight:700; }
+  .tabs{ display:flex; gap:18px; margin-left:18px; }
+  .tab{ font-size:13px; font-weight:600; color:var(--text-muted); padding-bottom:4px; border-bottom:2px solid transparent; }
+  .tab.active{ color:var(--text-primary); border-bottom:2px solid var(--brand); }
+  .chart-title-row{ display:flex; align-items:center; }
+
+  .toggle-group{ display:flex; align-items:center; gap:14px; }
+  .mini-toggle{ display:flex; background:var(--bg-page); border:1px solid var(--border-soft); border-radius:7px; padding:2px; }
+  .mini-toggle .m{ font-size:11px; font-weight:600; color:var(--text-muted); padding:4px 9px; border-radius:5px; }
+  .mini-toggle .m.active{ background:var(--bg-surface); color:var(--text-secondary); box-shadow:var(--shadow-sm); }
+
+  .chart-legend{ display:flex; gap:18px; margin-top:10px; font-size:11.5px; color:var(--text-muted); }
+  .chart-legend .lg{ display:flex; align-items:center; gap:6px; }
+  .legend-line{ width:16px; height:2px; background:var(--text-primary); display:inline-block; }
+  .legend-line.dashed{ background:none; border-top:2px dashed var(--neutral); }
+
+  /* ---------- rankings ---------- */
+  .rankings{ display:flex; gap:22px; margin-bottom:20px; }
+  .rank-col{ flex:1; padding:20px 20px 16px; }
+  .rank-title{ font-size:14px; font-weight:700; margin-bottom:14px; }
+  .rank-row{ display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+  .rank-name{ font-size:12px; color:var(--text-secondary); width:34%; flex-shrink:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .rank-bar-wrap{ flex:1; background:var(--bg-page); border-radius:5px; height:8px; position:relative; }
+  .rank-bar{ height:8px; border-radius:5px; background:var(--brand); }
+  .rank-meta{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
+  .rank-value{ font-size:12px; font-weight:700; color:var(--text-primary); }
+  .rank-pct{ font-size:11px; color:var(--text-muted); width:30px; }
+  .rank-trend{ font-size:11px; font-weight:700; display:flex; align-items:center; gap:2px; width:44px; }
+  .rank-trend.up{ color:var(--positive); }
+  .rank-trend.down{ color:var(--negative); }
+  .rank-footer{ margin-top:6px; font-size:12px; font-weight:600; color:var(--brand); }
+
+  .footnote{ font-size:11px; color:var(--text-muted); padding-top:6px; }
+</style>
+</head>
+<body>
+
+<div class="mockup-banner">MOCKUP ESTÁTICO — DESIGN SYSTEM v0.5 · WIREFRAME EXECUTIVO CONGELADO <span>&nbsp;·&nbsp; sem dado real, sem interação, apenas validação visual</span></div>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="logo">
+      <div class="word"><b>Ad</b>Target</div>
+      <div class="sub">INTELLIGENCE</div>
+    </div>
+
+    <div class="nav">
+      <div class="nav-item active"><span class="dot"></span>Performance Comercial</div>
+      <div class="nav-item"><span class="dot"></span>Analítico Faturamento</div>
+      <div class="nav-item"><span class="dot"></span>Analítico Veículos</div>
+    </div>
+
+    <div class="sidebar-spacer"></div>
+
+    <div class="status-block">
+      <div class="status-line1"><span class="status-dot"></span>Dados atualizados</div>
+      <div class="status-caption">há 3 minutos</div>
+      <div class="status-caption">Última sincronização: 15:27</div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- MASTHEAD -->
+    <div class="masthead">
+      <div>
+        <h1>Performance Comercial</h1>
+        <div class="subtitle">Visão geral de vendas, campanhas e faturamento</div>
+      </div>
+      <div class="masthead-right">
+        <div class="updated-caption">atualizado há 3 min</div>
+        <div class="masthead-actions">
+          <div class="btn">Exportar ⌄</div>
+          <div class="btn icon-only">↻</div>
+          <div class="btn icon-only">☾</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FILTERS -->
+    <div class="filters">
+      <div class="filter-group">
+        <span class="filter-label">Ano</span>
+        <div class="segmented">
+          <div class="seg">2024</div>
+          <div class="seg">2025</div>
+          <div class="seg active">2026</div>
+        </div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Grupo</span>
+        <div class="chips">
+          <div class="chip">DISNEY <span class="x">×</span></div>
+          <div class="chip">TEADS <span class="x">×</span></div>
+          <div class="chip more">+8</div>
+        </div>
+      </div>
+      <div class="filters-clear">Limpar filtros</div>
+    </div>
+
+    <!-- KPI ROW -->
+    <div class="kpi-row">
+      <div class="card kpi-hero">
+        <div class="eyebrow">KPI Principal · YTD vs Ano Anterior</div>
+        <div class="hero-value">
+          <span class="arrow">▲</span>
+          <span class="hero-number num">55,8%</span>
+        </div>
+        <div class="hero-caption num">R$ 12,5 Mi este ano&nbsp;&nbsp;·&nbsp;&nbsp;R$ 8,0 Mi no mesmo período de 2025</div>
+      </div>
+
+      <div class="card kpi-secondary">
+        <div class="label">Faturamento Realizado</div>
+        <div class="value positive num">R$ 13,28 Mi</div>
+        <div class="caption">dos quais R$ 2,1 Mi em vendas DIRETO</div>
+      </div>
+
+      <div class="card kpi-secondary">
+        <div class="label">Pipeline em Aberto</div>
+        <div class="value amber num">R$ 8,38 Mi</div>
+        <div class="caption amber-tag">37,2% da receita líquida</div>
+      </div>
+
+      <div class="card kpi-secondary">
+        <div class="label">Ticket Médio</div>
+        <div class="value num">R$ 87,97 K</div>
+        <div class="caption">Faturamento ÷ PIs realizados</div>
+      </div>
+
+      <div class="card kpi-secondary">
+        <div class="label">Campanhas</div>
+        <div class="value num">64</div>
+        <div class="caption">Cliente + Campanha distintos</div>
+      </div>
+    </div>
+
+    <!-- INSIGHTS -->
+    <div class="insights">
+      <div class="insight"><span class="ic">💡</span>Disney concentra 41% do faturamento no recorte selecionado</div>
+      <div class="insight"><span class="ic">💡</span>Junho concentrou o maior volume do ano, com R$ 4,87 Mi</div>
+      <div class="insight"><span class="ic">💡</span>Julho teve a maior queda mês a mês do período, -85% vs Junho</div>
+    </div>
+
+    <!-- CHART CARD -->
+    <div class="card chart-card">
+      <div class="chart-head">
+        <div class="chart-title-row">
+          <span class="chart-title">Evolução</span>
+          <div class="tabs">
+            <div class="tab active">Receita</div>
+            <div class="tab">Ticket Médio</div>
+          </div>
+        </div>
+        <div class="toggle-group">
+          <div class="mini-toggle"><span class="m active">Líquido</span><span class="m">Bruto</span></div>
+          <div class="mini-toggle"><span class="m active">Mês (Ganho)</span><span class="m">Mês (Veiculação)</span></div>
+        </div>
+      </div>
+
+      <svg viewBox="0 0 1000 300" width="100%" height="270" preserveAspectRatio="none">
+        <defs>
+          <pattern id="hatch" width="8" height="8" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+            <rect width="8" height="8" fill="#FAFBFC"/>
+            <line x1="0" y1="0" x2="0" y2="8" stroke="#E3E6EA" stroke-width="2"/>
+          </pattern>
+        </defs>
+
+        <!-- gridlines -->
+        <g stroke="#EDEFF2" stroke-width="1">
+          <line x1="60" y1="20" x2="980" y2="20"/>
+          <line x1="60" y1="66" x2="980" y2="66"/>
+          <line x1="60" y1="112" x2="980" y2="112"/>
+          <line x1="60" y1="158" x2="980" y2="158"/>
+          <line x1="60" y1="204" x2="980" y2="204"/>
+          <line x1="60" y1="250" x2="980" y2="250"/>
+        </g>
+        <g font-size="11" fill="#8B93A1" font-family="inherit">
+          <text x="10" y="24">5M</text>
+          <text x="10" y="70">4M</text>
+          <text x="10" y="116">3M</text>
+          <text x="10" y="162">2M</text>
+          <text x="10" y="208">1M</text>
+          <text x="10" y="253">0</text>
+        </g>
+
+        <!-- future months hatched area (Ago-Dez) -->
+        <rect x="737" y="20" width="243" height="230" fill="url(#hatch)"/>
+        <text x="858" y="140" font-size="11" fill="#8B93A1" text-anchor="middle" font-style="italic">sem dado disponível</text>
+
+        <!-- 2025 dashed line (ano anterior, full year) -->
+        <polyline fill="none" stroke="#9AA2AC" stroke-width="2" stroke-dasharray="5,5"
+          points="90,196 167,220 244,214 321,178 398,196 475,186 552,155 629,163 706,166 783,150 860,160 937,110" />
+
+        <!-- 2026 solid line (ano selecionado, Jan-Jul only) -->
+        <polyline fill="none" stroke="#1E9E52" stroke-width="2.5"
+          points="90,208 167,222 244,214 321,168 398,105 475,52 552,222" />
+        <g fill="#1E9E52">
+          <circle cx="90" cy="208" r="3.5"/>
+          <circle cx="167" cy="222" r="3.5"/>
+          <circle cx="244" cy="214" r="3.5"/>
+          <circle cx="321" cy="168" r="3.5"/>
+          <circle cx="398" cy="105" r="3.5"/>
+          <circle cx="475" cy="52" r="4.5"/>
+          <circle cx="552" cy="222" r="3.5"/>
+        </g>
+        <text x="475" y="38" font-size="12" font-weight="700" fill="#1E9E52" text-anchor="middle" class="num">4,87M</text>
+        <text x="552" y="240" font-size="11" font-weight="700" fill="#1E9E52" text-anchor="middle" class="num">0,73M</text>
+
+        <!-- month labels -->
+        <g font-size="11" fill="#8B93A1" text-anchor="middle">
+          <text x="90" y="270">Jan</text><text x="167" y="270">Fev</text><text x="244" y="270">Mar</text>
+          <text x="321" y="270">Abr</text><text x="398" y="270">Mai</text><text x="475" y="270">Jun</text>
+          <text x="552" y="270">Jul</text><text x="629" y="270">Ago</text><text x="706" y="270">Set</text>
+          <text x="783" y="270">Out</text><text x="860" y="270">Nov</text><text x="937" y="270">Dez</text>
+        </g>
+      </svg>
+
+      <div class="chart-legend">
+        <div class="lg"><span class="legend-line"></span>2026 (ano selecionado)</div>
+        <div class="lg"><span class="legend-line dashed"></span>2025 (ano anterior)</div>
+      </div>
+    </div>
+
+    <!-- RANKINGS -->
+    <div class="rankings">
+      <div class="card rank-col">
+        <div class="rank-title">Top 5 Veículos</div>
+
+        <div class="rank-row"><div class="rank-name">TEADS — TEADS</div><div class="rank-bar-wrap"><div class="rank-bar" style="width:100%"></div></div><div class="rank-meta"><span class="rank-value num">R$4,0M</span><span class="rank-pct num">41%</span><span class="rank-trend up">▲12%</span></div></div>
+        <div class="rank-row"><div class="rank-name">DISNEY — DISNEY+</div><div class="rank-bar-wrap"><div class="rank-bar" style="width:53%"></div></div><div class="rank-meta"><span class="rank-value num">R$2,1M</span><span class="rank-pct num">22%</span><span class="rank-trend up">▲6%</span></div></div>
+        <div class="rank-row"><div class="rank-name">BRASIL 247</div><div class="rank-bar-wrap"><div class="rank-bar" style="width:33%"></div></div><div class="rank-meta"><span class="rank-value num">R$1,3M</span><span class="rank-pct num">14%</span><span class="rank-trend down">▼4%</span></div></div>
+        <div class="rank-row"><div class="rank-name">DISNEY — ESPN</div><div class="rank-bar-wrap"><div class="rank-bar" style="width:22%"></div></div><div class="rank-meta"><span class="rank-value num">R$0,9M</span><span class="rank-pct num">9%</span><span class="rank-trend up">▲2%</span></div></div>
+        <div class="rank-row"><div class="rank-name">MELODIA</div><div class="rank-bar-wrap"><div class="rank-bar" style="width:15%"></div></div><div class="rank-meta"><span class="rank-value num">R$0,6M</span><span class="rank-pct num">6%</span><span class="rank-trend down">▼9%</span></div></div>
+
+        <div class="rank-footer">ver tudo →</div>
+      </div>
+
+      <div class="card rank-col">
+        <div class="rank-title">Top 5 Agências</div>
+
+        <div class="rank-row"><div class="rank-name">NACIONAL</div><div class="rank-bar-wrap"><div class="rank-bar" style="width:100%"></div></div><div class="rank-meta"><span class="rank-value num">R$6,2M</span><span class="rank-pct num">30%</span><span class="rank-trend up">▲8%</span></div></div>
+        <div class="rank-row"><div class="rank-name">PROPEG</div><div class="rank-bar-wrap"><div class="rank-bar" style="width:68%"></div></div><div class="rank-meta"><span class="rank-value num">R$4,2M</span><span class="rank-pct num">20%</span><span class="rank-trend up">▲3%</span></div></div>
+        <div class="rank-row"><div class="rank-name">CALIA</div><div class="rank-bar-wrap"><div class="rank-bar" style="width:34%"></div></div><div class="rank-meta"><span class="rank-value num">R$2,1M</span><span class="rank-pct num">10%</span><span class="rank-trend down">▼5%</span></div></div>
+        <div class="rank-row"><div class="rank-name">DEBITO</div><div class="rank-bar-wrap"><div class="rank-bar" style="width:29%"></div></div><div class="rank-meta"><span class="rank-value num">R$1,8M</span><span class="rank-pct num">9%</span><span class="rank-trend up">▲1%</span></div></div>
+        <div class="rank-row"><div class="rank-name">BINDER</div><div class="rank-bar-wrap"><div class="rank-bar" style="width:26%"></div></div><div class="rank-meta"><span class="rank-value num">R$1,6M</span><span class="rank-pct num">8%</span><span class="rank-trend down">▼2%</span></div></div>
+
+        <div class="rank-footer">ver tudo →</div>
+      </div>
+
+      <div class="card rank-col">
+        <div class="rank-title">Top 5 Clientes</div>
+
+        <div class="rank-row"><div class="rank-name">CAIXA</div><div class="rank-bar-wrap"><div class="rank-bar" style="width:100%"></div></div><div class="rank-meta"><span class="rank-value num">R$6,9M</span><span class="rank-pct num">34%</span><span class="rank-trend up">▲15%</span></div></div>
+        <div class="rank-row"><div class="rank-name">SECOM</div><div class="rank-bar-wrap"><div class="rank-bar" style="width:70%"></div></div><div class="rank-meta"><span class="rank-value num">R$4,8M</span><span class="rank-pct num">24%</span><span class="rank-trend up">▲4%</span></div></div>
+        <div class="rank-row"><div class="rank-name">MINISTÉRIO DA SAÚDE</div><div class="rank-bar-wrap"><div class="rank-bar" style="width:41%"></div></div><div class="rank-meta"><span class="rank-value num">R$2,8M</span><span class="rank-pct num">14%</span><span class="rank-trend down">▼3%</span></div></div>
+        <div class="rank-row"><div class="rank-name">MDS</div><div class="rank-bar-wrap"><div class="rank-bar" style="width:14%"></div></div><div class="rank-meta"><span class="rank-value num">R$0,9M</span><span class="rank-pct num">5%</span><span class="rank-trend up">▲1%</span></div></div>
+        <div class="rank-row"><div class="rank-name">SEBRAE</div><div class="rank-bar-wrap"><div class="rank-bar" style="width:12%"></div></div><div class="rank-meta"><span class="rank-value num">R$0,8M</span><span class="rank-pct num">4%</span><span class="rank-trend down">▼6%</span></div></div>
+
+        <div class="rank-footer">ver tudo →</div>
+      </div>
+    </div>
+
+    <div class="footnote">*Receita Líquida: Faturamento - Impostos - Devoluções - Cancelamentos</div>
+
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,11 +1,14 @@
-"""AdTarget Intelligence — entrada única da aplicação (documento 03).
+"""AdTarget Intelligence — entrada única da aplicação.
 
-Fluxo: gate de senha -> carga de dados (cache 15 min) -> limpeza -> 3 abas.
-Navegação em st.tabs() (3 páginas fixas); a migração para o sistema nativo
-de multipágina está prevista apenas para a Fase 1.2 (6 páginas).
+Sprint 2B: a SIDEBAR é a navegação oficial do produto (decisão 34 —
+supersede as abas do documento 03): Performance Comercial, Analítico
+Comercial, Analítico Veículos e, temporariamente, 🔧 Auditoria (removida
+junto com a ferramenta). Ações vivem no Masthead; a sidebar tem apenas
+logo, navegação e o bloco de status dos dados (somente leitura).
 
-Erros de configuração (secrets ausentes, planilha inacessível, coluna
-renomeada) geram mensagem amigável na tela, nunca stack trace bruto.
+Fluxo: gate de senha -> carga com cache (15 min) -> limpeza -> shell
+(sidebar + masthead) -> página ativa. Erros de configuração geram mensagem
+amigável, nunca stack trace.
 """
 
 from __future__ import annotations
@@ -18,10 +21,11 @@ import streamlit as st
 from pages_content import (
     analitico_comercial,
     analitico_veiculos,
-    auditoria_vendas,  # TEMPORÁRIO: remover junto com a aba de auditoria
+    auditoria_vendas,  # TEMPORÁRIO: remover junto com o item de navegação
     performance_comercial,
 )
 from src.auth.gate import exigir_autenticacao
+from src.components import cards
 from src.data.cleaning import limpar_dataframe
 from src.data.loader import ErroDeCarga, load_all_sheets
 
@@ -32,8 +36,10 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------------- gate
-# Roda antes de qualquer leitura de dado; se não autenticado, para aqui.
 exigir_autenticacao()
+
+# Fundação visual da Sprint 2B (Design System aplicado — 2B.1)
+st.markdown(cards.CSS_GLOBAL, unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------- dados
@@ -42,12 +48,8 @@ def _carregar_dados_brutos(
     spreadsheet_id: str, credenciais: dict
 ) -> tuple[pd.DataFrame, _dt.datetime]:
     """Leitura bruta do Google Sheets com cache de 15 minutos,
-    compartilhado entre todos os usuários (documento 03).
-
-    Retorna também o horário da sincronização (momento real da leitura,
-    preservado pelo cache) para o bloco de status da sidebar (Sprint 2A,
-    item 5). O pipeline de leitura em si (load_all_sheets) é o mesmo.
-    """
+    compartilhado entre todos os usuários (documento 03). Retorna também o
+    horário real da sincronização para o bloco de status."""
     return load_all_sheets(spreadsheet_id, credenciais), _dt.datetime.now()
 
 
@@ -81,42 +83,81 @@ except ErroDeCarga as erro:
 
 dados = limpar_dataframe(dados_brutos)
 
-# --------------------------------------------------------------- sidebar
-# Estrutura (Sprint 2A, item 5): nome do produto -> bloco de status dos
-# dados (isolado do botão) -> botão de atualização -> nota de rodapé
-# sobre o ciclo automático.
-with st.sidebar:
-    st.title("AdTarget Intelligence")
+# Toast de confirmação pós-atualização manual (estado de sucesso — 2B.9)
+if st.session_state.pop("_dados_recarregados", False):
+    st.toast("Dados atualizados", icon="✅")
 
-    minutos = max(0, int((_dt.datetime.now() - sincronizado_em).total_seconds() // 60))
-    st.markdown("🟢 **Dados atualizados**")
-    st.caption(
-        f"há {minutos} min · sincronizado às {sincronizado_em:%H:%M}"
+# --------------------------------------------------------------- páginas
+PAGINAS = {
+    "Performance Comercial": (
+        performance_comercial.render,
+        "Visão geral de vendas, campanhas e faturamento",
+    ),
+    "Analítico Comercial": (
+        analitico_comercial.render,
+        "Carteira completa, PI a PI, com filtros finos e alertas de qualidade",
+    ),
+    "Analítico Veículos": (
+        analitico_veiculos.render,
+        "Vendas por grupo e veículo, rankings e consolidado",
+    ),
+    "🔧 Auditoria (temporário)": (
+        auditoria_vendas.render,
+        "Conciliação do indicador Vendas com a planilha de origem",
+    ),
+}
+
+# --------------------------------------------------------------- sidebar
+# Estrutura (DS §5.8): logo -> navegação -> separador -> status. Sem botão.
+with st.sidebar:
+    st.markdown(
+        '<div class="atg-logo-word"><b>Ad</b>Target</div>'
+        '<div class="atg-logo-sub">INTELLIGENCE</div><br>',
+        unsafe_allow_html=True,
+    )
+    pagina_ativa = st.radio(
+        "Navegação",
+        list(PAGINAS),
+        key="nav_pagina",
+        label_visibility="collapsed",
+    )
+    st.divider()
+    minutos = max(
+        0, int((_dt.datetime.now() - sincronizado_em).total_seconds() // 60)
+    )
+    st.markdown(
+        '<div class="atg-status-line"><span class="atg-status-dot"></span>'
+        "Dados atualizados</div>"
+        f'<div class="atg-status-caption">há {minutos} min</div>'
+        f'<div class="atg-status-caption">Última sincronização: '
+        f"{sincronizado_em:%H:%M}</div>",
+        unsafe_allow_html=True,
     )
 
-    st.write("")  # espaçamento claro entre o bloco de status e o botão
-    if st.button("Atualizar dados agora"):
-        _carregar_dados_brutos.clear()
-        st.rerun()
-    st.caption("Os dados são atualizados automaticamente a cada 15 minutos.")
+# -------------------------------------------------------------- masthead
+render_pagina, subtitulo = PAGINAS[pagina_ativa]
+titulo_visivel = pagina_ativa.replace("🔧 ", "")
 
-# ---------------------------------------------------------------- páginas
-# A 4ª aba é uma FERRAMENTA TEMPORÁRIA de diagnóstico (auditoria de
-# Vendas 2026). Remover a aba, o import acima, pages_content/
-# auditoria_vendas.py e src/data/auditoria.py após o fechamento.
-aba1, aba2, aba3, aba4 = st.tabs(
-    [
-        "Performance Comercial",
-        "Analítico Comercial",
-        "Analítico Veículos",
-        "🔧 Auditoria de Vendas 2026",
-    ]
-)
-with aba1:
-    performance_comercial.render(dados)
-with aba2:
-    analitico_comercial.render(dados)
-with aba3:
-    analitico_veiculos.render(dados)
-with aba4:
-    auditoria_vendas.render(dados)
+col_titulo, col_acoes = st.columns([4, 1.6], vertical_alignment="center")
+with col_titulo:
+    cards.masthead(titulo_visivel, subtitulo)
+with col_acoes:
+    st.markdown(
+        f'<div class="atg-updated">atualizado há {minutos} min</div>',
+        unsafe_allow_html=True,
+    )
+    col_refresh, col_tema = st.columns([3, 1])
+    with col_refresh:
+        if st.button("↻ Atualizar", key="masthead_refresh",
+                     help="Recarregar os dados da planilha agora"):
+            _carregar_dados_brutos.clear()
+            st.session_state["_dados_recarregados"] = True
+            st.rerun()
+    with col_tema:
+        st.button(
+            "☾", key="masthead_tema", disabled=True,
+            help="Tema escuro — em estudo (Design System §5.10)",
+        )
+
+# ---------------------------------------------------------------- página
+render_pagina(dados)

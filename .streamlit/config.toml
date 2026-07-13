@@ -6,6 +6,12 @@
 # - Interface (chips, seleção ativa, foco): SEMPRE cor neutra — nunca
 #   vermelho nem verde. O primaryColor abaixo é um azul petróleo
 #   provisório, até a paleta de marca existir formalmente.
+# Sprint 2B: cor de MARCA (verde AdTarget #0B7A66) como accent de
+# identidade/navegação/seleção — deliberadamente distinta do Verde
+# Positivo de desempenho (#1E9E52), conforme DS §5.4.
 [theme]
 base = "light"
-primaryColor = "#2C5F6E"
+primaryColor = "#0B7A66"
+backgroundColor = "#F5F6F8"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#14171C"

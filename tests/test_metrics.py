@@ -499,6 +499,69 @@ class TestCriterioOficial:
 
 
 # ---------------------------------------------------------------------------
+# Agregações de apresentação da Sprint 2B (tendência e destaques) — apenas
+# derivam dados já calculados; nenhum número existente pode mudar
+# ---------------------------------------------------------------------------
+
+class TestTendenciaEDestaques:
+    def test_tendencia_cliente_vs_intervalo_comparavel(self, df):
+        """CLIENTE A: 9.600 (2026, jan-jul ganho) vs 8.000 (2025) = +20%."""
+        tendencia = metrics.tendencia_por_dimensao(
+            df, "CLIENTE", 2026, criterio_mes="ganho", hoje=HOJE_JUL_2026
+        )
+        assert tendencia["CLIENTE A"] == pytest.approx(20.0)
+
+    def test_tendencia_sem_base_anterior_e_none(self, df):
+        """Entidade sem valor no ano anterior: badge neutro, nunca % quebrado."""
+        tendencia = metrics.tendencia_por_dimensao(
+            df, "CLIENTE", 2026, criterio_mes="ganho", hoje=HOJE_JUL_2026
+        )
+        assert tendencia["CLIENTE D"] is None
+
+    def test_tendencia_grupo_veiculo(self, df):
+        tendencia = metrics.tendencia_grupo_veiculo(
+            df, 2026, criterio_mes="ganho", hoje=HOJE_JUL_2026
+        )
+        # GRUPO B/VEIC B: 10.400 (2026) vs 18.400 (2025, jan-jul) = -43,48%
+        assert tendencia[("GRUPO B", "VEIC B")] == pytest.approx(
+            (10400 - 18400) / 18400 * 100.0
+        )
+        # 93 FM sob SVM não existia em 2025: None
+        assert tendencia[("SISTEMA VERDES MARES", "93 FM")] is None
+
+    def test_destaques_concentracao(self, df):
+        destaques = metrics.destaques_do_recorte(df, 2026, criterio_mes="ganho")
+        grupo, pct = destaques["concentracao"]
+        assert grupo == "GRUPO B"
+        assert pct == pytest.approx(10400 / 24800 * 100.0)
+
+    def test_destaques_maior_mes_e_maior_queda(self, df):
+        destaques = metrics.destaques_do_recorte(df, 2026, criterio_mes="ganho")
+        assert destaques["maior_mes"] == (1, pytest.approx(9600.0))
+        mes, mes_anterior, variacao = destaques["maior_queda"]
+        assert (mes, mes_anterior) == (4, 3)
+        assert variacao == pytest.approx((800 - 5600) / 5600 * 100.0)
+
+    def test_destaques_ano_sem_dado(self, df):
+        destaques = metrics.destaques_do_recorte(df, 2030, criterio_mes="ganho")
+        assert destaques == {
+            "concentracao": None, "maior_mes": None, "maior_queda": None,
+        }
+
+    def test_agregacoes_nao_alteram_numeros_existentes(self, df):
+        """Prova do critério de aceite: rodar as agregações novas não muda
+        nenhum indicador oficial."""
+        antes = (
+            metrics.vendas(df), metrics.faturado(df), metrics.em_aberto(df)
+        )
+        metrics.tendencia_por_dimensao(df, "CLIENTE", 2026, hoje=HOJE_JUL_2026)
+        metrics.destaques_do_recorte(df, 2026)
+        assert (
+            metrics.vendas(df), metrics.faturado(df), metrics.em_aberto(df)
+        ) == antes
+
+
+# ---------------------------------------------------------------------------
 # Alertas de Qualidade (detectam, nunca corrigem)
 # ---------------------------------------------------------------------------
 

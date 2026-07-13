@@ -30,9 +30,44 @@ _OPCOES_MES = {"Mês (Ganho)": "ganho", "Mês (Veiculação)": "veiculacao"}
 
 
 def selecionar_ano(df: pd.DataFrame, chave: str) -> int:
-    """Filtro de Ano: seleção única, mais recente por padrão."""
-    anos = sorted(df[COL_ANO_ABA].unique(), reverse=True)
-    return int(st.selectbox("Ano", anos, index=0, key=f"{chave}_ano"))
+    """Filtro de Ano como segmented control (Sprint 2B, DS §5.8): seleção
+    única entre poucas opções, ano mais recente por padrão. Semântica
+    idêntica ao filtro anterior; deselecionar volta ao padrão."""
+    anos = sorted(int(a) for a in df[COL_ANO_ABA].unique())
+    padrao = anos[-1]
+    escolhido = st.segmented_control(
+        "Ano", anos, default=padrao, key=f"{chave}_ano"
+    )
+    return int(escolhido if escolhido is not None else padrao)
+
+
+def toggles_do_estado(chave: str) -> tuple[str, str]:
+    """Lê (valor, criterio_mes) do estado dos toggles SEM renderizá-los.
+
+    Permite que cards acima do Gráfico Hero usem o mesmo estado global dos
+    toggles que são renderizados no cabeçalho do gráfico (posição do
+    mockup 2B), preservando o comportamento de sempre: um único estado por
+    página, todos os blocos monetários reagindo juntos.
+    """
+    rotulo_valor = st.session_state.get(f"{chave}_valor") or next(iter(_OPCOES_VALOR))
+    rotulo_mes_padrao = next(
+        r for r, c in _OPCOES_MES.items() if c == metrics.CRITERIO_MES_OFICIAL
+    )
+    rotulo_mes = st.session_state.get(f"{chave}_mes") or rotulo_mes_padrao
+    return _OPCOES_VALOR[rotulo_valor], _OPCOES_MES[rotulo_mes]
+
+
+def botao_limpar_grupos(df: pd.DataFrame, chave: str) -> None:
+    """Botão "Limpar filtros" sempre visível (DS §5.8): retorna o filtro de
+    Grupo ao padrão oficial (todos os grupos marcados)."""
+    opcoes = sorted(v for v in df[COL_GRUPO].unique() if v != "")
+    chaves = [f"{chave}_grupo_{g}" for g in opcoes]
+    st.button(
+        "Limpar filtros",
+        key=f"{chave}_limpar_filtros",
+        on_click=_definir_grupos,
+        args=(chaves, True),
+    )
 
 
 def selecionar_toggles(chave: str) -> tuple[str, str]:

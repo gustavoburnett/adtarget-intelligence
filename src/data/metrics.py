@@ -435,6 +435,132 @@ def resumo_por_status(df: pd.DataFrame, valor: Valor = "liquido") -> pd.DataFram
     return agg.sort_values("_ordem").drop(columns="_ordem").reset_index(drop=True)
 
 
+# ---------------------------------------------------------------------------
+# Agregações de apresentação da Sprint 2B (decisões C7/PO, adendo doc 09):
+# derivadas EXCLUSIVAMENTE das métricas oficiais — resumem, comparam ou
+# destacam dados já calculados. Nenhuma regra de negócio nova.
+# ---------------------------------------------------------------------------
+
+def _janela_comparavel(
+    df: pd.DataFrame, ano: int, criterio_mes: CriterioMes, hoje: Optional[_dt.date]
+) -> tuple[pd.DataFrame, pd.DataFrame, int]:
+    """Base Vendas de (ano) e (ano−1) no MESMO intervalo comparável do YTD
+    (regra v0.4): até o mês atual no ano corrente; Jan–Dez em ano encerrado.
+    """
+    hoje = hoje or _dt.date.today()
+    mes_limite = hoje.month if ano == hoje.year else 12
+    col_mes = coluna_mes(criterio_mes)
+    base = df[mascara_vendas(df)]
+    atual = base[
+        (base[col_mes].dt.year == ano) & (base[col_mes].dt.month <= mes_limite)
+    ]
+    anterior = base[
+        (base[col_mes].dt.year == ano - 1)
+        & (base[col_mes].dt.month <= mes_limite)
+    ]
+    return atual, anterior, mes_limite
+
+
+def tendencia_por_dimensao(
+    df: pd.DataFrame,
+    coluna: str,
+    ano: int,
+    valor: Valor = "liquido",
+    criterio_mes: CriterioMes = CRITERIO_MES_OFICIAL,
+    hoje: Optional[_dt.date] = None,
+) -> dict[str, Optional[float]]:
+    """Variação % de cada entidade da dimensão vs o mesmo intervalo
+    comparável do ano anterior (badge de tendência dos rankings — 2B.8).
+
+    Retorna {entidade: variação % ou None quando não há base do ano
+    anterior}. NÃO altera nenhum número exibido: os valores dos rankings
+    continuam vindo de agregado_por_dimensao; isto apenas ADICIONA a
+    leitura de tendência.
+    """
+    atual, anterior, _ = _janela_comparavel(df, ano, criterio_mes, hoje)
+    col = coluna_valor(valor)
+    soma_atual = atual.groupby(coluna)[col].sum()
+    soma_anterior = anterior.groupby(coluna)[col].sum()
+    resultado: dict[str, Optional[float]] = {}
+    for entidade, v_atual in soma_atual.items():
+        v_ant = float(soma_anterior.get(entidade, 0.0))
+        if v_ant == 0.0:
+            resultado[entidade] = None  # sem base: badge neutro, nunca % quebrado
+        else:
+            resultado[entidade] = (float(v_atual) - v_ant) / v_ant * 100.0
+    return resultado
+
+
+def tendencia_grupo_veiculo(
+    df: pd.DataFrame,
+    ano: int,
+    valor: Valor = "liquido",
+    criterio_mes: CriterioMes = CRITERIO_MES_OFICIAL,
+    hoje: Optional[_dt.date] = None,
+) -> dict[tuple[str, str], Optional[float]]:
+    """Como tendencia_por_dimensao, para o par Grupo+Veículo (decisão 15)."""
+    atual, anterior, _ = _janela_comparavel(df, ano, criterio_mes, hoje)
+    col = coluna_valor(valor)
+    soma_atual = atual.groupby([COL_GRUPO, COL_VEICULO])[col].sum()
+    soma_anterior = anterior.groupby([COL_GRUPO, COL_VEICULO])[col].sum()
+    resultado: dict[tuple[str, str], Optional[float]] = {}
+    for par, v_atual in soma_atual.items():
+        v_ant = float(soma_anterior.get(par, 0.0))
+        resultado[par] = (
+            None if v_ant == 0.0
+            else (float(v_atual) - v_ant) / v_ant * 100.0
+        )
+    return resultado
+
+
+def destaques_do_recorte(
+    df: pd.DataFrame,
+    ano: int,
+    valor: Valor = "liquido",
+    criterio_mes: CriterioMes = CRITERIO_MES_OFICIAL,
+) -> dict:
+    """Fatos derivados para as cápsulas de Insight (2B.6) — apenas leitura
+    adicional de dados já calculados pelas funções oficiais:
+
+    - "concentracao": (grupo líder, % das Vendas do recorte) — de
+      agregado_por_dimensao
+    - "maior_mes": (nº do mês, valor) — de evolucao_mensal
+    - "maior_queda": (mês, mês anterior, variação %) — menor variação
+      negativa entre meses consecutivos COM dado em evolucao_mensal;
+      None se não houver queda ou menos de 2 meses consecutivos
+    """
+    resultado: dict = {"concentracao": None, "maior_mes": None, "maior_queda": None}
+
+    por_grupo = agregado_por_dimensao(
+        df[df[coluna_mes(criterio_mes)].dt.year == ano], COL_GRUPO, valor
+    )
+    total = float(por_grupo["valor"].sum()) if not por_grupo.empty else 0.0
+    if total > 0:
+        lider = por_grupo.iloc[0]
+        resultado["concentracao"] = (
+            str(lider[COL_GRUPO]), float(lider["valor"]) / total * 100.0
+        )
+
+    evolucao = evolucao_mensal(df, ano, valor, criterio_mes)
+    if evolucao:
+        mes_max = max(evolucao, key=evolucao.get)
+        resultado["maior_mes"] = (mes_max, evolucao[mes_max])
+
+        maior_queda = None
+        for mes in sorted(evolucao):
+            if (mes - 1) in evolucao and evolucao[mes - 1] > 0:
+                variacao = (
+                    (evolucao[mes] - evolucao[mes - 1]) / evolucao[mes - 1] * 100.0
+                )
+                if variacao < 0 and (
+                    maior_queda is None or variacao < maior_queda[2]
+                ):
+                    maior_queda = (mes, mes - 1, variacao)
+        resultado["maior_queda"] = maior_queda
+
+    return resultado
+
+
 def agregado_por_dimensao(
     df: pd.DataFrame, coluna: str, valor: Valor = "liquido"
 ) -> pd.DataFrame:

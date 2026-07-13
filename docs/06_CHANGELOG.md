@@ -71,3 +71,18 @@ Filtros Premium, Sidebar e Componentes, conforme especificação oficial de UX (
 - **Filtro de Grupo recolhido por padrão** (Performance Comercial): componente compacto com resumo ("Grupo: Todos" / nomes até 3 / "A, B +N" / "Grupo: Nenhum selecionado"), abrindo painel com checkboxes e atalhos Selecionar todos/Limpar. Semântica idêntica ao filtro anterior (todos marcados por padrão; recorte vazio segue a regra existente).
 - **Barra de filtros em linha única** (Performance Comercial): Ano, Grupo recolhido e segmented controls numa única faixa horizontal com alinhamento vertical consistente, substituindo as linhas empilhadas.
 - **Sidebar reestruturada**: nome do produto -> bloco de status dos dados (indicador + "Dados atualizados" + "há X min · sincronizado às HH:MM") -> botão "Atualizar dados agora" -> nota de rodapé sobre o ciclo automático de 15 minutos.
+
+## Versão 0.5 — Sprint 2B (2026-07-10)
+
+Transformação visual da página Performance Comercial para o padrão executivo premium (Design System v0.5 + Wireframe Executivo + Mockup aprovado — `docs/09_ESPECIFICACAO_SPRINT_2B.md`, com o adendo de resolução de conflitos C1-C10 e decisões 34-37 da Memória Oficial). Nenhuma regra de negócio, cálculo, consulta ou resultado numérico alterado.
+
+- **Fundação visual (2B.1)**: design tokens aplicados — cor de MARCA verde AdTarget (#0B7A66) para identidade/navegação/seleção, deliberadamente distinta do Verde Positivo de desempenho (#1E9E52); fundo de página #F5F6F8; superfícies brancas; radius 12/8/999; sombra sutil; números tabulares.
+- **Masthead (2B.2)**: título + subtítulo à esquerda; "atualizado há X min", botão "↻ Atualizar" (movido da sidebar) e toggle de tema desabilitado (dark mode em estudo) à direita. Botão Exportar removido da Sprint por decisão de PO (C6).
+- **Sidebar = navegação oficial (2B.3, decisão 34)**: logo, navegação (Performance Comercial, Analítico Comercial, Analítico Veículos, 🔧 Auditoria temporário) com estado ativo na cor de marca, e bloco de status somente leitura. Sem botão na sidebar.
+- **Filtros (2B.4)**: Ano como segmented control; Grupo mantém o componente recolhido com resumo (Sprint 2A) + botão "Limpar filtros" sempre visível (retorna ao padrão: todos marcados).
+- **KPIs (2B.5)**: linha única com Card Hero de YTD (Display 42px, seta e cor semântica, ênfase estrutural — nunca fundo em cor de marca) + 4 secundários (Vendas em verde positivo, Em Aberto em âmbar, Ticket Médio, Campanhas), mesma altura, tooltips com valor completo.
+- **Insights automáticos (2B.6, decisão 36)**: até 4 cápsulas factuais derivadas exclusivamente de métricas oficiais (concentração do grupo líder, maior mês, maior queda mês a mês).
+- **Gráfico Hero (2B.7)**: abas Vendas / Ticket Médio (controle primário) com toggles Líquido/Bruto e Ganho/Veiculação como controles secundários no cabeçalho — estado único da página, todos os blocos reagem juntos, comportamento inalterado. Ano corrente em cor de marca sólida, anterior tracejado cinza (C10), grid sutil, meses futuros como zona esmaecida "sem dado disponível", rótulos no pico e no último mês.
+- **Rankings Top 5 (2B.8)**: valor + % + badge de tendência (Variante 1: ▲/▼ + %, variação vs mesmo intervalo comparável do YTD, no toggle ativo; "—" sem base anterior); links "ver tudo →" com navegação cruzada para as páginas analíticas.
+- **Estados (2B.9)**: toast de confirmação na atualização manual; vazio e erro mantidos. **Microinterações (2B.10)**: tooltips revelam valor completo; "clique em barra aplica filtro" adiado (C8).
+- Novas agregações de apresentação em metrics.py (tendencia_por_dimensao, tendencia_grupo_veiculo, destaques_do_recorte), derivadas apenas dos buckets oficiais, com 7 testes — incluindo prova de que não alteram nenhum indicador existente.
