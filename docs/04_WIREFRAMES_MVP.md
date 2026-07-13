@@ -6,13 +6,15 @@ Este documento descreve KPIs, gráficos, filtros, tabelas e lógica de cálculo 
 
 ### Cards no topo
 
+Ordem por afinidade (v0.5 Sprint 1): YTD (KPI de destaque), indicadores financeiros (Vendas, Em Aberto), indicadores operacionais (Ticket Médio, Campanhas). Grade única de 5 cards com mesma largura, altura e alinhamento. Valores monetários em formato executivo (Mi/mil — ver regra transversal), com valor completo no tooltip.
+
 | Card | Cálculo | Decisão que ajuda a tomar |
 |---|---|---|
+| YTD vs Ano Anterior (KPI de destaque) | Comparativo acumulado no ano (regra v0.4: até o mês atual no ano corrente; Jan–Dez em ano encerrado), contra o mesmo intervalo do ano anterior. Card factual (v0.5): frase de período dinâmica, percentual com seta e cor de sentimento (verde/vermelho, tipografia ~25% maior, borda lateral fina) e valores absolutos de suporte. Sem frases interpretativas | Se o crescimento do ano é real e sustentado, não apenas um mês bom isolado |
 | Vendas | Soma do valor líquido dos 6 status de venda, no recorte de filtros selecionado. Etiqueta secundária indicando quanto desse total já está Faturado | Quanto a AdTarget vendeu no período |
-| YTD vs Ano Anterior (KPI principal) | Comparativo acumulado no ano (janeiro até o último mês com dado), contra o mesmo intervalo do ano anterior, em percentual, na base Vendas | Se o crescimento do ano é real e sustentado, não apenas um mês bom isolado |
+| Em Aberto | Soma do valor líquido dos status A VEICULAR + EM VEICULAÇÃO + CHECKING + AGUARD. DOC. VEÍCULO | Quanto já foi vendido e ainda não faturou (Em Aberto = Vendas − Faturado) |
 | Ticket Médio | Vendas ÷ quantidade de PIs na base Vendas | Se os negócios fechados estão maiores ou mais pulverizados |
 | Quantidade de Campanhas | Combinações distintas de Cliente + Campanha no recorte (base Vendas) | Volume operacional real do período |
-| Em Aberto | Soma do valor líquido dos status A VEICULAR + EM VEICULAÇÃO + CHECKING + AGUARD. DOC. VEÍCULO | Quanto já foi vendido e ainda não faturou (Em Aberto = Vendas − Faturado) |
 
 ### Gráficos
 
@@ -97,6 +99,7 @@ Ano, Grupo, Agência, Cliente.
 
 - Toda agregação por veículo usa sempre Grupo + Veículo, nunca veículo isolado. O filtro de Veículo sempre exibe o rótulo como "Grupo — Veículo".
 - Métrica de valor padrão é sempre Valor Líquido, com opção de alternar para Valor Bruto em qualquer bloco monetário.
+- **Formatação executiva (v0.5)** em todos os cards monetários das 3 páginas: ≥ R$ 1 milhão -> "R$ X,XX Mi"; ≥ R$ 1 mil -> "R$ X,XX mil"; abaixo, valor completo. Sem "K"; arredondamento pelo valor mais próximo. Tooltips, tabelas analíticas e auditoria exibem o valor completo. Contagens inteiras; percentuais com uma casa decimal.
 - Critério de data padrão é sempre **MÊS (VEICULAÇÃO)** (critério oficial do KPI de Vendas — v0.4), com opção de alternar para MÊS (GANHO) em análises específicas. Regra única em todas as páginas. YTD e comparativo mês a mês recalculam sobre o toggle ativo.
 - Nenhum total é lido de célula pré-calculada da planilha; tudo é recalculado a partir das linhas brutas tratadas.
 - Filtro Ano é de seleção única, com o ano mais recente disponível marcado por padrão; ano anterior é sempre calculado automaticamente (ano selecionado − 1). Demais filtros (Grupo, Veículo, Agência, Cliente, Status, Executivo) são de seleção múltipla, com todos os valores marcados por padrão.

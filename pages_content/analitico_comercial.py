@@ -74,7 +74,9 @@ def render(df: pd.DataFrame) -> None:
         cards.card_moeda(
             "Vendas",
             detalhado["total"],
-            legenda=f"Faturado: {cards.formatar_moeda(detalhado['faturado'])}",
+            legenda=(
+                f"Faturado: {cards.formatar_moeda_executiva(detalhado['faturado'])}"
+            ),
         )
     with c2:
         cards.card_moeda(

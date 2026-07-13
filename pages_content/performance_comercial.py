@@ -38,33 +38,41 @@ def render(df: pd.DataFrame) -> None:
     df_ano = filters.recorte_do_ano(df_dim, ano, criterio_mes)
 
     # --------------------------------------------------------------- cards
+    # Ordem por afinidade (v0.5 Sprint 1): YTD (KPI de destaque) ->
+    # financeiros (Vendas, Em Aberto) -> operacionais (Ticket, Campanhas).
+    # Mesma grade, mesma largura, mesmo alinhamento dos 5 cards.
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
-        detalhado = metrics.vendas_detalhado(df_ano, valor)
-        cards.card_moeda(
-            "Vendas",
-            detalhado["total"],
-            legenda=f"sendo {cards.formatar_moeda(detalhado['faturado'])} já faturado",
-        )
-    with c2:
         cards.card_ytd(
             "YTD vs Ano Anterior",
             metrics.ytd(df_dim, ano, valor, criterio_mes),
             ano,
+            sem_dados=df_ano.empty,
+        )
+    with c2:
+        detalhado = metrics.vendas_detalhado(df_ano, valor)
+        cards.card_moeda(
+            "Vendas",
+            detalhado["total"],
+            legenda=(
+                "sendo "
+                f"{cards.formatar_moeda_executiva(detalhado['faturado'])} "
+                "já faturado"
+            ),
         )
     with c3:
-        cards.card_moeda("Ticket Médio", metrics.ticket_medio(df_ano, valor))
-    with c4:
-        cards.card_numero(
-            "Campanhas",
-            metrics.quantidade_campanhas(df_ano),
-            legenda="Cliente + Campanha distintos (base Vendas)",
-        )
-    with c5:
         cards.card_moeda(
             "Em Aberto",
             metrics.em_aberto(df_ano, valor),
             legenda="vendido, ainda não faturado",
+        )
+    with c4:
+        cards.card_moeda("Ticket Médio", metrics.ticket_medio(df_ano, valor))
+    with c5:
+        cards.card_numero(
+            "Campanhas",
+            metrics.quantidade_campanhas(df_ano),
+            legenda="Cliente + Campanha distintos (base Vendas)",
         )
 
     st.divider()
