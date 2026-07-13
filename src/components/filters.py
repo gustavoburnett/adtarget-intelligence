@@ -75,31 +75,44 @@ def selecionar_toggles(chave: str) -> tuple[str, str]:
 # Filtro de Grupo recolhido (Sprint 2A, item 3)
 # ---------------------------------------------------------------------------
 
-#: Máximo de nomes exibidos no resumo antes de virar contador ("+N"),
-#: garantindo que o resumo nunca ocupe mais de uma linha (decisão de PO)
+#: Máximo de nomes exibidos no resumo antes de virar contador ("+N")
 _MAX_NOMES_RESUMO = 3
-_NOMES_COM_CONTADOR = 2
+#: Teto de caracteres do resumo (regra de espaço do PO: o resumo NUNCA
+#: ocupa mais de uma linha; com nomes longos, degrada automaticamente
+#: para menos nomes + contador, e em último caso para contagem pura)
+_LIMITE_CARACTERES_RESUMO = 38
 
 
 def resumo_grupos(selecionados: list[str], total: int) -> str:
     """Resumo do filtro de Grupo recolhido (regras da spec Sprint 2A):
 
     - todos selecionados -> "Grupo: Todos"
-    - até 3 -> "Grupo: A, B, C"
-    - mais que isso -> "Grupo: A, B +N" (nunca mais de uma linha)
+    - até 3 (cabendo no espaço) -> "Grupo: A, B, C"
+    - mais nomes ou nomes longos -> "Grupo: A, B +N", degradando até
+      "Grupo: N de M" — o resumo nunca ocupa mais de uma linha
     - nenhum -> "Grupo: Nenhum selecionado" (vazio intencional, não erro)
     """
     if total and len(selecionados) == total:
         return "Grupo: Todos"
     if not selecionados:
         return "Grupo: Nenhum selecionado"
+
     if len(selecionados) <= _MAX_NOMES_RESUMO:
-        return "Grupo: " + ", ".join(selecionados)
-    visiveis = selecionados[:_NOMES_COM_CONTADOR]
-    return (
-        "Grupo: " + ", ".join(visiveis)
-        + f" +{len(selecionados) - len(visiveis)}"
-    )
+        candidato = "Grupo: " + ", ".join(selecionados)
+        if len(candidato) <= _LIMITE_CARACTERES_RESUMO:
+            return candidato
+
+    for visiveis in (2, 1):
+        if len(selecionados) <= visiveis:
+            continue
+        candidato = (
+            "Grupo: " + ", ".join(selecionados[:visiveis])
+            + f" +{len(selecionados) - visiveis}"
+        )
+        if len(candidato) <= _LIMITE_CARACTERES_RESUMO:
+            return candidato
+
+    return f"Grupo: {len(selecionados)} de {total} selecionados"
 
 
 def _definir_grupos(chaves: list[str], marcado: bool) -> None:

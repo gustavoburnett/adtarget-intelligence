@@ -20,6 +20,12 @@ MESES_ROTULOS = [
     "Jul", "Ago", "Set", "Out", "Nov", "Dez",
 ]
 
+#: Cores NEUTRAS de série de dados (Sprint 2A, item 2): a paleta padrão do
+#: Plotly pinta o 2º trace de vermelho (#EF553B), que é reservado a
+#: sentimento negativo. Séries de dados usam sempre neutros explícitos.
+COR_SERIE_PRINCIPAL = "#2C5F6E"    # azul petróleo (mesmo accent do tema)
+COR_SERIE_COMPARATIVA = "#9CA3AF"  # cinza (ano anterior, pontilhado)
+
 _FORMATO_MOEDA_HOVER = "R$ %{y:,.2f}"
 
 
@@ -41,7 +47,7 @@ def grafico_evolucao_comparativa(
             y=list(comparativo["anterior"]),
             name=str(ano - 1),
             mode="lines+markers",
-            line=dict(dash="dot"),
+            line=dict(dash="dot", color=COR_SERIE_COMPARATIVA),
             connectgaps=False,
             hovertemplate=_FORMATO_MOEDA_HOVER,
         )
@@ -52,6 +58,7 @@ def grafico_evolucao_comparativa(
             y=list(comparativo["atual"]),
             name=str(ano),
             mode="lines+markers",
+            line=dict(color=COR_SERIE_PRINCIPAL),
             connectgaps=False,
             hovertemplate=_FORMATO_MOEDA_HOVER,
         )
@@ -72,6 +79,7 @@ def grafico_linha_mensal(por_mes: dict[int, float], titulo: str) -> None:
             x=MESES_ROTULOS,
             y=_serie_com_lacunas(por_mes),
             mode="lines+markers",
+            line=dict(color=COR_SERIE_PRINCIPAL),
             connectgaps=False,
             hovertemplate=_FORMATO_MOEDA_HOVER,
         )
