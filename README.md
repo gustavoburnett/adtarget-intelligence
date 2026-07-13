@@ -2,7 +2,7 @@
 
 Aplicação interna de inteligência comercial da AdTarget. Substitui o dashboard Power BI, lendo a "Planilha de Vendas AdTarget" (Google Sheets) diretamente e recalculando todas as métricas a partir das linhas brutas.
 
-**Status: MVP completo (camada de dados + interface).** Pendente: validação com a planilha real e deploy no Streamlit Community Cloud.
+**Status: v0.4 — em produção no Streamlit Community Cloud.** MVP completo (camada de dados + interface), conciliado com a planilha real via ferramenta de auditoria. Regras vigentes: indicadores Vendas/Faturado/Em Aberto (v0.3) e critério temporal oficial MÊS (VEICULAÇÃO) com YTD verdadeiro (v0.4). A aba "🔧 Auditoria de Vendas 2026" é temporária e deve ser removida ao fim da conciliação.
 
 ## Arquitetura
 
