@@ -1,3 +1,11 @@
-# Tema visual do AdTarget Intelligence (ajustar cores da marca na fase de UI)
+# Tema visual do AdTarget Intelligence
+#
+# SEMÂNTICA DE CORES (Sprint 2A, docs/UX/SPRINT_2A_SPEC.md, item 2):
+# - Vermelho: EXCLUSIVO para sentimento negativo (queda, alerta, erro)
+# - Verde:    EXCLUSIVO para sentimento positivo (crescimento)
+# - Interface (chips, seleção ativa, foco): SEMPRE cor neutra — nunca
+#   vermelho nem verde. O primaryColor abaixo é um azul petróleo
+#   provisório, até a paleta de marca existir formalmente.
 [theme]
 base = "light"
+primaryColor = "#2C5F6E"

@@ -10,6 +10,8 @@ renomeada) geram mensagem amigável na tela, nunca stack trace bruto.
 
 from __future__ import annotations
 
+import datetime as _dt
+
 import pandas as pd
 import streamlit as st
 
@@ -36,10 +38,17 @@ exigir_autenticacao()
 
 # ---------------------------------------------------------------- dados
 @st.cache_data(ttl=900, show_spinner="Carregando dados da planilha...")
-def _carregar_dados_brutos(spreadsheet_id: str, credenciais: dict) -> pd.DataFrame:
+def _carregar_dados_brutos(
+    spreadsheet_id: str, credenciais: dict
+) -> tuple[pd.DataFrame, _dt.datetime]:
     """Leitura bruta do Google Sheets com cache de 15 minutos,
-    compartilhado entre todos os usuários (documento 03)."""
-    return load_all_sheets(spreadsheet_id, credenciais)
+    compartilhado entre todos os usuários (documento 03).
+
+    Retorna também o horário da sincronização (momento real da leitura,
+    preservado pelo cache) para o bloco de status da sidebar (Sprint 2A,
+    item 5). O pipeline de leitura em si (load_all_sheets) é o mesmo.
+    """
+    return load_all_sheets(spreadsheet_id, credenciais), _dt.datetime.now()
 
 
 def _validar_secrets() -> tuple[str, dict]:
@@ -62,23 +71,34 @@ def _validar_secrets() -> tuple[str, dict]:
 
 spreadsheet_id, credenciais = _validar_secrets()
 
-with st.sidebar:
-    st.title("AdTarget Intelligence")
-    if st.button("Atualizar dados agora"):
-        _carregar_dados_brutos.clear()
-        st.rerun()
-    st.caption(
-        "Os dados são atualizados automaticamente a cada 15 minutos. "
-        "Use o botão para forçar uma recarga imediata da planilha."
-    )
-
 try:
-    dados_brutos = _carregar_dados_brutos(spreadsheet_id, credenciais)
+    dados_brutos, sincronizado_em = _carregar_dados_brutos(
+        spreadsheet_id, credenciais
+    )
 except ErroDeCarga as erro:
     st.error(str(erro))
     st.stop()
 
 dados = limpar_dataframe(dados_brutos)
+
+# --------------------------------------------------------------- sidebar
+# Estrutura (Sprint 2A, item 5): nome do produto -> bloco de status dos
+# dados (isolado do botão) -> botão de atualização -> nota de rodapé
+# sobre o ciclo automático.
+with st.sidebar:
+    st.title("AdTarget Intelligence")
+
+    minutos = max(0, int((_dt.datetime.now() - sincronizado_em).total_seconds() // 60))
+    st.markdown("🟢 **Dados atualizados**")
+    st.caption(
+        f"há {minutos} min · sincronizado às {sincronizado_em:%H:%M}"
+    )
+
+    st.write("")  # espaçamento claro entre o bloco de status e o botão
+    if st.button("Atualizar dados agora"):
+        _carregar_dados_brutos.clear()
+        st.rerun()
+    st.caption("Os dados são atualizados automaticamente a cada 15 minutos.")
 
 # ---------------------------------------------------------------- páginas
 # A 4ª aba é uma FERRAMENTA TEMPORÁRIA de diagnóstico (auditoria de

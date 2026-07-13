@@ -24,14 +24,21 @@ _CHAVE = "perf"
 
 
 def render(df: pd.DataFrame) -> None:
-    # ------------------------------------------------------------- filtros
+    # ---------------------------------------------------- barra de filtros
+    # Sprint 2A (item 4): faixa horizontal única — Ano, Grupo recolhido,
+    # segmented controls à direita. Mesma altura visual e alinhamento
+    # (vertical_alignment="bottom"). Em telas menores o Streamlit empilha
+    # as colunas na ordem Ano -> Grupo -> toggles, sem sobreposição.
     with st.container():
-        col_ano, col_grupo = st.columns([1, 3])
+        col_ano, col_grupo, col_toggles = st.columns(
+            [1, 1.6, 3], vertical_alignment="bottom"
+        )
         with col_ano:
             ano = filters.selecionar_ano(df, _CHAVE)
         with col_grupo:
-            df_dim = filters.filtro_multiplo(df, COL_GRUPO, "Grupo", _CHAVE)
-        valor, criterio_mes = filters.selecionar_toggles(_CHAVE)
+            df_dim = filters.filtro_grupo_recolhido(df, _CHAVE)
+        with col_toggles:
+            valor, criterio_mes = filters.selecionar_toggles(_CHAVE)
 
     # df_dim: filtros de dimensão, SEM corte de ano (comparativos precisam
     # do ano anterior). df_ano: recorte do ano para cards e rankings.
