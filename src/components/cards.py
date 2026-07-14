@@ -341,26 +341,6 @@ def montar_ytd(
     }
 
 
-def card_ytd(
-    titulo: str, ytd_resultado: dict, ano: int, sem_dados: bool = False
-) -> None:
-    """Card YTD de destaque (fora da linha_kpis; mantido para reuso)."""
-    pecas = montar_ytd(ytd_resultado, ano, sem_dados)
-    seta_html = f"{pecas['seta']} " if pecas["seta"] else ""
-    html = (
-        f'<div style="border-left: 3px solid {pecas["cor"]}; '
-        'padding: 0.15rem 0 0.15rem 0.75rem; margin-bottom: 0.25rem;">'
-        f'<div style="font-size: 0.8rem; color: {COR_NEUTRO};">'
-        f'{pecas["periodo"]}</div>'
-        f'<div style="font-size: 2.8rem; font-weight: 700; line-height: 1.15; '
-        f'color: {pecas["cor"]};">{seta_html}{pecas["percentual"]}</div>'
-        f'<div style="font-size: 0.8rem; color: rgb(49, 51, 63);">'
-        f'{pecas["suporte"]}</div>'
-        "</div>"
-    )
-    st.markdown(html, unsafe_allow_html=True)
-
-
 # ---------------------------------------------------------------------------
 # Masthead, KPI band, Insights e Rankings
 # ---------------------------------------------------------------------------

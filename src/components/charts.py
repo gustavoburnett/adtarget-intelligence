@@ -31,65 +31,6 @@ _COR_ZONA_FUTURA = "#F2F4F6"
 _FORMATO_MOEDA_HOVER = "R$ %{y:,.2f}"
 
 
-def _serie_com_lacunas(por_mes: dict[int, float]) -> list[Optional[float]]:
-    """Converte {mes: valor} em lista de 12 posições com None nas lacunas."""
-    return [por_mes.get(mes) for mes in range(1, 13)]
-
-
-def grafico_evolucao_comparativa(
-    comparativo: pd.DataFrame, ano: int, titulo: str
-) -> None:
-    """Linha do ano selecionado + linha pontilhada do ano anterior
-    (comparativo mês a mês do documento 04). Recebe o DataFrame de
-    metrics.comparativo_mensal (índice 1-12, colunas atual/anterior)."""
-    fig = go.Figure()
-    fig.add_trace(
-        go.Scatter(
-            x=MESES_ROTULOS,
-            y=list(comparativo["anterior"]),
-            name=str(ano - 1),
-            mode="lines+markers",
-            line=dict(dash="dot", color=COR_SERIE_COMPARATIVA),
-            connectgaps=False,
-            hovertemplate=_FORMATO_MOEDA_HOVER,
-        )
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=MESES_ROTULOS,
-            y=list(comparativo["atual"]),
-            name=str(ano),
-            mode="lines+markers",
-            line=dict(color=COR_SERIE_PRINCIPAL),
-            connectgaps=False,
-            hovertemplate=_FORMATO_MOEDA_HOVER,
-        )
-    )
-    fig.update_layout(
-        title=titulo,
-        hovermode="x unified",
-        legend=dict(orientation="h", y=1.1),
-        margin=dict(t=60, b=20),
-    )
-    st.plotly_chart(fig, width="stretch")
-
-
-def grafico_linha_mensal(por_mes: dict[int, float], titulo: str) -> None:
-    """Linha simples de um ano (ex: evolução do Ticket Médio), com lacunas."""
-    fig = go.Figure(
-        go.Scatter(
-            x=MESES_ROTULOS,
-            y=_serie_com_lacunas(por_mes),
-            mode="lines+markers",
-            line=dict(color=COR_SERIE_PRINCIPAL),
-            connectgaps=False,
-            hovertemplate=_FORMATO_MOEDA_HOVER,
-        )
-    )
-    fig.update_layout(title=titulo, margin=dict(t=60, b=20))
-    st.plotly_chart(fig, width="stretch")
-
-
 def grafico_barra_horizontal(
     dados: pd.DataFrame,
     coluna_rotulo: str,

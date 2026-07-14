@@ -39,10 +39,6 @@ SEPARADOR_PAR = " — "
 _OPCOES_VALOR = {"Valor Líquido": "liquido", "Valor Bruto": "bruto"}
 _OPCOES_MES = {"Mês (Ganho)": "ganho", "Mês (Veiculação)": "veiculacao"}
 
-#: Teto de caracteres do resumo (o campo recolhido nunca passa de 1 linha)
-_LIMITE_RESUMO = 32
-
-
 # ---------------------------------------------------------------------------
 # Ano e toggles (inalterados na Sprint 3A)
 # ---------------------------------------------------------------------------
@@ -100,37 +96,6 @@ def recorte_do_ano(df: pd.DataFrame, ano: int, criterio_mes: str) -> pd.DataFram
 # ---------------------------------------------------------------------------
 # Filtro compacto — funções puras (testáveis sem Streamlit)
 # ---------------------------------------------------------------------------
-
-def resumo_selecao(
-    selecionados: list[str], total: int, plural: str, genero: str = "o"
-) -> str:
-    """Resumo do campo recolhido (Sprint 3A):
-
-    - todos    -> "Todos os grupos (18)" / "Todas as agências (26)"
-    - nenhum   -> "Nenhum selecionado" / "Nenhuma selecionada"
-    - parcial  -> nomes até caber ("Disney, Teads +15"), degradando para
-                  "3 grupos selecionados" — nunca mais de uma linha
-    """
-    fem = genero == "a"
-    if total == 0:
-        return f"Sem {plural} no recorte"
-    if len(selecionados) == total:
-        artigo = "Todas as" if fem else "Todos os"
-        return f"{artigo} {plural} ({total})"
-    if not selecionados:
-        return "Nenhuma selecionada" if fem else "Nenhum selecionado"
-    for n_nomes in (3, 2, 1):
-        if len(selecionados) < n_nomes:
-            continue
-        resto = len(selecionados) - n_nomes
-        candidato = ", ".join(selecionados[:n_nomes]) + (
-            f" +{resto}" if resto else ""
-        )
-        if len(candidato) <= _LIMITE_RESUMO:
-            return candidato
-    sufixo = "selecionadas" if fem else "selecionados"
-    return f"{len(selecionados)} {plural} {sufixo}"
-
 
 def resumo_curto(
     selecionados: list[str], total: int, genero: str = "o"
