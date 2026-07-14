@@ -107,13 +107,20 @@ def grafico_barra_horizontal(
             x=list(recorte[coluna_valor]),
             y=list(recorte[coluna_rotulo]),
             orientation="h",
+            marker=dict(color=COR_SERIE_PRINCIPAL),  # 2B.1: cor de marca
             hovertemplate="R$ %{x:,.2f}<extra></extra>",
         )
     )
     fig.update_layout(
-        title=titulo,
-        yaxis=dict(autorange="reversed"),  # maior no topo
-        margin=dict(t=60, b=20),
+        title=dict(text=titulo, font=dict(size=15, color="#14171C")),
+        yaxis=dict(autorange="reversed",
+                   tickfont=dict(size=12, color="#5B6472")),
+        xaxis=dict(gridcolor=_COR_GRID,
+                   tickfont=dict(size=11.5, color="#8B93A1")),
+        plot_bgcolor="#FFFFFF",
+        paper_bgcolor="rgba(0,0,0,0)",
+        margin=dict(t=52, b=16, l=8, r=8),
+        bargap=0.38,
     )
     st.plotly_chart(fig, width="stretch")
 
@@ -121,21 +128,27 @@ def grafico_barra_horizontal(
 def _aplicar_estilo_hero(fig: go.Figure, ano: int, mes_limite: Optional[int]) -> None:
     """Estilo do Gráfico Hero (2B.7): grid sutil, fundo branco, zona de
     meses futuros esmaecida com rótulo "sem dado disponível"."""
+    # Sprint 2B.1 (1.5): o gráfico é o protagonista — mais altura,
+    # tipografia maior e contraste melhor. Dados/escalas intocados.
     fig.update_layout(
         plot_bgcolor="#FFFFFF",
         paper_bgcolor="rgba(0,0,0,0)",
         hovermode="x unified",
-        legend=dict(orientation="h", y=-0.18, font=dict(size=11)),
-        margin=dict(t=16, b=8, l=8, r=8),
-        height=320,
+        legend=dict(orientation="h", y=-0.16, font=dict(size=12.5, color="#5B6472")),
+        margin=dict(t=20, b=8, l=8, r=8),
+        height=390,
         xaxis=dict(
             tickmode="array",
             tickvals=list(range(1, 13)),
             ticktext=MESES_ROTULOS,
             showgrid=False,
             range=[0.5, 12.5],
+            tickfont=dict(size=12.5, color="#5B6472"),
         ),
-        yaxis=dict(gridcolor=_COR_GRID, zerolinecolor=_COR_GRID),
+        yaxis=dict(
+            gridcolor=_COR_GRID, zerolinecolor=_COR_GRID,
+            tickfont=dict(size=12, color="#8B93A1"),
+        ),
     )
     if mes_limite is not None and mes_limite < 12:
         fig.add_vrect(
@@ -146,7 +159,7 @@ def _aplicar_estilo_hero(fig: go.Figure, ano: int, mes_limite: Optional[int]) ->
         fig.add_annotation(
             x=(mes_limite + 0.5 + 12.5) / 2, y=0.5, yref="paper",
             text="<i>sem dado disponível</i>", showarrow=False,
-            font=dict(size=11, color="#8B93A1"),
+            font=dict(size=12, color="#8B93A1"),
         )
 
 
@@ -167,26 +180,33 @@ def grafico_hero_vendas(
     fig.add_trace(go.Scatter(
         x=meses, y=list(comparativo["atual"]), name=f"{ano} (ano selecionado)",
         mode="lines+markers",
-        line=dict(color=COR_SERIE_PRINCIPAL, width=2.5),
-        marker=dict(size=7),
+        line=dict(color=COR_SERIE_PRINCIPAL, width=3),
+        marker=dict(size=8),
         connectgaps=False, hovertemplate=_FORMATO_MOEDA_HOVER,
     ))
     atual = comparativo["atual"].dropna()
     if not atual.empty:
         from src.components.cards import formatar_moeda_executiva
         mes_pico = int(atual.idxmax())
+        # pico destacado: marcador maior + rótulo com mais presença
+        fig.add_trace(go.Scatter(
+            x=[mes_pico], y=[float(atual.max())], mode="markers",
+            marker=dict(size=11, color=COR_SERIE_PRINCIPAL,
+                        line=dict(width=2, color="#FFFFFF")),
+            showlegend=False, hoverinfo="skip",
+        ))
         fig.add_annotation(
-            x=mes_pico, y=float(atual.max()), yshift=14, showarrow=False,
+            x=mes_pico, y=float(atual.max()), yshift=16, showarrow=False,
             text=f"<b>{formatar_moeda_executiva(float(atual.max()))}</b>",
-            font=dict(size=11, color=COR_SERIE_PRINCIPAL),
+            font=dict(size=13, color=COR_SERIE_PRINCIPAL),
         )
         ultimo_mes = int(atual.index.max())
         if ultimo_mes != mes_pico:
             fig.add_annotation(
-                x=ultimo_mes, y=float(atual.loc[ultimo_mes]), yshift=-16,
+                x=ultimo_mes, y=float(atual.loc[ultimo_mes]), yshift=-18,
                 showarrow=False,
                 text=f"<b>{formatar_moeda_executiva(float(atual.loc[ultimo_mes]))}</b>",
-                font=dict(size=10, color=COR_SERIE_PRINCIPAL),
+                font=dict(size=11, color=COR_SERIE_PRINCIPAL),
             )
     _aplicar_estilo_hero(fig, ano, mes_limite)
     st.plotly_chart(fig, width="stretch")

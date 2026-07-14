@@ -146,6 +146,7 @@ def render(df: pd.DataFrame) -> None:
         tabela[colunas_presentes],
         width="stretch",
         hide_index=True,
+        row_height=40,  # 2B.1: leitura mais confortável, menos "Excel"
         column_config={
             "VALOR PI BRUTO": st.column_config.NumberColumn(format="R$ %.2f"),
             "VALOR PI LIQUIDO": st.column_config.NumberColumn(format="R$ %.2f"),

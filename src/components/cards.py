@@ -108,8 +108,61 @@ CSS_GLOBAL = """
 .atg-status-dot{width:7px;height:7px;border-radius:50%;background:#1E9E52;
   box-shadow:0 0 0 3px #E9F8EE;display:inline-block;}
 .atg-status-caption{font-size:11.5px;color:#8B93A1;margin-left:13px;}
+/* ================================================================
+   Sprint 2B.1 — Refinamento Visual Final (apenas overrides de
+   acabamento; tokens, hierarquia e semântica do DS preservados)
+   ================================================================ */
+/* 1.1 hierarquia geral: mais densidade elegante, menos "leveza" */
+[data-testid="stMainBlockContainer"]{padding-top:2.4rem;max-width:1400px;}
+.atg-updated{margin-bottom:4px;}
+.atg-h1{font-size:24px;}
+.atg-sub{margin-top:4px;}
+/* 1.2 cards secundários: mais largura relativa e peso */
+.atg-kpi-row{gap:18px;margin:10px 0 24px;}
+.atg-kpi-hero{flex:1.4;padding:28px 30px;}
+.atg-kpi-sec{padding:22px 20px 20px;gap:11px;}
+.atg-kpi-value{font-size:26px;font-weight:650;white-space:nowrap;}
+.atg-kpi-label{letter-spacing:.02em;}
+/* 1.3 hero: respiro e alinhamento */
+.atg-eyebrow{letter-spacing:.08em;margin-bottom:12px;}
+.atg-hero-number{font-size:44px;}
+.atg-hero-caption{margin-top:12px;color:#5B6472;}
+/* 1.4 insights: cápsulas com ícone, nunca aparência de checkbox */
+.atg-insights{gap:14px;margin:0 0 26px;}
+.atg-insight{padding:14px 18px;font-size:13px;align-items:center;color:#4B5563;}
+.atg-insight .ic{display:flex;margin-top:0;flex-shrink:0;}
+/* 1.6 rankings: barras mais presentes, valores alinhados */
+.atg-rank{padding:22px 22px 12px;}
+.atg-rank-title{font-size:14.5px;margin-bottom:16px;}
+.atg-rank-row{margin-bottom:14px;gap:10px;}
+.atg-rank-name{width:31%;}
+.atg-rank-barwrap{height:10px;border-radius:6px;}
+.atg-rank-bar{height:10px;border-radius:6px;}
+.atg-rank-value{min-width:72px;text-align:right;}
+.atg-rank-pct{width:38px;}
+.atg-trend{width:52px;}
+/* 1.7 sidebar: respiro do logo e ritmo entre blocos */
+.atg-logo-word{margin-top:4px;}
+.atg-logo-sub{margin-bottom:6px;}
+[data-testid="stSidebar"] div[role="radiogroup"] label{padding:11px 12px;}
+[data-testid="stSidebar"] hr{margin:20px 0 16px;}
+.atg-status-caption{line-height:1.55;}
+/* 2/3 tabelas e abas: leitura premium (o grid é canvas; molduramos) */
+[data-testid="stTabs"] button p{font-size:13.5px;font-weight:600;}
+[data-testid="stDataFrame"]{border:1px solid #EDEFF2;border-radius:12px;overflow:hidden;}
 </style>
 """
+
+#: Ícone das cápsulas de insight (sparkle em cor de marca — SVG inline,
+#: independente de fonte de emoji; Sprint 2B.1 item 1.4)
+ICONE_INSIGHT = (
+    '<svg class="ic" width="15" height="15" viewBox="0 0 24 24" '
+    'fill="#E7F3F0" stroke="#0B7A66" stroke-width="1.6" '
+    'stroke-linejoin="round" aria-hidden="true">'
+    '<path d="M12 2.5l2.3 6.4 6.4 2.3-6.4 2.3L12 19.9l-2.3-6.4-6.4-2.3 '
+    '6.4-2.3z"/><circle cx="19.5" cy="4.5" r="1.3" fill="#0B7A66" '
+    'stroke="none"/></svg>'
+)
 
 #: Nomes completos dos meses (cápsulas de insight)
 MESES_NOMES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -432,7 +485,7 @@ def capsulas_insights(destaques: dict) -> None:
     if not textos:
         return
     capsulas = "".join(
-        f'<div class="atg-insight"><span class="ic">💡</span>{t}</div>'
+        f'<div class="atg-insight">{ICONE_INSIGHT}{t}</div>'
         for t in textos[:4]
     )
     st.markdown(

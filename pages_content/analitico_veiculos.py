@@ -106,7 +106,8 @@ def render(df: pd.DataFrame) -> None:
     aba_veic, aba_agencia, aba_cliente = st.tabs(["Veículos", "Agências", "Clientes"])
     with aba_veic:
         st.dataframe(
-            _tabela_formatada(agregado), width="stretch", hide_index=True
+            _tabela_formatada(agregado), width="stretch", hide_index=True,
+            row_height=40,
         )
     with aba_agencia:
         st.dataframe(
@@ -115,6 +116,7 @@ def render(df: pd.DataFrame) -> None:
             ),
             width="stretch",
             hide_index=True,
+            row_height=40,
             column_config={
                 "Vendas": st.column_config.NumberColumn(format="R$ %.2f")
             },
@@ -126,6 +128,7 @@ def render(df: pd.DataFrame) -> None:
             ),
             width="stretch",
             hide_index=True,
+            row_height=40,
             column_config={
                 "Vendas": st.column_config.NumberColumn(format="R$ %.2f")
             },
@@ -139,5 +142,6 @@ def render(df: pd.DataFrame) -> None:
         st.info(cards.SEM_DADOS)
     else:
         st.dataframe(
-            _tabela_formatada(agregado), width="stretch", hide_index=True
+            _tabela_formatada(agregado), width="stretch", hide_index=True,
+            row_height=40,
         )
