@@ -1,4 +1,6 @@
-streamlit>=1.49
+# Versão FIXADA (Release 1.0): o CSS do produto ancora em data-testid do
+# Streamlit; upgrades devem ser validados visualmente antes de soltar o pin.
+streamlit==1.59.1
 pandas>=2.0
 gspread>=6.0
 google-auth>=2.0
