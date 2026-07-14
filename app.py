@@ -21,7 +21,7 @@ import streamlit as st
 from pages_content import (
     analitico_comercial,
     analitico_veiculos,
-    auditoria_vendas,  # TEMPORÁRIO: remover junto com o item de navegação
+    auditoria_vendas,  # ferramenta de validação — visível só com dev_auditoria
     performance_comercial,
 )
 from src.auth.gate import exigir_autenticacao
@@ -101,11 +101,17 @@ PAGINAS = {
         analitico_veiculos.render,
         "Vendas por grupo e veículo, rankings e consolidado",
     ),
-    "🔧 Auditoria (temp.)": (
+}
+
+# Ferramenta de validação de indicadores (Release 1.0, decisão 38): a
+# Auditoria sai da navegação de produção, mas permanece no produto para
+# reuso quando for preciso conciliar indicadores com a planilha. Para
+# habilitar em desenvolvimento: `dev_auditoria = true` no secrets.toml.
+if st.secrets.get("dev_auditoria", False):
+    PAGINAS["🔧 Auditoria (dev)"] = (
         auditoria_vendas.render,
         "Conciliação do indicador Vendas com a planilha de origem",
-    ),
-}
+    )
 
 # --------------------------------------------------------------- sidebar
 # Estrutura (DS §5.8): logo -> navegação -> separador -> status. Sem botão.

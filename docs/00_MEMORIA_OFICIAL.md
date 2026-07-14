@@ -91,6 +91,7 @@ Uma única planilha Google Sheets, intitulada "Planilha de Vendas AdTarget", com
 35. **(v0.5 Sprint 2B)** Exportação (PDF/Excel/imagem) permanece **fora do escopo**: o botão Exportar previsto no mockup foi removido da Sprint, sem placeholder e sem espaço reservado.
 36. **(v0.5 Sprint 2B)** Insights Automáticos aprovados como **agregações de apresentação derivadas exclusivamente das métricas oficiais existentes** (resumem, comparam ou destacam dados já calculados; nenhuma regra de negócio nova). Badge de tendência dos rankings = variação da entidade contra o mesmo intervalo comparável do YTD (regra v0.4), no toggle ativo.
 37. **(v0.5 Sprint 2B)** Microinteração "clique em barra aplica filtro" adiada (fora da Sprint 2B). Nomenclatura v0.2 do mockup/Design System ("Faturamento Realizado", "Pipeline", "Receita", SEM_STATUS) corrigida para a vigente na implementação; rodapé de "Receita Líquida" com fórmula inexistente foi suprimido (ver adendo do documento 09).
+38. **(Release 1.0, 2026-07-13)** A página 🔧 Auditoria cumpriu seu papel de conciliação e **sai da navegação de produção**, permanecendo no produto como ferramenta de validação de indicadores reutilizável, habilitada apenas em desenvolvimento via flag `dev_auditoria = true` no secrets.toml (código e testes preservados). O design da v0.6 (Sprints 2B/2B.1/3A/3B) é **congelado como baseline oficial** do produto: o ciclo de Design System está encerrado; evoluções futuras focam em novos módulos, inteligência comercial, IA e escalabilidade.
 
 ## Status atual
 

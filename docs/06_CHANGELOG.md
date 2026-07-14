@@ -86,3 +86,12 @@ Transformação visual da página Performance Comercial para o padrão executivo
 - **Rankings Top 5 (2B.8)**: valor + % + badge de tendência (Variante 1: ▲/▼ + %, variação vs mesmo intervalo comparável do YTD, no toggle ativo; "—" sem base anterior); links "ver tudo →" com navegação cruzada para as páginas analíticas.
 - **Estados (2B.9)**: toast de confirmação na atualização manual; vazio e erro mantidos. **Microinterações (2B.10)**: tooltips revelam valor completo; "clique em barra aplica filtro" adiado (C8).
 - Novas agregações de apresentação em metrics.py (tendencia_por_dimensao, tendencia_grupo_veiculo, destaques_do_recorte), derivadas apenas dos buckets oficiais, com 7 testes — incluindo prova de que não alteram nenhum indicador existente.
+
+## Release 1.0 (2026-07-13)
+
+Fechamento do ciclo de fundação. O design da v0.6 (Sprints 2B, 2B.1, 3A e 3B) é congelado como baseline oficial do produto; o ciclo de Design System está encerrado.
+
+- **Limpeza técnica**: remoção de componentes substituídos nas sprints de UX (card YTD standalone, gráficos de evolução/linha antigos, resumo longo do filtro) e de seus testes; zero TODOs, zero warnings, Ruff limpo.
+- **Auditoria fora da navegação de produção (decisão 38)**: a ferramenta cumpriu seu papel (conciliação fechada em R$ 0,00 contra a planilha real) e passa a ser habilitada apenas em desenvolvimento, via `dev_auditoria = true` no secrets.toml. Código, testes e alertas preservados para validações futuras de indicadores.
+- **Release Notes executivas** publicadas em `docs/10_RELEASE_NOTES_1.0.md`.
+- Próximos ciclos: novos módulos (Campanhas, Metas, Executivos), inteligência comercial, IA e arquitetura de plataforma.

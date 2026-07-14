@@ -2,7 +2,7 @@
 
 Aplicação interna de inteligência comercial da AdTarget. Substitui o dashboard Power BI, lendo a "Planilha de Vendas AdTarget" (Google Sheets) diretamente e recalculando todas as métricas a partir das linhas brutas.
 
-**Status: v0.4 — em produção no Streamlit Community Cloud.** MVP completo (camada de dados + interface), conciliado com a planilha real via ferramenta de auditoria. Regras vigentes: indicadores Vendas/Faturado/Em Aberto (v0.3) e critério temporal oficial MÊS (VEICULAÇÃO) com YTD verdadeiro (v0.4). A aba "🔧 Auditoria de Vendas 2026" é temporária e deve ser removida ao fim da conciliação.
+**Status: Release 1.0 — em produção no Streamlit Community Cloud.** MVP completo (camada de dados + interface), conciliado com a planilha real via ferramenta de auditoria. Regras vigentes: indicadores Vendas/Faturado/Em Aberto (v0.3) e critério temporal oficial MÊS (VEICULAÇÃO) com YTD verdadeiro (v0.4). A ferramenta de Auditoria fica fora da navegação de produção; para validar indicadores em desenvolvimento, habilite `dev_auditoria = true` no secrets.toml. Design v0.6 congelado como baseline oficial (ver docs/10_RELEASE_NOTES_1.0.md).
 
 ## Arquitetura
 
@@ -38,19 +38,19 @@ adtarget-intelligence/
 ├── .streamlit/
 │   ├── config.toml                 # tema visual
 │   └── secrets.toml.example       # modelo (o real NUNCA é versionado)
+├── docs/                           # documentação oficial (00-10)
 ├── src/
 │   ├── data/
 │   │   ├── loader.py               # leitura bruta do Google Sheets
 │   │   ├── cleaning.py             # normalização genérica
 │   │   ├── quality_checks.py       # 4 alertas de qualidade
-│   │   └── metrics.py              # KPIs, toggles e comparativos
+│   │   ├── metrics.py              # KPIs, toggles e comparativos
+│   │   └── auditoria.py            # validação de indicadores (flag dev)
 │   ├── auth/gate.py                # senha única via st.secrets
 │   └── components/                 # cards, charts, filters
-├── pages_content/                  # 3 páginas do MVP
-└── tests/
-    ├── test_loader.py              # loader com mocks de gspread, sem rede
-    ├── test_cleaning.py
-    └── test_metrics.py
+├── pages_content/                  # 3 páginas + auditoria (flag dev)
+└── tests/                          # loader, cleaning, metrics, cards,
+                                    # filters, auditoria — sem rede
 ```
 
 ## Como executar localmente
@@ -87,4 +87,4 @@ Ao conectar na planilha real, o indicador **Faturado** (líquido) deve bater com
 
 ## Documentação oficial
 
-Este código implementa os documentos 00 a 06 do projeto (versão 0.2), com uma atualização de regra comercial definida pelo responsável em 2026-07-09 (indicadores Vendas/Faturado/Em Aberto, vocabulário de 8 status, campo STATUS obrigatório), pendente de registro formal como versão 0.3 da documentação. Em caso de dúvida, a regra de 2026-07-09 prevalece sobre o documento 02.
+A documentação oficial vive em `docs/` (00 a 10): Memória Oficial com decisões numeradas, Dicionário de Dados, Regras de Negócio e Métricas, Arquitetura, Wireframes, Plano de Implementação, Changelog, especificações de UX das Sprints 2B/3 e as Release Notes 1.0. Em caso de dúvida de regra, o documento 02 (com as decisões supersedentes registradas na Memória Oficial e no Changelog) é a referência.
