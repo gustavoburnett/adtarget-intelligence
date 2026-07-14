@@ -58,9 +58,9 @@ def render(df: pd.DataFrame) -> None:
     with col_ano:
         ano = filters.selecionar_ano(df, _CHAVE)
     with col_grupo:
-        df_dim = filters.filtro_grupo_recolhido(df, _CHAVE)
+        df_dim = filters.filtro_compacto(df, COL_GRUPO, "Grupo", _CHAVE, "grupos")
     with col_limpar:
-        filters.botao_limpar_grupos(df, _CHAVE)
+        filters.botao_limpar_filtros(_CHAVE)
 
     # Estado global dos toggles (widgets renderizados no Gráfico Hero)
     valor, criterio_mes = filters.toggles_do_estado(_CHAVE)

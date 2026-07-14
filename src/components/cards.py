@@ -150,6 +150,25 @@ CSS_GLOBAL = """
 /* 2/3 tabelas e abas: leitura premium (o grid é canvas; molduramos) */
 [data-testid="stTabs"] button p{font-size:13.5px;font-weight:600;}
 [data-testid="stDataFrame"]{border:1px solid #EDEFF2;border-radius:12px;overflow:hidden;}
+/* ================================================================
+   Sprint 3A — Filtros compactos (campo + popover premium)
+   ================================================================ */
+.atg-filtro-rotulo{font-size:11px;font-weight:600;color:#8B93A1;
+  letter-spacing:.05em;text-transform:uppercase;margin:0 0 4px 2px;}
+div[data-testid="stPopover"]>div>button{
+  width:100%;justify-content:space-between;background:#FFFFFF;
+  border:1px solid #E3E6EA;border-radius:8px;min-height:38px;
+  font-size:12.5px;font-weight:500;color:#14171C;
+  box-shadow:0 1px 2px rgba(20,23,28,.04);}
+div[data-testid="stPopover"]>div>button:hover{
+  border-color:#0B7A66;color:#0B7A66;}
+div[data-testid="stPopoverBody"]{min-width:330px;}
+div[data-testid="stPopoverBody"] .stCheckbox{margin-bottom:-6px;}
+div[data-testid="stPopoverBody"] .stCheckbox p{font-size:13px;}
+.atg-filtro-contador{font-size:12px;color:#5B6472;text-align:right;
+  font-variant-numeric:tabular-nums;}
+.atg-filtro-pendente{font-size:11.5px;color:#C97F12;font-weight:600;
+  margin:2px 0 6px;}
 </style>
 """
 

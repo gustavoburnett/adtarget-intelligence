@@ -43,23 +43,41 @@ _COLUNAS_PESQUISA = ["GRUPO", "VEICULO", "PI", "AGENCIA", "CLIENTE", "CAMPANHA",
 
 def render(df: pd.DataFrame) -> None:
     # ------------------------------------------------------------- filtros
+    # Sprint 3A: filtros compactos numa faixa única e recolhível —
+    # semântica idêntica (todos por padrão; cascata Grupo -> Veículo).
     with st.expander("Filtros", expanded=True):
-        col_ano, col_toggles = st.columns([1, 3])
+        col_ano, col_toggles, col_limpar = st.columns(
+            [1.2, 2.4, 0.7], vertical_alignment="bottom"
+        )
         with col_ano:
             ano = filters.selecionar_ano(df, _CHAVE)
         with col_toggles:
             valor, criterio_mes = filters.selecionar_toggles(_CHAVE)
+        with col_limpar:
+            filters.botao_limpar_filtros(_CHAVE)
 
-        df_dim = filters.filtro_multiplo(df, COL_GRUPO, "Grupo", _CHAVE)
-        df_dim = filters.filtro_veiculo_cascata(df_dim, _CHAVE)
-        c1, c2 = st.columns(2)
-        with c1:
-            df_dim = filters.filtro_multiplo(df_dim, COL_AGENCIA, "Agência", _CHAVE)
-            df_dim = filters.filtro_multiplo(df_dim, COL_STATUS, "Status", _CHAVE)
-        with c2:
-            df_dim = filters.filtro_multiplo(df_dim, COL_CLIENTE, "Cliente", _CHAVE)
-            df_dim = filters.filtro_multiplo(
-                df_dim, COL_EXECUTIVO, "Executivo", _CHAVE
+        f1, f2, f3, f4, f5, f6 = st.columns(6)
+        with f1:
+            df_dim = filters.filtro_compacto(
+                df, COL_GRUPO, "Grupo", _CHAVE, "grupos"
+            )
+        with f2:
+            df_dim = filters.filtro_veiculo_compacto(df_dim, _CHAVE)
+        with f3:
+            df_dim = filters.filtro_compacto(
+                df_dim, COL_AGENCIA, "Agência", _CHAVE, "agências", genero="a"
+            )
+        with f4:
+            df_dim = filters.filtro_compacto(
+                df_dim, COL_CLIENTE, "Cliente", _CHAVE, "clientes"
+            )
+        with f5:
+            df_dim = filters.filtro_compacto(
+                df_dim, COL_STATUS, "Status", _CHAVE, "status"
+            )
+        with f6:
+            df_dim = filters.filtro_compacto(
+                df_dim, COL_EXECUTIVO, "Executivo", _CHAVE, "executivos"
             )
 
     df_ano = filters.recorte_do_ano(df_dim, ano, criterio_mes)

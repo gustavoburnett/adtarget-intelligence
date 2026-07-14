@@ -42,17 +42,28 @@ def _tabela_formatada(agregado: pd.DataFrame) -> pd.DataFrame:
 def render(df: pd.DataFrame) -> None:
     # ------------------------------------------------------------- filtros
     with st.container():
-        col_ano, col_resto = st.columns([1, 3])
+        col_ano, col_resto, col_limpar = st.columns(
+            [1, 2.6, 0.7], vertical_alignment="bottom"
+        )
         with col_ano:
             ano = filters.selecionar_ano(df, _CHAVE)
         with col_resto:
             valor, criterio_mes = filters.selecionar_toggles(_CHAVE)
-        df_dim = filters.filtro_multiplo(df, COL_GRUPO, "Grupo", _CHAVE)
-        c1, c2 = st.columns(2)
-        with c1:
-            df_dim = filters.filtro_multiplo(df_dim, COL_AGENCIA, "Agência", _CHAVE)
-        with c2:
-            df_dim = filters.filtro_multiplo(df_dim, COL_CLIENTE, "Cliente", _CHAVE)
+        with col_limpar:
+            filters.botao_limpar_filtros(_CHAVE)
+        f1, f2, f3 = st.columns(3)
+        with f1:
+            df_dim = filters.filtro_compacto(
+                df, COL_GRUPO, "Grupo", _CHAVE, "grupos"
+            )
+        with f2:
+            df_dim = filters.filtro_compacto(
+                df_dim, COL_AGENCIA, "Agência", _CHAVE, "agências", genero="a"
+            )
+        with f3:
+            df_dim = filters.filtro_compacto(
+                df_dim, COL_CLIENTE, "Cliente", _CHAVE, "clientes"
+            )
 
     df_ano = filters.recorte_do_ano(df_dim, ano, criterio_mes)
     agregado = metrics.agregado_por_grupo_veiculo(df_ano, valor)
