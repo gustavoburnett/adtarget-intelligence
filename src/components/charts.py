@@ -130,23 +130,29 @@ def _aplicar_estilo_hero(fig: go.Figure, ano: int, mes_limite: Optional[int]) ->
     meses futuros esmaecida com rótulo "sem dado disponível"."""
     # Sprint 2B.1 (1.5): o gráfico é o protagonista — mais altura,
     # tipografia maior e contraste melhor. Dados/escalas intocados.
+    # Sprint 3B (P6a): grid só horizontal, zeroline fora, hover premium.
     fig.update_layout(
         plot_bgcolor="#FFFFFF",
         paper_bgcolor="rgba(0,0,0,0)",
         hovermode="x unified",
+        hoverlabel=dict(
+            bgcolor="#FFFFFF", bordercolor="#E3E6EA",
+            font=dict(size=12, color="#14171C"),
+        ),
         legend=dict(orientation="h", y=-0.16, font=dict(size=12.5, color="#5B6472")),
-        margin=dict(t=20, b=8, l=8, r=8),
-        height=390,
+        margin=dict(t=24, b=8, l=8, r=8),
+        height=392,
         xaxis=dict(
             tickmode="array",
             tickvals=list(range(1, 13)),
             ticktext=MESES_ROTULOS,
             showgrid=False,
+            zeroline=False,
             range=[0.5, 12.5],
             tickfont=dict(size=12.5, color="#5B6472"),
         ),
         yaxis=dict(
-            gridcolor=_COR_GRID, zerolinecolor=_COR_GRID,
+            gridcolor=_COR_GRID, zeroline=False,
             tickfont=dict(size=12, color="#8B93A1"),
         ),
     )
@@ -182,6 +188,8 @@ def grafico_hero_vendas(
         mode="lines+markers",
         line=dict(color=COR_SERIE_PRINCIPAL, width=3),
         marker=dict(size=8),
+        fill="tozeroy",
+        fillcolor="rgba(11,122,102,0.06)",  # 3B: área sutil sob o ano atual
         connectgaps=False, hovertemplate=_FORMATO_MOEDA_HOVER,
     ))
     atual = comparativo["atual"].dropna()

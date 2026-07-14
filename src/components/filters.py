@@ -132,6 +132,32 @@ def resumo_selecao(
     return f"{len(selecionados)} {plural} {sufixo}"
 
 
+def resumo_curto(
+    selecionados: list[str], total: int, genero: str = "o"
+) -> str:
+    """Resumo INLINE do campo (Sprint 3B, P1): o rótulo do filtro entra no
+    próprio campo ("Grupo · Todos (18)"), então o resumo não repete o
+    substantivo: "Todos (18)" / "DISNEY, TEADS +3" / "5 sel." / "Nenhum".
+    """
+    fem = genero == "a"
+    if total == 0:
+        return "—"
+    if len(selecionados) == total:
+        return f"{'Todas' if fem else 'Todos'} ({total})"
+    if not selecionados:
+        return "Nenhuma" if fem else "Nenhum"
+    for n_nomes in (2, 1):
+        if len(selecionados) < n_nomes:
+            continue
+        resto = len(selecionados) - n_nomes
+        candidato = ", ".join(selecionados[:n_nomes]) + (
+            f" +{resto}" if resto else ""
+        )
+        if len(candidato) <= 22:
+            return candidato
+    return f"{len(selecionados)} sel."
+
+
 def realcar_busca(texto: str, busca: str) -> str:
     """Realça (negrito markdown) o trecho encontrado pela busca."""
     termo = busca.strip()
@@ -278,14 +304,15 @@ def _motor_filtro(
     opcoes: list[str],
     aplicar_filtro: Callable[[pd.DataFrame, list[str]], pd.DataFrame],
 ) -> pd.DataFrame:
-    """Campo compacto + popover; retorna o df filtrado pelo APLICADO."""
+    """Campo compacto + popover; retorna o df filtrado pelo APLICADO.
+
+    Sprint 3B (P1/P2): o rótulo vive DENTRO do campo ("Grupo · Todos (18)")
+    — sem linha de rótulo acima, sem aparência de formulário.
+    """
     aplicado, selecionados = _selecao_aplicada(chave, ident, opcoes)
 
-    st.markdown(
-        f'<div class="atg-filtro-rotulo">{rotulo}</div>', unsafe_allow_html=True
-    )
     with st.popover(
-        resumo_selecao(selecionados, len(opcoes), plural, genero),
+        f"{rotulo} · {resumo_curto(selecionados, len(opcoes), genero)}",
         width="stretch",
     ):
         _painel_filtro_fragment(chave, ident, opcoes, plural, genero)

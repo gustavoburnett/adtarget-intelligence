@@ -101,7 +101,7 @@ PAGINAS = {
         analitico_veiculos.render,
         "Vendas por grupo e veículo, rankings e consolidado",
     ),
-    "🔧 Auditoria (temporário)": (
+    "🔧 Auditoria (temp.)": (
         auditoria_vendas.render,
         "Conciliação do indicador Vendas com a planilha de origem",
     ),
@@ -125,12 +125,10 @@ with st.sidebar:
     minutos = max(
         0, int((_dt.datetime.now() - sincronizado_em).total_seconds() // 60)
     )
+    # Sprint 3B (P7): status em uma linha, sem jargão
     st.markdown(
         '<div class="atg-status-line"><span class="atg-status-dot"></span>'
-        "Dados atualizados</div>"
-        f'<div class="atg-status-caption">há {minutos} min</div>'
-        f'<div class="atg-status-caption">Última sincronização: '
-        f"{sincronizado_em:%H:%M}</div>",
+        f"Sincronizado às {sincronizado_em:%H:%M} · há {minutos} min</div>",
         unsafe_allow_html=True,
     )
 

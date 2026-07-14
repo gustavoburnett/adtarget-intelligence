@@ -1,17 +1,20 @@
-"""KPI cards e formatação pt-BR reutilizáveis.
+"""KPI cards, formatação pt-BR e fundação visual (Design System v0.5+).
 
 Este módulo NÃO calcula nada: recebe valores prontos de metrics.py e apenas
 formata/exibe. Comportamentos obrigatórios:
 - recorte vazio exibe "R$ 0,00" ou "Sem dados no recorte selecionado"
 - comparativo indisponível exibe "sem comparativo disponível", nunca erro
 
-Formatação executiva (v0.5 Sprint 1) — vale para TODOS os cards monetários
-das 3 páginas:
-- >= R$ 1.000.000  -> "R$ X,XX Mi"
-- >= R$ 1.000      -> "R$ X,XX mil"  (nunca "K")
-- <  R$ 1.000      -> valor completo
-Arredondamento pelo valor mais próximo (ROUND_HALF_UP), nunca truncado.
-Tooltips, tabelas analíticas e auditoria continuam com o valor completo.
+Formatação executiva (v0.5 Sprint 1) — todos os cards monetários:
+>= R$ 1 mi -> "R$ X,XX Mi"; >= R$ 1 mil -> "R$ X,XX mil"; abaixo, valor
+completo. ROUND_HALF_UP, nunca truncado. Tooltips/tabelas/auditoria com
+valor completo.
+
+Sprint 3B (design de produto): CSS consolidado em folha única no grid de
+8pt — faixa de contexto compacta, toolbar executiva (ghost), KPI band com
+stat strip (menos bordas), insights como linhas de texto, gráficos e
+sidebar refinados, chrome do Streamlit oculto. Tokens e semântica de cor
+do DS preservados; nenhuma regra/número muda.
 """
 
 from __future__ import annotations
@@ -25,10 +28,7 @@ SEM_DADOS = "Sem dados no recorte selecionado"
 SEM_COMPARATIVO = "Sem comparativo disponível"
 
 # ---------------------------------------------------------------------------
-# Design Tokens — Sprint 2B (docs/09, seção 5; mockup aprovado)
-# Semântica de cor [REGRA PERMANENTE]: verde = desempenho positivo;
-# vermelho = queda/alerta; âmbar = pipeline/atenção; MARCA = identidade,
-# navegação e seleção (nunca desempenho).
+# Design Tokens (DS §5.4 — semântica permanente)
 # ---------------------------------------------------------------------------
 COR_MARCA = "#0B7A66"
 COR_MARCA_SUAVE = "#E7F3F0"
@@ -41,141 +41,122 @@ COR_TEXTO = "#14171C"
 COR_TEXTO_SECUNDARIO = "#5B6472"
 COR_BORDA_SUAVE = "#EDEFF2"
 
-#: CSS global da Sprint 2B — injetado uma vez pelo app.py
+#: CSS global — Sprint 3B: folha única, grid 8pt, injetada pelo app.py
 CSS_GLOBAL = """
 <style>
 [class^="atg-"],[class^="atg-"] *{
   font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,
   Helvetica,Arial,sans-serif;}
 .num{font-variant-numeric:tabular-nums;}
-.atg-card{background:#FFFFFF;border:1px solid #EDEFF2;border-radius:12px;
-  box-shadow:0 1px 2px rgba(20,23,28,.04),0 1px 3px rgba(20,23,28,.05);}
-/* ---- masthead ---- */
-.atg-h1{font-size:23px;font-weight:700;letter-spacing:-.01em;color:#14171C;margin:0;}
-.atg-sub{font-size:13.5px;color:#5B6472;margin-top:3px;}
-.atg-updated{font-size:11.5px;color:#8B93A1;text-align:right;}
-/* ---- KPI row ---- */
-.atg-kpi-row{display:flex;gap:16px;align-items:stretch;margin:6px 0 18px;}
-.atg-kpi-hero{flex:1.55;padding:24px 26px;display:flex;flex-direction:column;justify-content:center;}
-.atg-eyebrow{font-size:11px;font-weight:700;letter-spacing:.06em;color:#0B7A66;text-transform:uppercase;margin-bottom:10px;}
-.atg-hero-value{display:flex;align-items:baseline;gap:10px;}
-.atg-hero-arrow{font-size:26px;}
-.atg-hero-number{font-size:42px;font-weight:700;letter-spacing:-.02em;line-height:1.05;}
-.atg-hero-caption{font-size:12.5px;color:#5B6472;margin-top:10px;}
-.atg-kpi-sec{flex:1;padding:20px 20px 18px;display:flex;flex-direction:column;gap:10px;}
-.atg-kpi-label{font-size:12px;font-weight:600;color:#8B93A1;}
-.atg-kpi-value{font-size:27px;font-weight:600;letter-spacing:-.01em;color:#14171C;}
-.atg-kpi-value.positivo{color:#1E9E52;}
-.atg-kpi-value.ambar{color:#C97F12;}
-.atg-kpi-caption{font-size:11.5px;color:#8B93A1;}
-/* ---- insights ---- */
-.atg-insights{display:flex;gap:14px;margin-bottom:18px;}
-.atg-insight{flex:1;background:#FAFBFC;border:1px solid #EDEFF2;border-radius:12px;
-  padding:13px 16px;display:flex;align-items:flex-start;gap:10px;
-  font-size:12.5px;color:#5B6472;line-height:1.4;}
-.atg-insight .ic{font-size:15px;line-height:1;margin-top:1px;}
-/* ---- rankings ---- */
-.atg-rank{padding:20px 20px 8px;}
-.atg-rank-title{font-size:14px;font-weight:700;color:#14171C;margin-bottom:14px;}
-.atg-rank-row{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
-.atg-rank-name{font-size:12px;color:#5B6472;width:34%;flex-shrink:0;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.atg-rank-barwrap{flex:1;background:#F5F6F8;border-radius:5px;height:8px;}
-.atg-rank-bar{height:8px;border-radius:5px;background:#0B7A66;}
-.atg-rank-value{font-size:12px;font-weight:700;color:#14171C;flex-shrink:0;}
-.atg-rank-pct{font-size:11px;color:#8B93A1;width:34px;flex-shrink:0;text-align:right;}
-.atg-trend{font-size:11px;font-weight:700;width:48px;flex-shrink:0;text-align:right;}
-.atg-trend.alta{color:#1E9E52;}
-.atg-trend.queda{color:#DC4545;}
-.atg-trend.neutro{color:#8B93A1;font-weight:600;}
-/* ---- sidebar (logo + nav estilizada sobre o radio nativo) ---- */
-[data-testid="stSidebar"] div[role="radiogroup"] label>div:first-child{display:none;}
-[data-testid="stSidebar"] div[role="radiogroup"]{gap:2px;}
-[data-testid="stSidebar"] div[role="radiogroup"] label{
-  padding:10px 12px;border-radius:8px;border-left:3px solid transparent;
-  width:100%;margin:0;cursor:pointer;}
-[data-testid="stSidebar"] div[role="radiogroup"] label p{
-  font-size:13.5px;font-weight:500;color:#5B6472;}
-[data-testid="stSidebar"] div[role="radiogroup"] label:hover{background:#FAFBFC;}
-[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked){
-  background:#E7F3F0;border-left:3px solid #0B7A66;}
-[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) p{
-  color:#0B7A66;font-weight:600;}
-.atg-logo-word{font-size:19px;font-weight:700;color:#14171C;line-height:1.1;}
-.atg-logo-word b{color:#0B7A66;}
-.atg-logo-sub{font-size:10px;letter-spacing:.14em;color:#8B93A1;font-weight:600;}
-.atg-status-line{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:#14171C;}
-.atg-status-dot{width:7px;height:7px;border-radius:50%;background:#1E9E52;
-  box-shadow:0 0 0 3px #E9F8EE;display:inline-block;}
-.atg-status-caption{font-size:11.5px;color:#8B93A1;margin-left:13px;}
-/* ================================================================
-   Sprint 2B.1 — Refinamento Visual Final (apenas overrides de
-   acabamento; tokens, hierarquia e semântica do DS preservados)
-   ================================================================ */
-/* 1.1 hierarquia geral: mais densidade elegante, menos "leveza" */
-[data-testid="stMainBlockContainer"]{padding-top:2.4rem;max-width:1400px;}
-.atg-updated{margin-bottom:4px;}
-.atg-h1{font-size:24px;}
-.atg-sub{margin-top:4px;}
-/* 1.2 cards secundários: mais largura relativa e peso */
-.atg-kpi-row{gap:18px;margin:10px 0 24px;}
-.atg-kpi-hero{flex:1.4;padding:28px 30px;}
-.atg-kpi-sec{padding:22px 20px 20px;gap:11px;}
-.atg-kpi-value{font-size:26px;font-weight:650;white-space:nowrap;}
-.atg-kpi-label{letter-spacing:.02em;}
-/* 1.3 hero: respiro e alinhamento */
-.atg-eyebrow{letter-spacing:.08em;margin-bottom:12px;}
-.atg-hero-number{font-size:44px;}
-.atg-hero-caption{margin-top:12px;color:#5B6472;}
-/* 1.4 insights: cápsulas com ícone, nunca aparência de checkbox */
-.atg-insights{gap:14px;margin:0 0 26px;}
-.atg-insight{padding:14px 18px;font-size:13px;align-items:center;color:#4B5563;}
-.atg-insight .ic{display:flex;margin-top:0;flex-shrink:0;}
-/* 1.6 rankings: barras mais presentes, valores alinhados */
-.atg-rank{padding:22px 22px 12px;}
-.atg-rank-title{font-size:14.5px;margin-bottom:16px;}
-.atg-rank-row{margin-bottom:14px;gap:10px;}
-.atg-rank-name{width:31%;}
-.atg-rank-barwrap{height:10px;border-radius:6px;}
-.atg-rank-bar{height:10px;border-radius:6px;}
-.atg-rank-value{min-width:72px;text-align:right;}
-.atg-rank-pct{width:38px;}
-.atg-trend{width:52px;}
-/* 1.7 sidebar: respiro do logo e ritmo entre blocos */
-.atg-logo-word{margin-top:4px;}
-.atg-logo-sub{margin-bottom:6px;}
-[data-testid="stSidebar"] div[role="radiogroup"] label{padding:11px 12px;}
-[data-testid="stSidebar"] hr{margin:20px 0 16px;}
-.atg-status-caption{line-height:1.55;}
-/* 2/3 tabelas e abas: leitura premium (o grid é canvas; molduramos) */
-[data-testid="stTabs"] button p{font-size:13.5px;font-weight:600;}
-[data-testid="stDataFrame"]{border:1px solid #EDEFF2;border-radius:12px;overflow:hidden;}
-/* ================================================================
-   Sprint 3A — Filtros compactos (campo + popover premium)
-   ================================================================ */
-.atg-filtro-rotulo{font-size:11px;font-weight:600;color:#8B93A1;
-  letter-spacing:.05em;text-transform:uppercase;margin:0 0 4px 2px;}
+/* ---- P8: apagar o chrome do Streamlit ---- */
+header[data-testid="stHeader"]{display:none;}
+#MainMenu,footer{visibility:hidden;}
+[data-testid="stMainBlockContainer"]{padding-top:32px;max-width:1400px;}
+[data-testid="stMain"] .block-container{padding-bottom:48px;}
+/* ---- P1/P4: faixa de contexto — título com presença, sem subtítulo fixo */
+.atg-h1{font-size:22px;font-weight:700;letter-spacing:-.01em;color:#14171C;
+  line-height:1.2;margin:0;}
+.atg-updated{font-size:12px;color:#8B93A1;text-align:right;}
+/* ---- P2: toolbar executiva — filtros ghost, formulário zero ---- */
 div[data-testid="stPopover"]>div>button{
-  width:100%;justify-content:space-between;background:#FFFFFF;
-  border:1px solid #E3E6EA;border-radius:8px;min-height:38px;
-  font-size:12.5px;font-weight:500;color:#14171C;
-  box-shadow:0 1px 2px rgba(20,23,28,.04);}
+  width:100%;justify-content:space-between;background:transparent;
+  border:1px solid transparent;border-radius:8px;min-height:40px;
+  font-size:13px;font-weight:500;color:#14171C;box-shadow:none;
+  padding:8px 8px;}
 div[data-testid="stPopover"]>div>button:hover{
-  border-color:#0B7A66;color:#0B7A66;}
-div[data-testid="stPopoverBody"]{min-width:330px;}
-div[data-testid="stPopoverBody"] .stCheckbox{margin-bottom:-6px;}
+  background:#FFFFFF;border-color:#E3E6EA;color:#0B7A66;}
+div[data-testid="stPopoverBody"]{min-width:328px;}
+div[data-testid="stPopoverBody"] .stCheckbox{margin-bottom:-8px;}
 div[data-testid="stPopoverBody"] .stCheckbox p{font-size:13px;}
 .atg-filtro-contador{font-size:12px;color:#5B6472;text-align:right;
   font-variant-numeric:tabular-nums;}
-.atg-filtro-pendente{font-size:11.5px;color:#C97F12;font-weight:600;
-  margin:2px 0 6px;}
+.atg-filtro-pendente{font-size:12px;color:#C97F12;font-weight:600;
+  margin:0 0 8px;}
+/* ---- P3: KPI band — hero + stat strip (superfície única) ---- */
+.atg-card{background:#FFFFFF;border:1px solid #F0F2F4;border-radius:12px;
+  box-shadow:none;transition:box-shadow .15s ease;}
+.atg-card:hover{box-shadow:0 2px 8px rgba(20,23,28,.06);}
+.atg-kpi-row{display:flex;gap:16px;align-items:stretch;margin:8px 0 24px;}
+.atg-kpi-hero{flex:1.35;padding:24px;display:flex;flex-direction:column;
+  justify-content:center;}
+.atg-eyebrow{font-size:11px;font-weight:700;letter-spacing:.08em;
+  color:#0B7A66;text-transform:uppercase;margin-bottom:8px;}
+.atg-hero-value{display:flex;align-items:baseline;gap:8px;}
+.atg-hero-arrow{font-size:24px;}
+.atg-hero-number{font-size:38px;font-weight:700;letter-spacing:-.02em;
+  line-height:1.1;}
+.atg-hero-caption{font-size:12px;color:#5B6472;margin-top:8px;}
+.atg-statstrip{flex:3.2;display:flex;align-items:stretch;background:#FFFFFF;
+  border:1px solid #F0F2F4;border-radius:12px;}
+.atg-stat{flex:1;padding:24px 24px 16px;min-width:0;}
+.atg-stat+.atg-stat{border-left:1px solid #F0F2F4;}
+.atg-kpi-label{font-size:11px;font-weight:600;color:#8B93A1;
+  letter-spacing:.02em;}
+.atg-kpi-value{font-size:24px;font-weight:600;letter-spacing:-.01em;
+  color:#14171C;white-space:nowrap;margin-top:8px;}
+.atg-kpi-value.positivo{color:#1E9E52;}
+.atg-kpi-value.ambar{color:#C97F12;}
+.atg-kpi-caption{font-size:11px;color:#8B93A1;margin-top:8px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* ---- P5: insights — linha ambiente, sem caixa ---- */
+.atg-insights{display:flex;gap:24px;margin:0 0 24px;padding:0 4px;}
+.atg-insight{flex:1;display:flex;align-items:center;gap:8px;
+  font-size:12.5px;color:#5B6472;line-height:1.45;background:transparent;
+  border:none;padding:0;}
+.atg-insight .ic{display:flex;flex-shrink:0;}
+/* ---- rankings ---- */
+.atg-rank{padding:24px 24px 16px;}
+.atg-rank-title{font-size:14px;font-weight:700;color:#14171C;
+  margin-bottom:16px;}
+.atg-rank-row{display:flex;align-items:center;gap:8px;margin-bottom:16px;}
+.atg-rank-name{font-size:12px;color:#5B6472;width:27%;flex-shrink:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.atg-rank-barwrap{flex:1;min-width:56px;background:#F5F6F8;border-radius:6px;
+  height:8px;}
+.atg-rank-bar{height:8px;border-radius:6px;background:#0B7A66;}
+.atg-rank-value{font-size:12px;font-weight:700;color:#14171C;flex-shrink:0;
+  min-width:62px;text-align:right;}
+.atg-rank-pct{font-size:11px;color:#8B93A1;width:30px;flex-shrink:0;
+  text-align:right;}
+.atg-trend{font-size:11px;font-weight:700;width:44px;flex-shrink:0;
+  text-align:right;}
+.atg-trend.alta{color:#1E9E52;}
+.atg-trend.queda{color:#DC4545;}
+.atg-trend.neutro{color:#8B93A1;font-weight:600;}
+/* ---- P7: sidebar ---- */
+section[data-testid="stSidebar"]{width:248px !important;}
+[data-testid="stSidebar"] div[role="radiogroup"]{gap:2px;}
+[data-testid="stSidebar"] div[role="radiogroup"] label>div:first-child{display:none;}
+[data-testid="stSidebar"] div[role="radiogroup"] label{
+  padding:8px 12px;border-radius:8px;width:100%;margin:0;cursor:pointer;}
+[data-testid="stSidebar"] div[role="radiogroup"] label p{
+  font-size:13px;font-weight:500;color:#5B6472;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;}
+[data-testid="stSidebar"] div[role="radiogroup"] label:hover{background:#FAFBFC;}
+[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked){
+  background:#E7F3F0;}
+[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) p{
+  color:#0B7A66;font-weight:600;}
+[data-testid="stSidebar"] hr{margin:16px 0;}
+.atg-logo-word{font-size:17px;font-weight:700;color:#14171C;line-height:1.15;
+  margin-top:8px;}
+.atg-logo-word b{color:#0B7A66;}
+.atg-logo-sub{font-size:9.5px;letter-spacing:.14em;color:#8B93A1;
+  font-weight:600;margin-bottom:8px;}
+.atg-status-line{display:flex;align-items:center;gap:8px;font-size:11.5px;
+  color:#5B6472;white-space:nowrap;}
+.atg-status-dot{width:6px;height:6px;border-radius:50%;background:#1E9E52;
+  box-shadow:0 0 0 3px #E9F8EE;display:inline-block;flex-shrink:0;}
+/* ---- P6a/abas/tabelas ---- */
+[data-testid="stTabs"] button p{font-size:13px;font-weight:600;}
+[data-testid="stDataFrame"]{border:1px solid #F0F2F4;border-radius:12px;
+  overflow:hidden;}
 </style>
 """
 
-#: Ícone das cápsulas de insight (sparkle em cor de marca — SVG inline,
-#: independente de fonte de emoji; Sprint 2B.1 item 1.4)
+#: Ícone das cápsulas de insight (sparkle em cor de marca — SVG inline)
 ICONE_INSIGHT = (
-    '<svg class="ic" width="15" height="15" viewBox="0 0 24 24" '
+    '<svg class="ic" width="14" height="14" viewBox="0 0 24 24" '
     'fill="#E7F3F0" stroke="#0B7A66" stroke-width="1.6" '
     'stroke-linejoin="round" aria-hidden="true">'
     '<path d="M12 2.5l2.3 6.4 6.4 2.3-6.4 2.3L12 19.9l-2.3-6.4-6.4-2.3 '
@@ -213,18 +194,11 @@ def _quantizar(valor: float) -> Decimal:
 
 
 def formatar_moeda_executiva(valor: Optional[float]) -> str:
-    """Formatação executiva dos cards (v0.5): Mi / mil / valor completo.
-
-    Regras: >= 1 milhão -> "R$ X,XX Mi"; >= 1 mil -> "R$ X,XX mil";
-    abaixo disso, valor completo. Nunca "K". Arredondamento half-up; se o
-    arredondamento promover a faixa (ex: 999.995 -> 1.000,00 mil), o valor
-    sobe de unidade ("R$ 1,00 Mi"), nunca exibindo mil >= 1.000.
-    """
+    """Formatação executiva dos cards: Mi / mil / valor completo."""
     if valor is None:
         return SEM_DADOS
     sinal = "-" if valor < 0 else ""
     v = abs(valor)
-
     if v >= 1_000_000:
         return f"{sinal}R$ {_numero_ptbr(_quantizar(v / 1_000_000))} Mi"
     if v >= 1_000:
@@ -236,7 +210,7 @@ def formatar_moeda_executiva(valor: Optional[float]) -> str:
 
 
 def formatar_pct(valor: Optional[float]) -> str:
-    """Formata percentual com sinal e uma casa decimal (+12,3% / -4,5%)."""
+    """Percentual com sinal e uma casa decimal (+12,3% / -4,5%)."""
     if valor is None:
         return SEM_COMPARATIVO
     texto = f"{valor:+.1f}".replace(".", ",")
@@ -244,7 +218,7 @@ def formatar_pct(valor: Optional[float]) -> str:
 
 
 def formatar_inteiro(valor: int) -> str:
-    """Formata inteiro com separador de milhar pt-BR."""
+    """Inteiro com separador de milhar pt-BR."""
     return f"{valor:,}".replace(",", ".")
 
 
@@ -254,7 +228,7 @@ def rotulo_periodo(mes_limite: int, ano: int) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Cards padrão (st.metric) — formato executivo + valor completo no tooltip
+# Cards padrão (st.metric) — usados pelas páginas analíticas
 # ---------------------------------------------------------------------------
 
 def card_moeda(
@@ -285,8 +259,8 @@ def card_numero(titulo: str, valor: Optional[float], legenda: str | None = None)
 
 
 def card_cancelado_bonificado(resultado: dict) -> None:
-    """Bloco de Cancelado/Bonificado: CONTAGEM de PIs como número principal;
-    valor monetário só como informação secundária, quando diferente de zero."""
+    """Cancelado/Bonificado: CONTAGEM de PIs como número principal; valor
+    monetário só como informação secundária, quando diferente de zero."""
     st.metric(
         "Cancelado / Bonificado",
         f"{resultado['cancelados']} canc. | {resultado['bonificados']} bonif.",
@@ -300,7 +274,7 @@ def card_cancelado_bonificado(resultado: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Card YTD de destaque (v0.5 Sprint 1) — apenas fatos, sem interpretação
+# Card YTD (peças factuais + renderização)
 # ---------------------------------------------------------------------------
 
 def montar_ytd(
@@ -308,13 +282,9 @@ def montar_ytd(
 ) -> dict[str, str]:
     """Monta as peças FACTUAIS do card YTD (função pura, testável).
 
-    O período usa SEMPRE o mes_limite retornado por metrics.ytd() — a regra
-    oficial v0.4 (mês atual no ano corrente; Dez em ano encerrado) — nunca
-    "último mês com dado", que reintroduziria meses futuros no acumulado.
-
-    Retorna dict com: estado, periodo, seta, percentual, cor, suporte.
-    Estados: "ok" | "sem_comparativo" | "sem_dados".
-    Nenhuma frase interpretativa é gerada — apenas fatos.
+    Período usa SEMPRE o mes_limite de metrics.ytd() (regra oficial v0.4).
+    Estados: "ok" | "sem_comparativo" | "sem_dados". Nenhuma frase
+    interpretativa — apenas fatos.
     """
     mes_limite = ytd_resultado.get("mes_limite") or 12
     periodo = (
@@ -374,14 +344,7 @@ def montar_ytd(
 def card_ytd(
     titulo: str, ytd_resultado: dict, ano: int, sem_dados: bool = False
 ) -> None:
-    """Card YTD de destaque (v0.5): frase de período, percentual com seta e
-    cor de sentimento (~25% maior que os demais valores), valores absolutos
-    de suporte em formato executivo, borda lateral fina na cor do
-    sentimento. Mesma célula da grade dos demais cards.
-
-    ``titulo`` é mantido na assinatura por compatibilidade, mas a
-    identidade visual do card é a própria frase de período (spec v0.5).
-    """
+    """Card YTD de destaque (fora da linha_kpis; mantido para reuso)."""
     pecas = montar_ytd(ytd_resultado, ano, sem_dados)
     seta_html = f"{pecas['seta']} " if pecas["seta"] else ""
     html = (
@@ -399,21 +362,19 @@ def card_ytd(
 
 
 # ---------------------------------------------------------------------------
-# Sprint 2B — Masthead, linha de KPIs, Insights e Rankings (mockup aprovado)
-# Renderizadores puros de apresentação: recebem valores prontos de
-# metrics.py e apenas montam HTML. Tooltips (title=) trazem o valor completo.
+# Masthead, KPI band, Insights e Rankings
 # ---------------------------------------------------------------------------
 
 def masthead(titulo: str, subtitulo: str) -> None:
-    """Bloco esquerdo do Masthead (título + subtítulo). Ações ficam no app."""
+    """Título da página com presença (22px); o subtítulo vira tooltip —
+    Sprint 3B (P1): a faixa de contexto perde uma linha inteira."""
     st.markdown(
-        f'<div class="atg-h1">{titulo}</div>'
-        f'<div class="atg-sub">{subtitulo}</div>',
+        f'<div class="atg-h1" title="{subtitulo}">{titulo}</div>',
         unsafe_allow_html=True,
     )
 
 
-def _card_secundario(
+def _celula_stat(
     rotulo: str, valor: Optional[float], caption: str, classe: str = ""
 ) -> str:
     if valor is None:
@@ -422,7 +383,7 @@ def _card_secundario(
         exibido = formatar_moeda_executiva(valor)
         completo = formatar_moeda(valor)
     return (
-        '<div class="atg-card atg-kpi-sec">'
+        '<div class="atg-stat">'
         f'<div class="atg-kpi-label">{rotulo}</div>'
         f'<div class="atg-kpi-value num {classe}" title="{completo}">{exibido}</div>'
         f'<div class="atg-kpi-caption">{caption}</div>'
@@ -439,10 +400,13 @@ def linha_kpis(
     valor_ticket: Optional[float],
     qtd_campanhas: int,
 ) -> None:
-    """Linha única de KPIs (2B.5): Card Hero YTD + 4 secundários, mesma
-    grade e altura (flex). Nomenclatura oficial v0.3 (adendo C1/C2)."""
+    """KPI band (Sprint 3B, P3): Card Hero YTD + stat strip em superfície
+    única com divisores hairline — mesmos dados, mesma ordem de sempre."""
     pecas = montar_ytd(ytd_resultado, ano, sem_dados)
-    seta = f'<span class="atg-hero-arrow" style="color:{pecas["cor"]}">{pecas["seta"]}</span>' if pecas["seta"] else ""
+    seta = (
+        f'<span class="atg-hero-arrow" style="color:{pecas["cor"]}">'
+        f'{pecas["seta"]}</span>'
+    ) if pecas["seta"] else ""
     hero = (
         '<div class="atg-card atg-kpi-hero">'
         '<div class="atg-eyebrow">KPI Principal · YTD vs Ano Anterior</div>'
@@ -453,34 +417,36 @@ def linha_kpis(
         "</div>"
     )
     faturado_fmt = formatar_moeda_executiva(vendas_detalhado["faturado"])
-    cards_html = [
-        hero,
-        _card_secundario(
+    strip = (
+        '<div class="atg-statstrip">'
+        + _celula_stat(
             "Vendas", vendas_detalhado["total"],
-            f"sendo {faturado_fmt} já faturado", classe="positivo",
-        ),
-        _card_secundario(
+            f"{faturado_fmt} já faturado", classe="positivo",
+        )
+        + _celula_stat(
             "Em Aberto", valor_em_aberto,
             "vendido, ainda não faturado", classe="ambar",
-        ),
-        _card_secundario("Ticket Médio", valor_ticket, "Vendas ÷ PIs da base"),
-        (
-            '<div class="atg-card atg-kpi-sec">'
+        )
+        + _celula_stat("Ticket Médio", valor_ticket, "Vendas ÷ PIs da base")
+        + (
+            '<div class="atg-stat">'
             '<div class="atg-kpi-label">Campanhas</div>'
             f'<div class="atg-kpi-value num">{formatar_inteiro(qtd_campanhas)}</div>'
-            '<div class="atg-kpi-caption">Cliente + Campanha distintos</div>'
+            '<div class="atg-kpi-caption" title="Combinações distintas de '
+            'Cliente + Campanha (base Vendas)">Cliente + Campanha</div>'
             "</div>"
-        ),
-    ]
+        )
+        + "</div>"
+    )
     st.markdown(
-        '<div class="atg-kpi-row">' + "".join(cards_html) + "</div>",
+        f'<div class="atg-kpi-row">{hero}{strip}</div>',
         unsafe_allow_html=True,
     )
 
 
 def capsulas_insights(destaques: dict) -> None:
-    """Faixa de Insights (2B.6): até 4 cápsulas factuais derivadas de
-    métricas oficiais — nunca repetem número de card ao lado."""
+    """Insights (Sprint 3B, P5): linhas de texto ambiente com sparkle —
+    sem caixa, sem aparência de checkbox. Até 4, sempre factuais."""
     textos: list[str] = []
     if destaques.get("concentracao"):
         grupo, pct = destaques["concentracao"]
@@ -513,7 +479,7 @@ def capsulas_insights(destaques: dict) -> None:
 
 
 def _badge_tendencia(variacao: Optional[float]) -> str:
-    """Badge ▲/▼ + % (Variante 1 aprovada). None -> neutro, nunca % quebrado."""
+    """Badge ▲/▼ + % (Variante 1 aprovada). None -> neutro."""
     if variacao is None:
         return '<span class="atg-trend neutro">—</span>'
     pct = f"{abs(variacao):.0f}".replace(".", ",")
@@ -525,11 +491,7 @@ def _badge_tendencia(variacao: Optional[float]) -> str:
 
 
 def bloco_ranking(titulo: str, linhas: list[dict]) -> None:
-    """Ranking Top 5 (2B.8): nome, barra, valor, % e badge de tendência —
-    tudo inline, nada dependente de hover.
-
-    ``linhas``: [{"nome", "valor", "pct", "tendencia"}], já ordenadas.
-    """
+    """Ranking Top 5: nome, barra, valor, % e badge — tudo inline."""
     if not linhas:
         st.markdown(
             f'<div class="atg-card atg-rank"><div class="atg-rank-title">'

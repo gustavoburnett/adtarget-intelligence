@@ -10,6 +10,7 @@ import pytest
 from src.components.filters import (
     filtrar_opcoes,
     realcar_busca,
+    resumo_curto,
     resumo_selecao,
 )
 
@@ -65,6 +66,36 @@ class TestResumoSelecao:
 
     def test_universo_vazio(self):
         assert resumo_selecao([], 0, "grupos") == "Sem grupos no recorte"
+
+
+class TestResumoCurto:
+    """Resumo inline do campo (Sprint 3B): o rótulo do filtro fica no
+    próprio campo, então o resumo não repete o substantivo."""
+
+    def test_todos(self):
+        assert resumo_curto(GRUPOS, 5) == "Todos (5)"
+        assert resumo_curto(["A", "B"], 2, genero="a") == "Todas (2)"
+
+    def test_nenhum(self):
+        assert resumo_curto([], 18) == "Nenhum"
+        assert resumo_curto([], 18, genero="a") == "Nenhuma"
+
+    def test_parcial_com_nomes(self):
+        assert resumo_curto(["DISNEY", "TEADS"], 18) == "DISNEY, TEADS"
+        assert resumo_curto(["DISNEY", "TEADS", "IG"], 18) == "DISNEY, TEADS +1"
+
+    def test_nomes_longos_degradam_para_contagem(self):
+        selecao = ["SISTEMA VERDES MARES — DIÁRIO DO NORDESTE",
+                   "MINISTÉRIO DA SAÚDE", "OUTRO"]
+        assert resumo_curto(selecao, 54) == "3 sel."
+
+    def test_nunca_ultrapassa_o_teto_inline(self):
+        import itertools
+        nomes = ["SISTEMA VERDES MARES", "DISNEY", "IG", "CANAL RURAL",
+                 "MELODIA", "BRASIL 247"]
+        for n in range(1, len(nomes) + 1):
+            for combo in itertools.combinations(nomes, n):
+                assert len(resumo_curto(list(combo), 21)) <= 28
 
 
 class TestBusca:
