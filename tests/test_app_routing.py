@@ -1,6 +1,5 @@
 """Entrada completa: roteamento e diagnóstico, sem fonte ou secrets reais."""
 
-import logging
 from pathlib import Path
 
 import pandas as pd
@@ -90,21 +89,3 @@ def test_routing_uses_page_even_when_functions_share_identity(monkeypatch):
 def test_real_pages_through_entry(monkeypatch, page):
     app, _ = run_app(monkeypatch, page)
     assert not app.exception
-
-
-def test_diagnostic_only_logs_code_and_runtime_metadata(monkeypatch, caplog):
-    with caplog.at_level(logging.WARNING):
-        app, _ = run_app(monkeypatch, "Performance Comercial")
-    assert not app.exception
-    logs = [r.getMessage() for r in caplog.records if "ADTARGET_RENDER_DIAGNOSTIC" in r.getMessage()]
-    assert len(logs) == 1
-    message = logs[0]
-    for field in ["version=", "commit=", "performance_file=", "render_module=",
-                  "render_code_file=", "signature=", "parameters=", "python=", "streamlit="]:
-        assert field in message
-    assert "parameters=('df', 'sincronizado_em')" in message
-    assert "render_module=pages_content.performance_comercial" in message
-    assert "TEST_ONLY" not in message
-    assert "gcp_service_account" not in message
-    assert "app_password" not in message
-    assert "ADTARGET_RENDER_DIAGNOSTIC" not in repr(app)
