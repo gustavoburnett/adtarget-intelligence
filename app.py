@@ -14,6 +14,11 @@ amigável, nunca stack trace.
 from __future__ import annotations
 
 import datetime as _dt
+import inspect
+import logging
+from pathlib import Path
+import subprocess
+import sys
 
 import pandas as pd
 import streamlit as st
@@ -28,6 +33,25 @@ from src.auth.gate import exigir_autenticacao
 from src.components import cards
 from src.data.cleaning import limpar_dataframe
 from src.data.loader import ErroDeCarga, load_all_sheets
+
+# Diagnóstico temporário: somente metadados de código/runtime nos logs.
+try:
+    _commit = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=Path(__file__).resolve().parent,
+        check=True, capture_output=True, text=True, timeout=2,
+    ).stdout.strip()
+except (OSError, subprocess.SubprocessError):
+    _commit = "indisponivel"
+_assinatura = inspect.signature(performance_comercial.render)
+logging.getLogger(__name__).warning(
+    "ADTARGET_RENDER_DIAGNOSTIC version=sprint-2.1-render-diagnostic-v1 "
+    "commit=%s performance_file=%s render_module=%s render_code_file=%s "
+    "signature=%s parameters=%s python=%s streamlit=%s",
+    _commit, performance_comercial.__file__,
+    performance_comercial.render.__module__,
+    getattr(getattr(performance_comercial.render, "__code__", None), "co_filename", None),
+    _assinatura, tuple(_assinatura.parameters), sys.version.split()[0], st.__version__,
+)
 
 st.set_page_config(
     page_title="AdTarget Intelligence",
@@ -164,7 +188,7 @@ with col_acoes:
         )
 
 # ---------------------------------------------------------------- página
-if render_pagina is performance_comercial.render:
+if pagina_ativa == "Performance Comercial":
     render_pagina(dados, sincronizado_em=sincronizado_em)
 else:
     render_pagina(dados)
