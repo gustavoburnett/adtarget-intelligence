@@ -20,9 +20,13 @@ do DS preservados; nenhuma regra/número muda.
 from __future__ import annotations
 
 from decimal import ROUND_HALF_UP, Decimal
+from html import escape
 from typing import Optional
 
 import streamlit as st
+
+from src.data.metrics import ROTULOS_CRITERIO_MES
+from src.data.radar import RadarState
 
 SEM_DADOS = "Sem dados no recorte selecionado"
 SEM_COMPARATIVO = "Sem comparativo disponível"
@@ -104,6 +108,26 @@ div[data-testid="stPopoverBody"] .stCheckbox p{font-size:13px;}
   font-size:12.5px;color:#5B6472;line-height:1.45;background:transparent;
   border:none;padding:0;}
 .atg-insight .ic{display:flex;flex-shrink:0;}
+.atg-radar-header{margin:0 0 16px;}
+.atg-radar-header h3.atg-radar-title{font-size:17px;font-weight:600;color:#14171C;
+  line-height:1.3;letter-spacing:-.01em;margin:0 0 4px;padding:0;}
+.atg-radar-meta{display:block;font-size:11px;color:#8B93A1;line-height:1.4;}
+.atg-radar{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));
+  gap:24px 32px;margin:0 0 16px;}
+.atg-radar-two{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:24px;}
+.atg-radar-three{grid-template-columns:repeat(3,minmax(0,1fr));}
+.atg-radar-single{max-width:420px;}
+.atg-radar-item{min-width:0;line-height:1.45;overflow-wrap:anywhere;}
+.atg-radar-category{display:block;font-size:10px;font-weight:500;letter-spacing:.06em;
+  color:#8B93A1;margin-bottom:6px;}
+.atg-radar-headline{display:block;font-size:20px;font-weight:700;letter-spacing:-.02em;
+  color:#14171C;margin-bottom:6px;}
+.atg-radar-headline strong{font-size:inherit;font-weight:inherit;}
+.atg-radar-context{display:block;font-size:12px;color:#5B6472;margin-bottom:8px;}
+.atg-radar-cta{display:block;font-size:11px;font-style:italic;color:#8B93A1;}
+@media(max-width:700px){
+  .atg-radar-two,.atg-radar-three{grid-template-columns:1fr;}
+}
 /* ---- rankings ---- */
 .atg-rank{padding:24px 24px 16px;}
 .atg-rank-title{font-size:14px;font-weight:700;color:#14171C;
@@ -456,6 +480,76 @@ def capsulas_insights(destaques: dict) -> None:
     st.markdown(
         f'<div class="atg-insights">{capsulas}</div>', unsafe_allow_html=True
     )
+
+
+def render_radar(estado: RadarState) -> None:
+    """Faixa compacta; CTAs orientativos, sem navegação ou filtro automático."""
+    metadados = (
+        f"{'Valor Líquido' if estado.valor == 'liquido' else 'Valor Bruto'} · "
+        f"{ROTULOS_CRITERIO_MES[estado.criterio_mes]}"
+    )
+    st.markdown(
+        '<div class="atg-radar-header"><h3 class="atg-radar-title">Radar Executivo</h3>'
+        f'<div class="atg-radar-meta">{escape(metadados)}</div></div>',
+        unsafe_allow_html=True,
+    )
+    if estado.status == "ativo":
+        itens = []
+        rotulos = {"crescimento": "CRESCIMENTO", "queda": "QUEDA", "destaque": "DESTAQUE"}
+
+        for insight in estado.insights:
+            if insight.tipo == "destaque":
+                entidade = MESES_NOMES[insight.periodo_atual[0].month - 1].upper()
+                manchete = f"Novo recorde mensal: {formatar_moeda_executiva(insight.valor_atual)}"
+                percentual = f"{insight.variacao_pct:.1f}".replace(".", ",")
+                contexto = (
+                    f"{percentual}% acima do recorde anterior de "
+                    f"{formatar_moeda_executiva(insight.valor_anterior)}"
+                )
+            else:
+                entidade = insight.entidade.upper().rstrip().removesuffix("+").rstrip()
+                ano_atual = insight.periodo_atual[0].year
+                ano_anterior = insight.periodo_anterior[0].year
+                if insight.tipo == "queda" and insight.valor_atual == 0:
+                    manchete = f"Sem vendas em {ano_atual}"
+                    contexto = (
+                        f"{formatar_moeda_executiva(insight.valor_anterior)} "
+                        f"no mesmo período de {ano_anterior}"
+                    )
+                else:
+                    manchete = (
+                        f"{formatar_pct(insight.variacao_pct)} vs. mesmo período "
+                        f"de {ano_anterior}"
+                    )
+                    contexto = (
+                        f"{formatar_moeda_executiva(insight.valor_atual)} em {ano_atual} · "
+                        f"{formatar_moeda_executiva(insight.valor_anterior)} em {ano_anterior}"
+                    )
+            itens.append(
+                '<div class="atg-radar-item">'
+                f'<div class="atg-radar-category">{escape(rotulos[insight.tipo])} · {escape(entidade)}</div>'
+                f'<div class="atg-radar-headline num"><strong>{escape(manchete)}</strong></div>'
+                f'<div class="atg-radar-context num" title="{escape(insight.referencia_comparacao)}">'
+                f'{escape(contexto)}</div>'
+                f'<div class="atg-radar-cta"><em>{escape(insight.cta.texto)}</em></div></div>'
+            )
+        classes = {1: "atg-radar-single", 2: "atg-radar-two", 3: "atg-radar-three"}
+        classe = "atg-radar " + classes.get(len(itens), "")
+        st.markdown(f'<div class="{classe}">' + ''.join(itens) + '</div>',
+                    unsafe_allow_html=True)
+    elif estado.status == "silencio":
+        st.caption("Nenhuma mudança atingiu os critérios do Radar nas comparações disponíveis.")
+    elif estado.status == "dados_insuficientes":
+        st.caption("Histórico insuficiente para realizar as comparações do Radar.")
+    else:
+        st.caption("Dados desatualizados: insights indisponíveis.")
+    if estado.status != "dados_insuficientes" and estado.regras_sem_comparacao:
+        nomes = {"crescimento": "Crescimento", "queda": "Queda", "destaque": "Destaque"}
+        st.caption("Sem comparação disponível: " + ", ".join(
+            nomes[r] for r in estado.regras_sem_comparacao
+        ) + ".")
+    if estado.sincronizado_em is not None:
+        st.caption(f"Última sincronização com a fonte: {estado.sincronizado_em:%d/%m/%Y %H:%M}")
 
 
 def _badge_tendencia(variacao: Optional[float]) -> str:

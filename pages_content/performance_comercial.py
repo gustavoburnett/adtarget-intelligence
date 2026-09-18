@@ -19,7 +19,7 @@ import pandas as pd
 import streamlit as st
 
 from src.components import cards, charts, filters
-from src.data import metrics
+from src.data import metrics, radar
 from src.data.cleaning import COL_AGENCIA, COL_CLIENTE, COL_GRUPO, COL_VEICULO
 
 _CHAVE = "perf"
@@ -48,8 +48,9 @@ def _linhas_ranking_dimensao(
     ]
 
 
-def render(df: pd.DataFrame) -> None:
-    hoje = _dt.date.today()
+def render(df: pd.DataFrame, sincronizado_em: _dt.datetime | None = None) -> None:
+    agora = _dt.datetime.now()
+    hoje = agora.date()
 
     # ---------------------------------------------------- barra de filtros
     col_ano, col_grupo, col_limpar = st.columns(
@@ -77,9 +78,12 @@ def render(df: pd.DataFrame) -> None:
         metrics.quantidade_campanhas(df_ano),
     )
 
-    # --------------------------------------------------- Insights (2B.6)
-    cards.capsulas_insights(
-        metrics.destaques_do_recorte(df_dim, ano, valor, criterio_mes)
+    # --------------------------------------------------- Radar Executivo
+    cards.render_radar(
+        radar.avaliar_radar(
+            df_dim, ano, agora=agora, valor=valor, criterio_mes=criterio_mes,
+            sincronizado_em=sincronizado_em,
+        )
     )
 
     # ----------------------------------------------- Gráfico Hero (2B.7)

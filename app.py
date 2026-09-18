@@ -164,4 +164,7 @@ with col_acoes:
         )
 
 # ---------------------------------------------------------------- página
-render_pagina(dados)
+if render_pagina is performance_comercial.render:
+    render_pagina(dados, sincronizado_em=sincronizado_em)
+else:
+    render_pagina(dados)
