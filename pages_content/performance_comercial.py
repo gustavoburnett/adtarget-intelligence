@@ -14,15 +14,42 @@ todos os blocos monetários reagem juntos, como sempre (toggles_do_estado).
 from __future__ import annotations
 
 import datetime as _dt
+from typing import Callable
 
 import pandas as pd
 import streamlit as st
 
-from src.components import cards, charts, filters
-from src.data import metrics, radar
+from src.components import cards, charts, filters, metas_charts
+from src.data import metas, metrics, radar
 from src.data.cleaning import COL_AGENCIA, COL_CLIENTE, COL_GRUPO, COL_VEICULO
+from src.data.metas_schema import ErroDeMetas
 
 _CHAVE = "perf"
+
+# A troca visual acompanha a aba no frontend, sem rerun dos KPIs/Radar.
+# Os controles originais mantêm estado; os espelhos são nativos e desabilitados.
+_CONTROLES_META_CSS = """<style>
+[data-testid="stLayoutWrapper"]:has(> :is(
+    .st-key-performance_grupo_meta, .st-key-performance_toggles_meta)) {
+    display: none;
+}
+:root:has(.st-key-performance_evolucao_tab [role="tab"][data-key="2"][aria-selected="true"])
+[data-testid="stLayoutWrapper"]:has(> :is(
+    .st-key-performance_grupo_original, .st-key-performance_toggles_original)) {
+    display: none;
+}
+:root:has(.st-key-performance_evolucao_tab [role="tab"][data-key="2"][aria-selected="true"])
+[data-testid="stLayoutWrapper"]:has(> :is(
+    .st-key-performance_grupo_meta, .st-key-performance_toggles_meta)) {
+    display: flex;
+}
+.st-key-performance_meta_grupo button:disabled,
+.st-key-performance_meta_grupo button:disabled:hover {
+    color: #8B93A1;
+    background: transparent;
+    cursor: not-allowed;
+}
+</style>"""
 
 
 def _navegar(destino: str) -> None:
@@ -48,9 +75,77 @@ def _linhas_ranking_dimensao(
     ]
 
 
-def render(df: pd.DataFrame, sincronizado_em: _dt.datetime | None = None) -> None:
+def _render_meta(
+    df: pd.DataFrame, ano: int, carregar_metas: Callable[[], pd.DataFrame] | None,
+) -> None:
+    st.caption(
+        "Meta · Valor Líquido · Mês de Veiculação · Consolidado AdTarget"
+    )
+    if carregar_metas is None:
+        st.info("A fonte METAS não está disponível nesta visualização.")
+    else:
+        try:
+            metas_df = carregar_metas()
+            resultado = metas.avaliar_metas(df, metas_df, ano)
+            pulso = metas.avaliar_pulso(
+                df, metas_df, ano, data_referencia=resultado.data_referencia,
+            )
+        except ErroDeMetas:
+            st.error(
+                "Não foi possível carregar ou validar a aba METAS. "
+                "Verifique a estrutura e o acesso à fonte. "
+                "Vendas, Ticket Médio e os demais indicadores continuam disponíveis."
+            )
+        else:
+            if resultado.estado == "sem_metas":
+                st.info(f"Não há metas cadastradas para {ano}.")
+            else:
+                st.plotly_chart(
+                    metas_charts.evolucao_performance_meta(resultado, pulso),
+                    width="stretch", key="perf_meta",
+                    config={"displayModeBar": False, "responsive": True},
+                )
+    st.caption("Ver análise completa em Metas e Resultados, na navegação lateral.")
+
+
+@st.fragment
+def _abas_evolucao(
+    df: pd.DataFrame, df_dim: pd.DataFrame, ano: int, valor: str,
+    criterio_mes: str, mes_limite: int | None,
+    carregar_metas: Callable[[], pd.DataFrame] | None,
+) -> None:
+    # A troca de aba reexecuta somente os gráficos, preservando o restante
+    # da Performance. Os controles permanecem fora deste fragmento.
+    aba_vendas, aba_ticket, aba_meta = st.tabs(
+        ["Vendas", "Ticket Médio", "Meta"],
+        key="performance_evolucao_tab", on_change="rerun",
+    )
+    with aba_vendas:
+        charts.grafico_hero_vendas(
+            metrics.comparativo_mensal(df_dim, ano, valor, criterio_mes),
+            ano,
+            mes_limite,
+        )
+    with aba_ticket:
+        charts.grafico_hero_ticket(
+            metrics.evolucao_mensal_ticket_medio(
+                df_dim, ano, valor, criterio_mes
+            ),
+            ano,
+            mes_limite,
+        )
+    if aba_meta.open:
+        with aba_meta:
+            _render_meta(df, ano, carregar_metas)
+
+
+def render(
+    df: pd.DataFrame, sincronizado_em: _dt.datetime | None = None, *,
+    carregar_metas: Callable[[], pd.DataFrame] | None = None,
+) -> None:
     agora = _dt.datetime.now()
     hoje = agora.date()
+    st.html(_CONTROLES_META_CSS)
 
     # ---------------------------------------------------- barra de filtros
     col_ano, col_grupo, col_limpar = st.columns(
@@ -59,7 +154,14 @@ def render(df: pd.DataFrame, sincronizado_em: _dt.datetime | None = None) -> Non
     with col_ano:
         ano = filters.selecionar_ano(df, _CHAVE)
     with col_grupo:
-        df_dim = filters.filtro_compacto(df, COL_GRUPO, "Grupo", _CHAVE, "grupos")
+        with st.container(key="performance_grupo_original", border=False, gap=None):
+            df_dim = filters.filtro_compacto(df, COL_GRUPO, "Grupo", _CHAVE, "grupos")
+        with st.container(key="performance_grupo_meta", border=False, gap=None):
+            with st.popover(
+                "Grupo · Consolidado AdTarget", width="stretch", disabled=True,
+                key="performance_meta_grupo",
+            ):
+                pass
     with col_limpar:
         filters.botao_limpar_filtros(_CHAVE)
 
@@ -96,24 +198,25 @@ def render(df: pd.DataFrame, sincronizado_em: _dt.datetime | None = None) -> Non
             )
         with col_toggles:
             # Controles secundários (peso menor que as abas — doc 09 §6.4)
-            valor, criterio_mes = filters.selecionar_toggles(_CHAVE)
+            with st.container(key="performance_toggles_original", border=False, gap=None):
+                valor, criterio_mes = filters.selecionar_toggles(_CHAVE)
+            with st.container(key="performance_toggles_meta", border=False, gap=None):
+                col_valor, col_mes = st.columns(2)
+                with col_valor:
+                    st.segmented_control(
+                        "Métrica de valor", ["Valor Líquido", "Valor Bruto"],
+                        default="Valor Líquido", disabled=True,
+                        key="performance_meta_valor",
+                    )
+                with col_mes:
+                    st.segmented_control(
+                        "Critério de mês", ["Mês (Ganho)", "Mês (Veiculação)"],
+                        default="Mês (Veiculação)", disabled=True,
+                        key="performance_meta_mes",
+                    )
 
         mes_limite = hoje.month if ano == hoje.year else None
-        aba_vendas, aba_ticket = st.tabs(["Vendas", "Ticket Médio"])
-        with aba_vendas:
-            charts.grafico_hero_vendas(
-                metrics.comparativo_mensal(df_dim, ano, valor, criterio_mes),
-                ano,
-                mes_limite,
-            )
-        with aba_ticket:
-            charts.grafico_hero_ticket(
-                metrics.evolucao_mensal_ticket_medio(
-                    df_dim, ano, valor, criterio_mes
-                ),
-                ano,
-                mes_limite,
-            )
+        _abas_evolucao(df, df_dim, ano, valor, criterio_mes, mes_limite, carregar_metas)
 
     # -------------------------------------------------- Rankings (2B.8)
     tend_veic = metrics.tendencia_grupo_veiculo(df_dim, ano, valor, criterio_mes)

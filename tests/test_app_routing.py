@@ -44,7 +44,7 @@ def run_app(monkeypatch, page):
 def test_entry_routes_arguments_only_to_selected_page(monkeypatch, page):
     calls = []
 
-    def performance(df, sincronizado_em=None):
+    def performance(df, sincronizado_em=None, *, carregar_metas=None):
         calls.append(("Performance Comercial", df, sincronizado_em))
 
     def simple(name):
