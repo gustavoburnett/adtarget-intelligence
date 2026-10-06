@@ -22,6 +22,7 @@ from src.data.metas_quality import coexistencia_niveis, revisoes_retroativas
 from src.data.metas_schema import (
     COL_LINHA_ORIGEM,
     ErroDeMetas,
+    data_local,
     validar_metas,
 )
 from src.data.quality_checks import AlertaQualidade
@@ -493,6 +494,7 @@ def render(
     data_referencia: dt.date | dt.datetime | None = None,
 ) -> None:
     """Renderiza apenas esta visão; falhas de METAS não encerram a aplicação."""
+    data_referencia = data_local(data_referencia)
     st.markdown(_CSS, unsafe_allow_html=True)
     if df.empty:
         st.info("Sem dados de vendas disponíveis para selecionar um ano.")

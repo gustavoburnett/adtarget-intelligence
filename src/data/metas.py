@@ -36,7 +36,20 @@ EstadoResultado = Literal[
 ]
 _ZERO = Decimal(0)
 _CEM = Decimal(100)
+_MEIO_CENTAVO = Decimal("0.005")
 _SLOT = ["NIVEL_META", "GRUPO", "VEICULO", "ANO", "MES"]
+
+
+def diferenca_monetaria(valor: Decimal, referencia: Decimal = _ZERO) -> Decimal:
+    """Diferença semântica, sem arredondar os valores usados no cálculo.
+
+    A fronteira de zero segue a apresentação em centavos com HALF_UP:
+    diferenças menores que meio centavo são equilíbrio. Demais diferenças
+    conservam toda a precisão, inclusive o limite exato de meio centavo.
+    Realizados, acumulados, carteira e percentuais permanecem brutos.
+    """
+    diferenca = valor - referencia
+    return _ZERO if abs(diferenca) < _MEIO_CENTAVO else diferenca
 
 
 @dataclass(frozen=True, order=True)
@@ -287,12 +300,12 @@ def avaliar_metas(
             realizado_acumulado=atual_soma,
             realizado_anterior_acumulado=anterior_soma,
             atingimento_pct=_percentual(realizado, meta_reais) if realizado is not None else None,
-            saldo=realizado - meta_reais if realizado is not None else None,
+            saldo=diferenca_monetaria(realizado, meta_reais) if realizado is not None else None,
             yoy_pct=_yoy(realizado, anterior) if realizado is not None else None,
             atingimento_acumulado_pct=(
                 _percentual(atual_soma, meta_soma_reais) if atual_soma is not None else None
             ),
-            saldo_acumulado=atual_soma - meta_soma_reais if atual_soma is not None else None,
+            saldo_acumulado=diferenca_monetaria(atual_soma, meta_soma_reais) if atual_soma is not None else None,
             yoy_acumulado_pct=_yoy(atual_soma, anterior_soma) if atual_soma is not None else None,
         ))
 
@@ -302,7 +315,7 @@ def avaliar_metas(
     meta_ytd = Decimal(meta_ytd_centavos) / _CEM
     meta_anual = Decimal(meta_anual_centavos) / _CEM
     anterior_ytd = meses[encerrados - 1].realizado_anterior_acumulado if encerrados else None
-    gap = meta_anual - realizado_acumulado
+    gap = diferenca_monetaria(meta_anual, realizado_acumulado)
     forecast = realizado_acumulado / Decimal(encerrados) * 12 if 2 <= encerrados < 12 else None
     percentuais_disponiveis = encerrados > 0 and meta_ytd_centavos > 0
     estado: EstadoResultado = (
@@ -327,7 +340,7 @@ def avaliar_metas(
         atingimento_ytd_pct=(
             _percentual(realizado_acumulado, meta_ytd) if percentuais_disponiveis else None
         ),
-        saldo_ytd=realizado_acumulado - meta_ytd,
+        saldo_ytd=diferenca_monetaria(realizado_acumulado, meta_ytd),
         meta_anual_conquistada_pct=(
             _percentual(realizado_acumulado, meta_anual) if percentuais_disponiveis else None
         ),
@@ -507,7 +520,7 @@ def avaliar_pulso(
         meta_centavos = metas_por_grupo[grupo]
         meta_anual = Decimal(meta_centavos) / _CEM
         total = fechado_por_grupo[grupo] + futuro_por_grupo[grupo]
-        gap = meta_anual - total
+        gap = diferenca_monetaria(meta_anual, total)
         status: StatusParceiroPulso = (
             "sem_meta_anual" if meta_centavos == 0
             else "meta_superada" if gap < 0
@@ -526,7 +539,7 @@ def avaliar_pulso(
         ))
 
     total_vendido = fechado.realizado_ytd + carteira_futura
-    gap_comercial = fechado.meta_anual - total_vendido
+    gap_comercial = diferenca_monetaria(fechado.meta_anual, total_vendido)
     meta_restante = Decimal(fechado.plano_futuro_centavos) / _CEM
     estado: EstadoPulso = (
         "sem_metas" if metas_ano.empty
@@ -630,8 +643,8 @@ def avaliar_parceiros(
         status: StatusParceiroMetas = (
             "aguardando_mes_encerrado" if not pulso.meses_encerrados
             else "sem_meta_periodo" if atingimento is None
-            else "acima_da_meta" if atingimento >= 100
-            else "proximo_da_meta" if atingimento >= 90
+            else "acima_da_meta" if diferenca_monetaria(realizado, meta_ytd) >= 0
+            else "proximo_da_meta" if diferenca_monetaria(realizado, meta_ytd * Decimal("0.9")) >= 0
             else "abaixo_da_meta"
         )
         parceiros.append(ParceiroMetas(
@@ -639,7 +652,7 @@ def avaliar_parceiros(
             meta_ytd_centavos=meta_centavos,
             realizado_ytd=realizado,
             atingimento_ytd_pct=atingimento,
-            saldo_ytd=realizado - meta_ytd,
+            saldo_ytd=diferenca_monetaria(realizado, meta_ytd),
             status=status,
             pulso=compromisso,
         ))
