@@ -52,12 +52,16 @@ CSS_GLOBAL = """
   font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,
   Helvetica,Arial,sans-serif;}
 .num{font-variant-numeric:tabular-nums;}
-/* ---- P8: apagar o chrome do Streamlit ---- */
-header[data-testid="stHeader"]{display:none;}
+/* O header mantém o controle nativo de reabertura da navegação. */
+header[data-testid="stHeader"]{visibility:hidden;background:transparent;}
+header[data-testid="stHeader"] [data-testid="stExpandSidebarButton"]{
+  visibility:visible;}
 #MainMenu,footer{visibility:hidden;}
 [data-testid="stMainBlockContainer"]{padding-top:32px;max-width:1400px;}
 [data-testid="stMain"] .block-container{padding-bottom:48px;}
 /* ---- P1/P4: faixa de contexto — título com presença, sem subtítulo fixo */
+.atg-product-brand{margin:0 0 16px;}
+.atg-product-brand img{display:block;width:160px;max-width:100%;height:auto;}
 .atg-h1{font-size:22px;font-weight:700;letter-spacing:-.01em;color:#14171C;
   line-height:1.2;margin:0;}
 .atg-updated{font-size:12px;color:#8B93A1;text-align:right;}
@@ -162,11 +166,6 @@ section[data-testid="stSidebar"]{width:248px !important;}
 [data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) p{
   color:#0B7A66;font-weight:600;}
 [data-testid="stSidebar"] hr{margin:16px 0;}
-.atg-logo-word{font-size:17px;font-weight:700;color:#14171C;line-height:1.15;
-  margin-top:8px;}
-.atg-logo-word b{color:#0B7A66;}
-.atg-logo-sub{font-size:9.5px;letter-spacing:.14em;color:#8B93A1;
-  font-weight:600;margin-bottom:8px;}
 .atg-status-line{display:flex;align-items:center;gap:8px;font-size:11.5px;
   color:#5B6472;white-space:nowrap;}
 .atg-status-dot{width:6px;height:6px;border-radius:50%;background:#1E9E52;

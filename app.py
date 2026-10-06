@@ -1,10 +1,9 @@
 """AdTarget Intelligence — entrada única da aplicação.
 
-Sprint 2B: a SIDEBAR é a navegação oficial do produto (decisão 34 —
-supersede as abas do documento 03): Performance Comercial, Analítico
-Comercial, Analítico Veículos e, temporariamente, 🔧 Auditoria (removida
-junto com a ferramenta). Ações vivem no Masthead; a sidebar tem apenas
-logo, navegação e o bloco de status dos dados (somente leitura).
+A SIDEBAR é a navegação oficial do produto: Performance Comercial,
+Metas e Resultados, Analítico Comercial, Analítico Veículos e,
+temporariamente, 🔧 Auditoria. A marca identifica o produto acima do
+Masthead; a sidebar reúne navegação e status dos dados (somente leitura).
 
 Fluxo: gate de senha -> carga com cache (15 min) -> limpeza -> shell
 (sidebar + masthead) -> página ativa. Erros de configuração geram mensagem
@@ -14,6 +13,8 @@ amigável, nunca stack trace.
 from __future__ import annotations
 
 import datetime as _dt
+from base64 import b64encode
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
@@ -22,12 +23,15 @@ from pages_content import (
     analitico_comercial,
     analitico_veiculos,
     auditoria_vendas,  # ferramenta de validação — visível só com dev_auditoria
+    metas_resultados,
     performance_comercial,
 )
 from src.auth.gate import exigir_autenticacao
 from src.components import cards
 from src.data.cleaning import limpar_dataframe
 from src.data.loader import ErroDeCarga, load_all_sheets
+from src.data.metas_loader import load_metas
+from src.data.metas_schema import ErroDeMetas
 
 st.set_page_config(
     page_title="AdTarget Intelligence",
@@ -51,6 +55,12 @@ def _carregar_dados_brutos(
     compartilhado entre todos os usuários (documento 03). Retorna também o
     horário real da sincronização para o bloco de status."""
     return load_all_sheets(spreadsheet_id, credenciais), _dt.datetime.now()
+
+
+@st.cache_data(ttl=900, show_spinner="Carregando metas da planilha...")
+def _carregar_metas(spreadsheet_id: str, credenciais: dict) -> pd.DataFrame:
+    """Cache independente de METAS, consultado somente na visão de metas."""
+    return load_metas(spreadsheet_id, credenciais)
 
 
 def _validar_secrets() -> tuple[str, dict]:
@@ -93,6 +103,10 @@ PAGINAS = {
         performance_comercial.render,
         "Visão geral de vendas, campanhas e faturamento",
     ),
+    "Metas e Resultados": (
+        metas_resultados.render,
+        "Atingimento de metas e projeção no perímetro comercial",
+    ),
     "Analítico Comercial": (
         analitico_comercial.render,
         "Carteira completa, PI a PI, com filtros finos e alertas de qualidade",
@@ -114,13 +128,8 @@ if st.secrets.get("dev_auditoria", False):
     )
 
 # --------------------------------------------------------------- sidebar
-# Estrutura (DS §5.8): logo -> navegação -> separador -> status. Sem botão.
+# Navegação -> separador -> status. A marca fica no conteúdo principal.
 with st.sidebar:
-    st.markdown(
-        '<div class="atg-logo-word"><b>Ad</b>Target</div>'
-        '<div class="atg-logo-sub">INTELLIGENCE</div><br>',
-        unsafe_allow_html=True,
-    )
     pagina_ativa = st.radio(
         "Navegação",
         list(PAGINAS),
@@ -139,6 +148,14 @@ with st.sidebar:
     )
 
 # -------------------------------------------------------------- masthead
+logo_oficial = Path(__file__).resolve().parent / "assets" / "AdTarget_Intelligence_logo.svg"
+logo_svg = b64encode(logo_oficial.read_bytes()).decode("ascii")
+st.markdown(
+    '<div class="atg-product-brand">'
+    f'<img src="data:image/svg+xml;base64,{logo_svg}" '
+    'alt="AdTarget Intelligence"></div>',
+    unsafe_allow_html=True,
+)
 render_pagina, subtitulo = PAGINAS[pagina_ativa]
 titulo_visivel = pagina_ativa.replace("🔧 ", "")
 
@@ -155,6 +172,7 @@ with col_acoes:
         if st.button("↻ Atualizar", key="masthead_refresh",
                      help="Recarregar os dados da planilha agora"):
             _carregar_dados_brutos.clear()
+            _carregar_metas.clear()
             st.session_state["_dados_recarregados"] = True
             st.rerun()
     with col_tema:
@@ -166,5 +184,12 @@ with col_acoes:
 # ---------------------------------------------------------------- página
 if pagina_ativa == "Performance Comercial":
     render_pagina(dados, sincronizado_em=sincronizado_em)
+elif pagina_ativa == "Metas e Resultados":
+    try:
+        metas_df = _carregar_metas(spreadsheet_id, credenciais)
+    except ErroDeMetas as erro:
+        render_pagina(dados, erro_metas=erro)
+    else:
+        render_pagina(dados, metas_df=metas_df)
 else:
     render_pagina(dados)
