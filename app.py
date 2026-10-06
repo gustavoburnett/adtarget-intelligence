@@ -183,7 +183,10 @@ with col_acoes:
 
 # ---------------------------------------------------------------- página
 if pagina_ativa == "Performance Comercial":
-    render_pagina(dados, sincronizado_em=sincronizado_em)
+    render_pagina(
+        dados, sincronizado_em=sincronizado_em,
+        carregar_metas=lambda: _carregar_metas(spreadsheet_id, credenciais),
+    )
 elif pagina_ativa == "Metas e Resultados":
     try:
         metas_df = _carregar_metas(spreadsheet_id, credenciais)

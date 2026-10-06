@@ -60,7 +60,7 @@ def _entrada(monkeypatch, pagina, *, auditoria=False, erro_metas=None):
             raise erro_metas
         return metas
 
-    def render_performance(df, sincronizado_em=None):
+    def render_performance(df, sincronizado_em=None, *, carregar_metas=None):
         renders.append(("Performance Comercial", df, sincronizado_em))
 
     def render_simples(nome):

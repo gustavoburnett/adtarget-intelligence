@@ -329,3 +329,117 @@ def evolucao_mensal(resultado: ResultadoMetas, pulso: ResultadoPulso) -> go.Figu
             layer="above",
         )
     return fig
+
+
+def evolucao_performance_meta(
+    resultado: ResultadoMetas, pulso: ResultadoPulso
+) -> go.Figure:
+    """Resumo acumulado: realizado fechado e continuação da carteira já vendida.
+
+    O trecho fechado conserva os acumulados oficiais. Somente a transformação
+    gráfica da carteira mensal em acumulado acontece aqui, com Decimal; não há
+    nova apuração de vendas, percentuais, saldo ou forecast.
+    """
+    from src.components.charts import _aplicar_estilo_hero
+
+    if (
+        resultado.ano != pulso.ano
+        or resultado.data_referencia != pulso.data_referencia
+        or resultado.meses_encerrados != pulso.meses_encerrados
+        or [mes.mes for mes in resultado.meses] != [mes.mes for mes in pulso.meses]
+        or any(
+            mes.estado_mes != comercial.estado_mes
+            or mes.meta_centavos != comercial.meta_centavos
+            or (mes.estado_mes == "encerrado" and mes.realizado != comercial.vendido)
+            for mes, comercial in zip(resultado.meses, pulso.meses)
+        )
+    ):
+        raise ValueError("As séries de metas e carteira devem usar o mesmo snapshot.")
+
+    meses = [mes.mes for mes in resultado.meses]
+    fechados = [mes for mes in resultado.meses if mes.estado_mes == "encerrado"]
+    abertos = [
+        (mes, comercial)
+        for mes, comercial in zip(resultado.meses, pulso.meses)
+        if mes.estado_mes != "encerrado"
+    ]
+    acumulado = fechados[-1].realizado_acumulado if fechados else Decimal(0)
+    carteira_acumulada: dict[int, Decimal] = {}
+    hovers = {
+        mes.mes: _hover_acumulado(mes, resultado.ano) for mes in fechados
+    }
+    for mes, comercial in abertos:
+        acumulado += comercial.vendido
+        carteira_acumulada[mes.mes] = acumulado
+        andamento = mes.estado_mes == "em_andamento"
+        referencia_meta = "Meta acumulada" if andamento else "Meta acumulada planejada"
+        detalhe = (
+            "Inclui carteira já vendida para" if andamento
+            else "Inclui vendas já fechadas para"
+        )
+        hovers[mes.mes] = "<br>".join([
+            f"<b>{_MESES_COMPLETOS[mes.mes - 1].upper()} {resultado.ano}</b>",
+            f"{referencia_meta}: {_moeda(mes.meta_acumulada)}",
+            f"Total já vendido acumulado: {_moeda(acumulado)}",
+            f"{detalhe} {_MESES_COMPLETOS[mes.mes - 1].lower()}",
+            _ESTADOS[mes.estado_mes],
+        ])
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=meses, y=[float(mes.meta_acumulada) for mes in resultado.meses],
+        name="Meta acumulada", mode="lines",
+        line=dict(color=COR_TEXTO_SECUNDARIO, dash="dashdot", width=1.8),
+        customdata=[hovers[mes] for mes in meses],
+        hovertemplate="%{customdata}<extra></extra>",
+        connectgaps=False,
+    ))
+    if fechados:
+        fig.add_trace(go.Scatter(
+            x=meses,
+            y=[
+                float(mes.realizado_acumulado) if mes.estado_mes == "encerrado" else None
+                for mes in resultado.meses
+            ],
+            name="Realizado acumulado · fechado", mode="lines+markers",
+            line=dict(color=COR_MARCA, dash="solid", width=3),
+            marker=dict(size=7, color=COR_MARCA, symbol="circle"),
+            customdata=[hovers[mes] for mes in meses],
+            hovertemplate="%{customdata}<extra></extra>",
+            connectgaps=False,
+        ))
+    if abertos:
+        origem = [fechados[-1]] if fechados else []
+        meses_carteira = [mes.mes for mes in origem] + [mes.mes for mes, _ in abertos]
+        valores_carteira = (
+            [fechados[-1].realizado_acumulado] if fechados else []
+        ) + [carteira_acumulada[mes.mes] for mes, _ in abertos]
+        fig.add_trace(go.Scatter(
+            x=meses_carteira, y=[float(valor) for valor in valores_carteira],
+            name="Já vendido acumulado", mode="lines+markers",
+            line=dict(color=COR_MARCA, dash="dash", width=3),
+            marker=dict(
+                size=([0] if fechados else []) + [8] * len(abertos),
+                color=COR_MARCA, symbol="circle-open",
+                line=dict(color=COR_MARCA, width=1.5),
+            ),
+            customdata=[hovers[mes] for mes in meses_carteira],
+            hovertemplate="%{customdata}<extra></extra>",
+            connectgaps=False,
+        ))
+
+    _aplicar_estilo_hero(fig, resultado.ano, None)
+    fig.update_layout(autosize=True, hovermode="closest")
+    for mes in resultado.meses:
+        if mes.estado_mes == "em_andamento":
+            fig.add_vrect(
+                x0=mes.mes - 0.45, x1=mes.mes + 0.45,
+                fillcolor=COR_MARCA_SUAVE, opacity=0.6,
+                line=dict(color=COR_NEUTRO, dash="dash", width=1), layer="below",
+            )
+            fig.add_annotation(
+                x=mes.mes, y=1, yref="paper", yshift=12,
+                text="Mês em andamento", showarrow=False,
+                font=dict(size=10, color=COR_NEUTRO),
+            )
+    return fig
