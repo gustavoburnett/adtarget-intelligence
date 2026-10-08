@@ -15,6 +15,7 @@ from tests.test_metas_app_routing import PAGINAS_PRINCIPAIS, _entrada
 
 
 LOGO = Path(__file__).resolve().parents[1] / "assets" / "AdTarget_Intelligence_logo.svg"
+LOGO_NEGATIVO = LOGO.with_name("AdTarget_Intelligence_logo_negative.svg")
 HASH_LOGO_OFICIAL = "7c5e3f4dcad089928ab97571f30737d4229e21231bc32279cca0f093325bec54"
 
 
@@ -47,22 +48,21 @@ def test_asset_preserva_svg_oficial_sem_redesenho_ou_dependencia_externa():
 
 
 @pytest.mark.parametrize("pagina", PAGINAS_PRINCIPAIS + ["🔧 Auditoria (dev)"])
-def test_marca_oficial_antecede_titulo_em_todas_as_paginas(monkeypatch, pagina):
+def test_marca_negativa_oficial_aparece_na_sidebar_em_todas_as_paginas(monkeypatch, pagina):
     app, _, _, _, _ = _entrada(monkeypatch, pagina, auditoria=True)
     assert not app.exception
     blocos = [elemento.value for elemento in app.markdown]
-    marca = next(indice for indice, html in enumerate(blocos) if 'class="atg-product-brand"' in html)
-    titulo = next(indice for indice, html in enumerate(blocos) if 'class="atg-h1"' in html)
-    assert marca < titulo
+    assert any('class="atg-h1"' in html for html in blocos)
+    assert not any('class="atg-product-brand"' in html for html in blocos)
+    sidebar = "\n".join(elemento.value for elemento in app.sidebar.markdown)
     parser = _Imagens()
-    parser.feed(blocos[marca])
+    parser.feed(sidebar)
     assert len(parser.imagens) == 1
     imagem = parser.imagens[0]
     assert imagem["alt"] == "AdTarget Intelligence"
     prefixo, conteudo = imagem["src"].split(",", 1)
     assert prefixo == "data:image/svg+xml;base64"
-    assert b64decode(conteudo, validate=True) == LOGO.read_bytes()
-    sidebar = "\n".join(elemento.value for elemento in app.sidebar.markdown)
+    assert b64decode(conteudo, validate=True) == LOGO_NEGATIVO.read_bytes()
     assert "atg-logo-word" not in sidebar
     assert "atg-logo-sub" not in sidebar
 

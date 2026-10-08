@@ -17,6 +17,7 @@ from pages_content import (
 )
 from src.data import cleaning, loader, metas as metas_engine, metas_loader
 from src.data.metas_schema import COLUNAS_METAS, ErroDeMetas
+from src.components import shell
 from tests.test_radar import recorde
 
 
@@ -101,7 +102,8 @@ def test_navegacao_tem_quarto_item_permanente_e_preserva_auditoria(monkeypatch, 
     )
     assert not app.exception
     esperado = PAGINAS_PRINCIPAIS + (["🔧 Auditoria (dev)"] if auditoria else [])
-    assert app.radio(key="nav_pagina").options == esperado
+    assert app.radio(key="nav_pagina").options == [shell.navigation_label(nome) for nome in esperado]
+    assert app.radio(key="nav_pagina").value == "Performance Comercial"
 
 
 @pytest.mark.parametrize("pagina", PAGINAS_EXISTENTES)

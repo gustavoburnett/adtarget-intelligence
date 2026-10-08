@@ -25,6 +25,7 @@ from typing import Optional
 
 import streamlit as st
 
+from src.components.kpi_icons import ICONES_KPI, TRIANGULOS_HERO
 from src.data.metrics import ROTULOS_CRITERIO_MES
 from src.data.radar import RadarState
 
@@ -151,21 +152,7 @@ div[data-testid="stPopoverBody"] .stCheckbox p{font-size:13px;}
 .atg-trend.alta{color:#1E9E52;}
 .atg-trend.queda{color:#DC4545;}
 .atg-trend.neutro{color:#8B93A1;font-weight:600;}
-/* ---- P7: sidebar ---- */
-section[data-testid="stSidebar"]{width:248px !important;}
-[data-testid="stSidebar"] div[role="radiogroup"]{gap:2px;}
-[data-testid="stSidebar"] div[role="radiogroup"] label>div:first-child{display:none;}
-[data-testid="stSidebar"] div[role="radiogroup"] label{
-  padding:8px 12px;border-radius:8px;width:100%;margin:0;cursor:pointer;}
-[data-testid="stSidebar"] div[role="radiogroup"] label p{
-  font-size:13px;font-weight:500;color:#5B6472;white-space:nowrap;
-  overflow:hidden;text-overflow:ellipsis;}
-[data-testid="stSidebar"] div[role="radiogroup"] label:hover{background:#FAFBFC;}
-[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked){
-  background:#E7F3F0;}
-[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) p{
-  color:#0B7A66;font-weight:600;}
-[data-testid="stSidebar"] hr{margin:16px 0;}
+/* Status legado; a apresentação da sidebar está em design_styles.py. */
 .atg-status-line{display:flex;align-items:center;gap:8px;font-size:11.5px;
   color:#5B6472;white-space:nowrap;}
 .atg-status-dot{width:6px;height:6px;border-radius:50%;background:#1E9E52;
@@ -382,15 +369,22 @@ def _celula_stat(
 ) -> str:
     if valor is None:
         exibido, completo = SEM_DADOS, ""
+        classe = f"{classe} atg-kpi-empty".strip()
     else:
         exibido = formatar_moeda_executiva(valor)
         completo = formatar_moeda(valor)
+    tipo = {
+        "Vendas": "vendas", "Em Aberto": "em-aberto", "Ticket Médio": "ticket",
+    }.get(rotulo, "neutro")
     return (
-        '<div class="atg-stat">'
+        f'<article class="atg-card atg-stat atg-kpi-card atg-kpi-{tipo}">'
+        '<div class="atg-kpi-heading">'
+        f'<span class="atg-kpi-icon">{ICONES_KPI.get(tipo, "")}</span>'
         f'<div class="atg-kpi-label">{rotulo}</div>'
+        '</div>'
         f'<div class="atg-kpi-value num {classe}" title="{completo}">{exibido}</div>'
         f'<div class="atg-kpi-caption">{caption}</div>'
-        "</div>"
+        "</article>"
     )
 
 
@@ -403,25 +397,28 @@ def linha_kpis(
     valor_ticket: Optional[float],
     qtd_campanhas: int,
 ) -> None:
-    """KPI band (Sprint 3B, P3): Card Hero YTD + stat strip em superfície
-    única com divisores hairline — mesmos dados, mesma ordem de sempre."""
+    """Hero e quatro cards individuais, com os mesmos dados, textos e ordem."""
     pecas = montar_ytd(ytd_resultado, ano, sem_dados)
+    estado_visual = {"▲": "alta", "▼": "queda"}.get(pecas["seta"], "neutro")
     seta = (
-        f'<span class="atg-hero-arrow" style="color:{pecas["cor"]}">'
-        f'{pecas["seta"]}</span>'
+        '<span class="atg-hero-arrow">'
+        '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" '
+        'aria-hidden="true" focusable="false">'
+        f'{TRIANGULOS_HERO[pecas["seta"]]}</svg>'
+        f'<span class="atg-sr-only">{pecas["seta"]}</span></span>'
     ) if pecas["seta"] else ""
     hero = (
-        '<div class="atg-card atg-kpi-hero">'
+        f'<article class="atg-card atg-kpi-hero atg-hero-{estado_visual}">'
         '<div class="atg-eyebrow">KPI Principal · YTD vs Ano Anterior</div>'
         f'<div class="atg-hero-value">{seta}'
-        f'<span class="atg-hero-number num" style="color:{pecas["cor"]}">'
+        '<span class="atg-hero-number num">'
         f'{pecas["percentual"]}</span></div>'
         f'<div class="atg-hero-caption num">{pecas["suporte"]}</div>'
-        "</div>"
+        "</article>"
     )
     faturado_fmt = formatar_moeda_executiva(vendas_detalhado["faturado"])
     strip = (
-        '<div class="atg-statstrip">'
+        '<div class="atg-statstrip atg-kpi-grid">'
         + _celula_stat(
             "Vendas", vendas_detalhado["total"],
             f"{faturado_fmt} já faturado", classe="positivo",
@@ -432,17 +429,21 @@ def linha_kpis(
         )
         + _celula_stat("Ticket Médio", valor_ticket, "Vendas ÷ PIs da base")
         + (
-            '<div class="atg-stat">'
+            '<article class="atg-card atg-stat atg-kpi-card atg-kpi-campanhas">'
+            '<div class="atg-kpi-heading">'
+            f'<span class="atg-kpi-icon">{ICONES_KPI["campanhas"]}</span>'
             '<div class="atg-kpi-label">Campanhas</div>'
+            '</div>'
             f'<div class="atg-kpi-value num">{formatar_inteiro(qtd_campanhas)}</div>'
             '<div class="atg-kpi-caption" title="Combinações distintas de '
             'Cliente + Campanha (base Vendas)">Cliente + Campanha</div>'
-            "</div>"
+            "</article>"
         )
         + "</div>"
     )
     st.markdown(
-        f'<div class="atg-kpi-row">{hero}{strip}</div>',
+        '<div class="atg-performance-indicators">'
+        f'<div class="atg-kpi-row">{hero}{strip}</div></div>',
         unsafe_allow_html=True,
     )
 

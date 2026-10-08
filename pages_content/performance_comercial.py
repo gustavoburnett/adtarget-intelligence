@@ -148,22 +148,23 @@ def render(
     st.html(_CONTROLES_META_CSS)
 
     # ---------------------------------------------------- barra de filtros
-    col_ano, col_grupo, col_limpar = st.columns(
-        [2.2, 2.2, 1], vertical_alignment="bottom"
-    )
-    with col_ano:
-        ano = filters.selecionar_ano(df, _CHAVE)
-    with col_grupo:
-        with st.container(key="performance_grupo_original", border=False, gap=None):
-            df_dim = filters.filtro_compacto(df, COL_GRUPO, "Grupo", _CHAVE, "grupos")
-        with st.container(key="performance_grupo_meta", border=False, gap=None):
-            with st.popover(
-                "Grupo · Consolidado AdTarget", width="stretch", disabled=True,
-                key="performance_meta_grupo",
-            ):
-                pass
-    with col_limpar:
-        filters.botao_limpar_filtros(_CHAVE)
+    with st.container(
+        key="design_performance_filters", horizontal=True,
+        vertical_alignment="center", gap="medium",
+    ):
+        with st.container(key="design_performance_year", width="content"):
+            ano = filters.selecionar_ano(df, _CHAVE)
+        with st.container(key="design_performance_group", width=260):
+            with st.container(key="performance_grupo_original", border=False, gap=None):
+                df_dim = filters.filtro_compacto(df, COL_GRUPO, "Grupo", _CHAVE, "grupos")
+            with st.container(key="performance_grupo_meta", border=False, gap=None):
+                with st.popover(
+                    "Grupo · Consolidado AdTarget", width="stretch", disabled=True,
+                    key="performance_meta_grupo",
+                ):
+                    pass
+        with st.container(key="design_performance_clear", width="content"):
+            filters.botao_limpar_filtros(_CHAVE)
 
     # Estado global dos toggles (widgets renderizados no Gráfico Hero)
     valor, criterio_mes = filters.toggles_do_estado(_CHAVE)
@@ -241,7 +242,8 @@ def render(
                 "tendencia": tend_veic.get(par),
             })
 
-    r1, r2, r3 = st.columns(3)
+    with st.container(key="design_performance_rankings", border=False, gap=None):
+        r1, r2, r3 = st.columns(3)
     with r1:
         cards.bloco_ranking("Top 5 Veículos", linhas_veic)
         st.button(
