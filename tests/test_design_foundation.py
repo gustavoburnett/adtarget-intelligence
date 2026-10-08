@@ -150,3 +150,22 @@ def test_estilo_nao_oculta_input_nativo_ou_controle_de_reabertura():
     assert all("display:none" not in regra.replace(" ", "") and
                "visibility:hidden" not in regra.replace(" ", "")
                for regra in regras_reabrir)
+
+
+def test_wrapper_da_tabela_nao_recorta_toolbar_nativa():
+    # Streamlit posiciona a toolbar acima do wrapper. AppTest não executa CSS;
+    # o download e a rolagem continuam exigindo a prova real no navegador.
+    from src.components import analitico_styles, veiculos_styles
+
+    css = re.sub(r'/\*.*?\*/', '', cards.CSS_GLOBAL + design_styles.CSS_SHELL
+                 + analitico_styles.CSS_ANALITICO_COMERCIAL
+                 + veiculos_styles.CSS_VEICULOS, flags=re.DOTALL)
+    regras = [declaracoes for seletor, declaracoes
+              in re.findall(r'([^{}]+)\{([^}]+)\}', css)
+              if '[data-testid="stDataFrame"]' in seletor]
+    assert regras
+    for declaracoes in regras:
+        for propriedade, valor in re.findall(r'([\w-]+)\s*:\s*([^;]+)', declaracoes):
+            if propriedade in {"overflow", "overflow-x", "overflow-y"}:
+                assert valor.strip() == "visible"
+    assert 'border:1px solid #F0F2F4;border-radius:12px;' in cards.CSS_GLOBAL

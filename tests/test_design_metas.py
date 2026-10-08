@@ -200,8 +200,26 @@ def test_reconciliacao_parceiros_preserva_ordem_atividade_numeros_e_detalhes(est
 def test_graficos_mensal_e_acumulado_preservam_todas_as_series_do_design_1e(estado):
     _, _, fechado, pulso, _, _ = _avaliar(estado)
     congelados = _checkpoint("src/components/metas_charts.py")
-    assert metas_charts.evolucao_mensal(fechado, pulso).to_json() == congelados.evolucao_mensal(fechado, pulso).to_json()
-    assert metas_charts.evolucao_acumulada(fechado).to_json() == congelados.evolucao_acumulada(fechado).to_json()
+
+    def contraste_aprovado(figura, *, mensal=False):
+        # Design 1I: três cores de texto e o deslocamento da nota mensal.
+        # A comparação integral continua protegendo séries, hovers e layout.
+        figura.layout.yaxis.tickfont.color = metas_charts.COLOR["text-muted"]
+        for anotacao in figura.layout.annotations:
+            nota_estados = anotacao.yref == "paper" and anotacao.y == -0.20
+            rotulo_anterior = anotacao.text.startswith(f"<b>{fechado.ano - 1} · ")
+            if nota_estados or rotulo_anterior:
+                anotacao.font.color = metas_charts.COLOR["text-muted"]
+            if mensal and nota_estados:
+                anotacao.yshift = -12
+        return figura.to_json()
+
+    assert metas_charts.evolucao_mensal(fechado, pulso).to_json() == contraste_aprovado(
+        congelados.evolucao_mensal(fechado, pulso), mensal=True,
+    )
+    assert metas_charts.evolucao_acumulada(fechado).to_json() == contraste_aprovado(
+        congelados.evolucao_acumulada(fechado)
+    )
 
 
 @pytest.mark.parametrize("valor", [-25, 0, 74, 95, 100, 122.3, 125, 400])
@@ -442,7 +460,27 @@ def test_design_1f_preserva_fontes_protegidas_do_design_1e(caminho):
         # strings pelo adaptador nativo numérico; não libera regras comerciais.
         "pages_content/analitico_veiculos.py": {"render", "_tabela_formatada"},
     }
-    if caminho not in autorizadas:
+    if caminho == "src/components/metas_charts.py":
+        # Exceção estrita do Design 1I: nenhuma outra linha está liberada.
+        substituicoes = (
+            ('tickfont=dict(size=11, color=COR_NEUTRO)',
+             'tickfont=dict(size=11, color=COLOR["text-muted"])'),
+            ('text=" · ".join(legenda_estados), showarrow=False,\n'
+             '            font=dict(size=10, color=COR_NEUTRO)',
+             'text=" · ".join(legenda_estados), showarrow=False,\n'
+             '            font=dict(size=10, color=COLOR["text-muted"])'),
+            ('_rotulo_final(fig, meses, anteriores, str(resultado.ano - 1), COR_NEUTRO, -16)',
+             '_rotulo_final(fig, meses, anteriores, str(resultado.ano - 1), COLOR["text-muted"], -16)'),
+            ('    _estilo(fig, resultado, altura=330)\n',
+             '    _estilo(fig, resultado, altura=330)\n'
+             '    # Respiro fixo para a nota, inclusive quando os meses giram no mobile.\n'
+             '    fig.update_annotations(yshift=-12, selector=dict(yref="paper", y=-0.20))\n'),
+        )
+        for original, aprovado in substituicoes:
+            assert anterior.count(original) == 1
+            anterior = anterior.replace(original, aprovado, 1)
+        assert atual == anterior
+    elif caminho not in autorizadas:
         assert atual == anterior
     else:
         # As funções corrigidas têm testes de comportamento no hardening;

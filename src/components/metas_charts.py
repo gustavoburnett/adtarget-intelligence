@@ -162,7 +162,7 @@ def _estilo(fig: go.Figure, resultado: ResultadoMetas, *, altura: int) -> None:
         yaxis=dict(
             gridcolor=COR_BORDA_SUAVE, zeroline=False, nticks=4,
             rangemode="tozero", tickformat="~s",
-            tickfont=dict(size=11, color=COR_NEUTRO),
+            tickfont=dict(size=11, color=COLOR["text-muted"]),
             fixedrange=True,
         ),
     )
@@ -176,7 +176,7 @@ def _estilo(fig: go.Figure, resultado: ResultadoMetas, *, altura: int) -> None:
         fig.add_annotation(
             x=0, y=-0.20, xref="paper", yref="paper", xanchor="left",
             text=" · ".join(legenda_estados), showarrow=False,
-            font=dict(size=10, color=COR_NEUTRO),
+            font=dict(size=10, color=COLOR["text-muted"]),
         )
 
 
@@ -216,7 +216,7 @@ def evolucao_acumulada(resultado: ResultadoMetas) -> go.Figure:
         ))
     _estilo(fig, resultado, altura=430)
     _rotulo_final(fig, meses, metas, "Meta", COR_TEXTO_SECUNDARIO, 14)
-    _rotulo_final(fig, meses, anteriores, str(resultado.ano - 1), COR_NEUTRO, -16)
+    _rotulo_final(fig, meses, anteriores, str(resultado.ano - 1), COLOR["text-muted"], -16)
     _rotulo_final(fig, meses, realizados, "Realizado", COR_MARCA, 15)
     for mes in resultado.meses:
         if mes.estado_mes == "em_andamento":
@@ -316,6 +316,8 @@ def evolucao_mensal(resultado: ResultadoMetas, pulso: ResultadoPulso) -> go.Figu
         if estado != "encerrado":
             vendido_em_aberto = True
     _estilo(fig, resultado, altura=330)
+    # Respiro fixo para a nota, inclusive quando os meses giram no mobile.
+    fig.update_annotations(yshift=-12, selector=dict(yref="paper", y=-0.20))
     fig.update_layout(barmode="overlay", bargap=0.36)
     fig.update_xaxes(ticklabeloverflow="allow")
     for mes in resultado.meses:

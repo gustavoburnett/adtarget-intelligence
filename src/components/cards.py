@@ -160,8 +160,8 @@ div[data-testid="stPopoverBody"] .stCheckbox p{font-size:13px;}
   box-shadow:0 0 0 3px #E9F8EE;display:inline-block;flex-shrink:0;}
 /* ---- P6a/abas/tabelas ---- */
 [data-testid="stTabs"] button p{font-size:13px;font-weight:600;}
-[data-testid="stDataFrame"]{border:1px solid #F0F2F4;border-radius:12px;
-  overflow:hidden;}
+/* A toolbar nativa fica acima da tabela e não pode ser recortada pelo wrapper. */
+[data-testid="stDataFrame"]{border:1px solid #F0F2F4;border-radius:12px;}
 </style>
 """
 

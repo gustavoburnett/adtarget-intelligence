@@ -192,8 +192,26 @@ def test_meta_preserva_exatamente_valores_hovers_e_distincao_temporal_do_checkpo
 def test_graficos_de_metas_resultados_fora_do_escopo_permanecem_integrais(estado):
     resultado, pulso = _resultados(**ESTADOS_META[estado])
     baseline = _checkpoint("src/components/metas_charts.py")
-    assert _json(metas_charts.evolucao_acumulada(resultado)) == _json(baseline.evolucao_acumulada(resultado))
-    assert _json(metas_charts.evolucao_mensal(resultado, pulso)) == _json(baseline.evolucao_mensal(resultado, pulso))
+
+    def contraste_aprovado(figura, *, mensal=False):
+        # Design 1I autoriza três cores e o deslocamento da nota mensal. A igualdade
+        # integral continua verificando todo o restante das figuras.
+        figura.layout.yaxis.tickfont.color = metas_charts.COLOR["text-muted"]
+        for anotacao in figura.layout.annotations:
+            nota_estados = anotacao.yref == "paper" and anotacao.y == -0.20
+            rotulo_anterior = anotacao.text.startswith(f"<b>{resultado.ano - 1} · ")
+            if nota_estados or rotulo_anterior:
+                anotacao.font.color = metas_charts.COLOR["text-muted"]
+            if mensal and nota_estados:
+                anotacao.yshift = -12
+        return _json(figura)
+
+    assert _json(metas_charts.evolucao_acumulada(resultado)) == contraste_aprovado(
+        baseline.evolucao_acumulada(resultado)
+    )
+    assert _json(metas_charts.evolucao_mensal(resultado, pulso)) == contraste_aprovado(
+        baseline.evolucao_mensal(resultado, pulso), mensal=True,
+    )
 
 
 def test_barra_horizontal_fora_do_escopo_permanece_integral(monkeypatch):
