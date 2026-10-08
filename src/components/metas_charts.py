@@ -21,6 +21,7 @@ from src.components.cards import (
     formatar_moeda,
     formatar_moeda_executiva,
 )
+from src.components.design_tokens import COLOR
 from src.data.metas import (
     MesMetas,
     MesPulso,
@@ -161,7 +162,7 @@ def _estilo(fig: go.Figure, resultado: ResultadoMetas, *, altura: int) -> None:
         yaxis=dict(
             gridcolor=COR_BORDA_SUAVE, zeroline=False, nticks=4,
             rangemode="tozero", tickformat="~s",
-            tickfont=dict(size=11, color=COR_NEUTRO),
+            tickfont=dict(size=11, color=COLOR["text-muted"]),
             fixedrange=True,
         ),
     )
@@ -175,7 +176,7 @@ def _estilo(fig: go.Figure, resultado: ResultadoMetas, *, altura: int) -> None:
         fig.add_annotation(
             x=0, y=-0.20, xref="paper", yref="paper", xanchor="left",
             text=" · ".join(legenda_estados), showarrow=False,
-            font=dict(size=10, color=COR_NEUTRO),
+            font=dict(size=10, color=COLOR["text-muted"]),
         )
 
 
@@ -215,7 +216,7 @@ def evolucao_acumulada(resultado: ResultadoMetas) -> go.Figure:
         ))
     _estilo(fig, resultado, altura=430)
     _rotulo_final(fig, meses, metas, "Meta", COR_TEXTO_SECUNDARIO, 14)
-    _rotulo_final(fig, meses, anteriores, str(resultado.ano - 1), COR_NEUTRO, -16)
+    _rotulo_final(fig, meses, anteriores, str(resultado.ano - 1), COLOR["text-muted"], -16)
     _rotulo_final(fig, meses, realizados, "Realizado", COR_MARCA, 15)
     for mes in resultado.meses:
         if mes.estado_mes == "em_andamento":
@@ -315,6 +316,8 @@ def evolucao_mensal(resultado: ResultadoMetas, pulso: ResultadoPulso) -> go.Figu
         if estado != "encerrado":
             vendido_em_aberto = True
     _estilo(fig, resultado, altura=330)
+    # Respiro fixo para a nota, inclusive quando os meses giram no mobile.
+    fig.update_annotations(yshift=-12, selector=dict(yref="paper", y=-0.20))
     fig.update_layout(barmode="overlay", bargap=0.36)
     fig.update_xaxes(ticklabeloverflow="allow")
     for mes in resultado.meses:
@@ -332,7 +335,8 @@ def evolucao_mensal(resultado: ResultadoMetas, pulso: ResultadoPulso) -> go.Figu
 
 
 def evolucao_performance_meta(
-    resultado: ResultadoMetas, pulso: ResultadoPulso
+    resultado: ResultadoMetas, pulso: ResultadoPulso, *,
+    design_performance: bool = False,
 ) -> go.Figure:
     """Resumo acumulado: realizado fechado e continuação da carteira já vendida.
 
@@ -428,7 +432,7 @@ def evolucao_performance_meta(
             connectgaps=False,
         ))
 
-    _aplicar_estilo_hero(fig, resultado.ano, None)
+    _aplicar_estilo_hero(fig, resultado.ano, None, design_performance=design_performance)
     fig.update_layout(autosize=True, hovermode="closest")
     for mes in resultado.meses:
         if mes.estado_mes == "em_andamento":
@@ -442,4 +446,22 @@ def evolucao_performance_meta(
                 text="Mês em andamento", showarrow=False,
                 font=dict(size=10, color=COR_NEUTRO),
             )
+    if design_performance:
+        # A paleta aprovada é opt-in na página; o contrato legado da figura
+        # continua disponível sem modificar constantes de cards compartilhados.
+        fig.update_traces(
+            line_color=COLOR["text-secondary"], selector=dict(name="Meta acumulada"),
+        )
+        fig.update_traces(
+            line_color=COLOR["brand"], marker_color=COLOR["surface-card"],
+            marker_line=dict(color=COLOR["brand"], width=2),
+            selector=dict(name="Realizado acumulado · fechado"),
+        )
+        fig.update_traces(
+            line_color=COLOR["brand"], marker_color=COLOR["brand"],
+            marker_line=dict(color=COLOR["brand"], width=2),
+            selector=dict(name="Já vendido acumulado"),
+        )
+        fig.update_shapes(fillcolor=COLOR["brand-tint"], line_color=COLOR["chart-previous"])
+        fig.update_annotations(font_size=11, font_color=COLOR["text-muted"])
     return fig

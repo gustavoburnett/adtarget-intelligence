@@ -209,6 +209,20 @@ def load_all_sheets(
     normalização é feita na sequência por cleaning.limpar_dataframe.
     """
     cliente = criar_cliente(credenciais)
+    # As dependências continuam carregadas somente ao acessar a fonte.
+    # Captura apenas falhas esperadas de comunicação/API, não erros de código.
+    from google.auth.exceptions import RefreshError, TransportError
+    from gspread.exceptions import APIError
+    from requests.exceptions import (
+        ChunkedEncodingError, ConnectionError as ErroDeConexaoHTTP,
+        ContentDecodingError, JSONDecodeError, Timeout,
+    )
+
+    erros_de_fonte = (
+        APIError, ErroDeConexaoHTTP, Timeout, ChunkedEncodingError,
+        ContentDecodingError, JSONDecodeError, TransportError, RefreshError,
+        ConnectionError, TimeoutError,
+    )
     try:
         planilha = cliente.open_by_key(spreadsheet_id)
     except Exception as exc:
@@ -217,7 +231,13 @@ def load_all_sheets(
             "no secrets.toml e se a Service Account tem permissão de Leitor."
         ) from exc
 
-    abas = descobrir_abas_de_ano(planilha)
+    try:
+        abas = descobrir_abas_de_ano(planilha)
+    except erros_de_fonte:
+        raise ErroDeCarga(
+            "Não foi possível consultar as abas da planilha de vendas. "
+            "Tente atualizar novamente."
+        ) from None
     if not abas:
         raise ErroDeCarga(
             "Nenhuma aba de ano (nome com 4 dígitos) encontrada na planilha."
@@ -225,7 +245,13 @@ def load_all_sheets(
 
     quadros = []
     for aba in abas:
-        df = _aba_para_dataframe(aba)
+        try:
+            df = _aba_para_dataframe(aba)
+        except erros_de_fonte:
+            raise ErroDeCarga(
+                "Não foi possível ler os dados da planilha de vendas. "
+                "Tente atualizar novamente."
+            ) from None
         if df.empty:
             continue
         df[COL_ANO_ABA] = int(aba.title)

@@ -189,10 +189,10 @@ def test_ranking_dinamico_separa_inativo_preserva_historia_e_inclui_hypr():
         _venda(grupo="TEADS", valor=123), _venda(grupo="HYPR", valor=95),
         _venda(mes=3, grupo="BRASIL 247", valor=10),
     ))
-    assert "Parceiros ativos" in html and "Fora da operação" in html
+    assert "Parceiros ativos" in html and "Parceiros fora da operação" in html
     assert html.index('aria-label="TEADS"') < html.index('aria-label="HYPR"')
     assert html.index('aria-label="HYPR"') < html.index('aria-label="FORBES"')
-    assert html.index("Fora da operação") < html.index('aria-label="BRASIL 247"')
+    assert html.index("Parceiros fora da operação") < html.index('aria-label="BRASIL 247"')
     inativo = _artigo(html, "BRASIL 247")
     assert "Operação encerrada em Mar/2026" in inativo
     assert "Compromisso anual e saldo" in inativo
@@ -248,7 +248,7 @@ def test_escala_comum_preserva_percentual_real_e_referencia_100():
     }
     assert larguras == {"TEADS": Decimal("97.84"), "DISNEY": Decimal("59.20")}
     assert larguras["TEADS"] > 80 > larguras["DISNEY"]
-    assert re.search(r'\.atg-metas-progress-reference\{[^}]*left:80%', pagina._CSS)
+    assert re.search(r'\.atg-metas-progress-reference\s*\{[^}]*left:80%', pagina._CSS)
 
 
 def test_percentual_extremo_so_limita_geometria_nao_dado_nem_rotulo():
@@ -308,5 +308,5 @@ def test_apenas_inativos_continuam_acessiveis_sem_inventar_ranking_acionavel():
     )
     assert "0 parceiros ativos" in html
     assert "Sem parceiros com meta ativa no período" in html
-    assert "Fora da operação" in html
+    assert "Parceiros fora da operação" in html
     assert 'title="R$ 20,00"' in _artigo(html, "G")

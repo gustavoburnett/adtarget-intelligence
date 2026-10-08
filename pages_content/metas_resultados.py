@@ -13,7 +13,8 @@ from html import escape
 import pandas as pd
 import streamlit as st
 
-from src.components import cards, filters, metas_charts
+from src.components import cards, filters, metas_charts, metas_styles
+from src.components.partner_logos import CSS_PARTNER_LOGOS, partner_logo
 from src.data.metas import (
     ParceiroMetas, ResultadoMetas, ResultadoPulso,
     avaliar_metas, avaliar_parceiros, avaliar_pulso, vigencia,
@@ -32,86 +33,8 @@ _SEM_META = "Sem meta lançada para o período"
 _AGUARDANDO = "Aguardando o primeiro mês encerrado"
 _SEM_BASE = "Sem base de comparação"
 
-# Reutiliza as superfícies e cores da Release 1.0; nenhum seletor global novo.
-_CSS = f"""
-<style>
-.atg-metas{{color:{cards.COR_TEXTO};margin:8px 0 24px;}}
-.atg-metas-hero{{padding:24px;margin-bottom:16px;}}
-.atg-metas-hero-grid{{display:grid;grid-template-columns:minmax(220px,.8fr) minmax(0,1.8fr);gap:24px;align-items:center;}}
-.atg-metas-label{{font-size:11px;font-weight:600;color:{cards.COR_NEUTRO};letter-spacing:.04em;line-height:1.5;}}
-.atg-metas-eyebrow{{color:{cards.COR_MARCA};font-weight:700;letter-spacing:.08em;}}
-.atg-metas-number{{font-size:38px;font-weight:700;letter-spacing:-.02em;line-height:1.15;margin-top:8px;}}
-.atg-metas-context{{font-size:12px;color:{cards.COR_TEXTO_SECUNDARIO};line-height:1.5;margin-top:8px;}}
-.atg-metas-support{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 24px;}}
-.atg-metas-support-value{{font-size:20px;font-weight:600;line-height:1.3;margin-top:4px;}}
-.atg-metas-annual{{padding:20px 24px;margin-bottom:24px;}}
-.atg-metas-annual-grid{{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:32px;align-items:center;}}
-.atg-metas-annual-sold{{font-size:22px;font-weight:600;line-height:1.3;}}
-.atg-metas-annual-pct{{display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:12px;color:{cards.COR_TEXTO_SECUNDARIO};margin-top:14px;}}
-.atg-metas-annual-pct strong{{font-size:16px;color:{cards.COR_TEXTO};}}
-.atg-metas-annual-progress{{height:6px;border-radius:3px;background:{cards.COR_BORDA_SUAVE};margin:6px 0 12px;overflow:hidden;}}
-.atg-metas-annual-fill{{height:100%;background:{cards.COR_MARCA};}}
-.atg-metas-annual-gap{{font-size:28px;font-weight:700;line-height:1.3;}}
-.atg-metas-annual-gap-copy{{font-size:16px;font-weight:500;margin-top:4px;}}
-.atg-metas-projection{{container-type:inline-size;}}
-.atg-metas-band{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:20px 0;margin-bottom:16px;}}
-.atg-metas-band-cell{{padding:0 24px;min-width:0;}}
-.atg-metas-band-cell+.atg-metas-band-cell{{border-left:1px solid {cards.COR_BORDA_SUAVE};}}
-.atg-metas-partners{{padding:4px 24px;}}
-.atg-metas-partner{{padding:12px 0;border-bottom:1px solid {cards.COR_BORDA_SUAVE};}}
-.atg-metas-partner:last-child{{border-bottom:0;}}
-.atg-metas-partner-head{{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start;}}
-.atg-metas-partner-heading{{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center;}}
-.atg-metas-partner-name{{font-size:14px;font-weight:700;}}
-.atg-metas-partner-pct{{font-size:18px;font-weight:700;line-height:1.2;}}
-.atg-metas-partner-status{{font-size:11px;}}
-.atg-metas-partner-comparison{{font-size:12px;color:{cards.COR_TEXTO_SECUNDARIO};line-height:1.5;margin-top:4px;}}
-.atg-metas-progress{{position:relative;height:4px;background:{cards.COR_BORDA_SUAVE};border-radius:3px;margin-top:8px;}}
-.atg-metas-progress-fill{{height:100%;background:{cards.COR_MARCA};}}
-.atg-metas-progress-reference{{position:absolute;left:80%;width:1px;height:10px;top:-3px;background:{cards.COR_TEXTO_SECUNDARIO};}}
-.atg-metas-scale{{position:relative;height:16px;font-size:10px;color:{cards.COR_NEUTRO};margin-top:12px;}}
-.atg-metas-scale span{{position:absolute;left:80%;transform:translateX(-50%);white-space:nowrap;}}
-.atg-metas h3.atg-metas-partner-group{{font-size:12px;font-weight:600;margin:16px 0 8px;padding:0;}}
-.atg-metas-partner-inactive .atg-metas-progress-fill{{background:{cards.COR_NEUTRO};}}
-.atg-metas-partner-inactive .atg-metas-partner-status{{color:{cards.COR_TEXTO_SECUNDARIO};}}
-.atg-metas-partner details{{margin-top:6px;font-size:11px;color:{cards.COR_TEXTO_SECUNDARIO};}}
-.atg-metas-partner summary{{cursor:pointer;width:fit-content;padding:0;}}
-.atg-metas-partner summary:focus-visible{{outline:2px solid {cards.COR_MARCA};outline-offset:3px;}}
-.atg-metas-partner-details{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 20px;padding:14px 0 4px;}}
-.atg-metas-detail-value{{font-size:14px;font-weight:600;color:{cards.COR_TEXTO};margin-top:4px;}}
-.atg-metas-value{{font-size:24px;font-weight:600;letter-spacing:-.01em;line-height:1.35;margin-top:8px;}}
-.atg-metas-state{{font-size:16px;font-weight:600;line-height:1.4;}}
-.atg-metas-positive{{color:{cards.COR_POSITIVO};}}
-.atg-metas-negative{{color:{cards.COR_NEGATIVO};}}
-.atg-metas-neutral{{color:{cards.COR_TEXTO};}}
-.atg-metas h2.atg-metas-title{{font-size:14px;font-weight:700;margin:0 0 12px;padding:0;}}
-.atg-metas-insight{{font-size:12px;color:{cards.COR_TEXTO_SECUNDARIO};line-height:1.5;margin:0 0 24px;padding:0 4px;}}
-.atg-metas-empty{{padding:24px;margin:8px 0 24px;}}
-.atg-metas-footer{{font-size:11px;color:{cards.COR_NEUTRO};line-height:1.6;margin-top:24px;}}
-.atg-metas [title]{{font-variant-numeric:tabular-nums;}}
-.atg-metas,.atg-metas *{{box-sizing:border-box;overflow-wrap:anywhere;}}
-@media(max-width:900px){{
-  .atg-metas-hero-grid{{grid-template-columns:1fr;gap:20px;}}
-  .atg-metas-annual-grid{{grid-template-columns:1fr;gap:20px;}}
-}}
-@container(max-width:650px){{
-  .atg-metas-band{{grid-template-columns:1fr;}}
-  .atg-metas-band{{padding:0 24px;}}
-  .atg-metas-band-cell{{padding:18px 0;}}
-  .atg-metas-band-cell+.atg-metas-band-cell{{border-left:0;border-top:1px solid {cards.COR_BORDA_SUAVE};}}
-}}
-@media(max-width:600px){{
-  .atg-metas-support,.atg-metas-band{{grid-template-columns:1fr;}}
-  .atg-metas-hero,.atg-metas-annual,.atg-metas-empty{{padding:20px;}}
-  .atg-metas-band{{padding:0 20px;}}
-  .atg-metas-band-cell{{padding:18px 0;}}
-  .atg-metas-band-cell+.atg-metas-band-cell{{border-left:0;border-top:1px solid {cards.COR_BORDA_SUAVE};}}
-  .atg-metas-partners{{padding:0 20px;}}
-  .atg-metas-partner-details{{grid-template-columns:repeat(2,minmax(0,1fr));}}
-  .atg-metas-number{{font-size:34px;}}
-}}
-</style>
-"""
+# Estilos desta página, com tokens compartilhados e logos locais.
+_CSS = metas_styles.CSS_METAS.replace("</style>", CSS_PARTNER_LOGOS + "</style>")
 
 
 def _pct(valor: Decimal, *, sinal: bool = False) -> str:
@@ -313,7 +236,7 @@ def _mostrar_graficos(resultado: ResultadoMetas, pulso: ResultadoPulso) -> None:
          "Como o gap se acumulou · Realizado e ano anterior no perímetro de metas.",
          metas_charts.evolucao_acumulada(resultado), "metas_acumulada"),
     ):
-        with st.container(border=True):
+        with st.container(border=True, key=f"design_metas_chart_{chave}"):
             st.markdown(
                 '<div class="atg-metas" style="margin:0">'
                 f'<h2 class="atg-metas-title">{titulo}</h2>'
@@ -411,7 +334,7 @@ def _parceiros(
             for titulo, valor in detalhes
         )
         comparacao = (
-            f'{_moeda(parceiro.realizado_ytd)} / {_moeda(parceiro.meta_ytd)} YTD'
+            f'<strong>{_moeda(parceiro.realizado_ytd)}</strong> / {_moeda(parceiro.meta_ytd)} YTD'
             if pulso.meses_encerrados else _AGUARDANDO
         )
         complemento = (
@@ -419,17 +342,29 @@ def _parceiros(
             ' · Realizado zero no período' if ativo and pulso.meses_encerrados and parceiro.realizado_ytd == 0 else ""
         )
         classe_operacao = "" if ativo else " atg-metas-partner-inactive"
+        # Somente a apresentação da régua: os valores da engine permanecem intactos.
+        excedente = min(escala, max(Decimal(100), pct or Decimal(0))) - Decimal(100)
+        largura_excedente = format(excedente / escala * 100, '.2f')
+        trecho_excedente = (
+            f'<div class="atg-metas-progress-over" style="width:{largura_excedente}%"></div>'
+            if excedente > 0 else ""
+        )
+        limite_visual = (
+            '<div class="atg-metas-progress-overflow">Acima da escala de 125%</div>'
+            if pct is not None and pct > escala else ""
+        )
         return (
             f'<article class="atg-metas-partner{classe_operacao}" aria-label="{escape(parceiro.grupo, quote=True)}" '
             f'data-pct-ytd="{pct if pct is not None else ""}" data-scale-max="125">'
             '<div class="atg-metas-partner-head"><div class="atg-metas-partner-heading">'
-            f'<div class="atg-metas-partner-name">{escape(parceiro.grupo)}</div>'
-            f'<div class="atg-metas-partner-status atg-metas-{classe}">{rotulo}</div></div>'
-            f'<div class="atg-metas-partner-pct">{percentual}</div></div>'
+            f'<div class="atg-metas-partner-logo">{partner_logo(parceiro.grupo)}</div>'
+            f'<div class="atg-metas-partner-pct">{percentual}</div>'
+            f'<div class="atg-metas-partner-status atg-metas-{classe}">{rotulo}</div></div></div>'
             f'<div class="atg-metas-partner-comparison">{comparacao}{complemento}</div>'
+            '<div class="atg-metas-progress-block">'
             f'<div class="atg-metas-progress" aria-hidden="true"><div class="atg-metas-progress-fill" style="width:{largura}%"></div>'
-            '<span class="atg-metas-progress-reference"></span></div>'
-            '<details><summary>Compromisso anual e saldo</summary>'
+            f'{trecho_excedente}<span class="atg-metas-progress-reference"></span></div>{limite_visual}</div>'
+            '<details class="atg-metas-partner-detail-shell"><summary>Compromisso anual e saldo</summary>'
             f'<div class="atg-metas-partner-details">{detalhes_html}</div></details></article>'
         )
     resumo = [f'{len(ativos)} parceiros ativos']
@@ -450,13 +385,13 @@ def _parceiros(
     )
     if inativos:
         grupos += (
-            '<h3 class="atg-metas-partner-group">Fora da operação</h3>'
+            '<h3 class="atg-metas-partner-group">Parceiros fora da operação</h3>'
             '<div class="atg-card atg-metas-partners">'
             '<div class="atg-metas-scale"><span>100% da meta YTD</span></div>'
             + ''.join(linha(parceiro) for parceiro in inativos) + '</div>'
         )
     return (
-        '<section class="atg-metas" aria-label="Metas por parceiro">'
+        '<section class="atg-metas atg-metas-partner-section" aria-label="Metas por parceiro">'
         '<h2 class="atg-metas-title">Metas por parceiro</h2>'
         f'<div class="atg-metas-context">{" · ".join(resumo)}</div>'
         f'<div class="atg-metas-context">{_periodo(pulso.meses_encerrados, pulso.ano)} · Realizado no perímetro de metas.</div>'
@@ -495,12 +430,24 @@ def render(
 ) -> None:
     """Renderiza apenas esta visão; falhas de METAS não encerram a aplicação."""
     data_referencia = data_local(data_referencia)
-    st.markdown(_CSS, unsafe_allow_html=True)
+    st.html(_CSS)
+    with st.container(key="design_metas_content"):
+        _render_conteudo(df, metas_df, erro_metas, data_referencia)
+
+
+def _render_conteudo(
+    df: pd.DataFrame,
+    metas_df: pd.DataFrame | None,
+    erro_metas: ErroDeMetas | None,
+    data_referencia: dt.date,
+) -> None:
+    """Container visual isolado; mesmos controles e chamadas da engine."""
     if df.empty:
         st.info("Sem dados de vendas disponíveis para selecionar um ano.")
         return
-    with st.columns([1, 3])[0]:
-        ano = filters.selecionar_ano(df, "metas")
+    with st.container(key="design_metas_filters", horizontal=True):
+        with st.container(key="design_metas_year", width="content"):
+            ano = filters.selecionar_ano(df, "metas")
     if erro_metas is not None or metas_df is None:
         _mostrar_erro(erro_metas)
         _rodape()

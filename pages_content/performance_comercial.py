@@ -19,9 +19,9 @@ from typing import Callable
 import pandas as pd
 import streamlit as st
 
-from src.components import cards, charts, filters, metas_charts
+from src.components import cards, charts, filters, metas_charts, ranking_data
 from src.data import metas, metrics, radar
-from src.data.cleaning import COL_AGENCIA, COL_CLIENTE, COL_GRUPO, COL_VEICULO
+from src.data.cleaning import COL_AGENCIA, COL_CLIENTE, COL_GRUPO
 from src.data.metas_schema import ErroDeMetas
 
 _CHAVE = "perf"
@@ -63,12 +63,12 @@ def _linhas_ranking_dimensao(
     agg = metrics.agregado_por_dimensao(df_ano, coluna, valor)
     if agg.empty:
         return []
-    total = float(agg["valor"].sum()) or 1.0
+    total = float(agg["valor"].sum())
     return [
         {
             "nome": linha[coluna],
             "valor": float(linha["valor"]),
-            "pct": float(linha["valor"]) / total * 100.0,
+            "pct": float(linha["valor"]) / total * 100.0 if total > 0 else None,
             "tendencia": tendencias.get(linha[coluna]),
         }
         for _, linha in agg.head(5).iterrows()
@@ -101,7 +101,9 @@ def _render_meta(
                 st.info(f"Não há metas cadastradas para {ano}.")
             else:
                 st.plotly_chart(
-                    metas_charts.evolucao_performance_meta(resultado, pulso),
+                    metas_charts.evolucao_performance_meta(
+                        resultado, pulso, design_performance=True,
+                    ),
                     width="stretch", key="perf_meta",
                     config={"displayModeBar": False, "responsive": True},
                 )
@@ -148,22 +150,23 @@ def render(
     st.html(_CONTROLES_META_CSS)
 
     # ---------------------------------------------------- barra de filtros
-    col_ano, col_grupo, col_limpar = st.columns(
-        [2.2, 2.2, 1], vertical_alignment="bottom"
-    )
-    with col_ano:
-        ano = filters.selecionar_ano(df, _CHAVE)
-    with col_grupo:
-        with st.container(key="performance_grupo_original", border=False, gap=None):
-            df_dim = filters.filtro_compacto(df, COL_GRUPO, "Grupo", _CHAVE, "grupos")
-        with st.container(key="performance_grupo_meta", border=False, gap=None):
-            with st.popover(
-                "Grupo · Consolidado AdTarget", width="stretch", disabled=True,
-                key="performance_meta_grupo",
-            ):
-                pass
-    with col_limpar:
-        filters.botao_limpar_filtros(_CHAVE)
+    with st.container(
+        key="design_performance_filters", horizontal=True,
+        vertical_alignment="center", gap="medium",
+    ):
+        with st.container(key="design_performance_year", width="content"):
+            ano = filters.selecionar_ano(df, _CHAVE)
+        with st.container(key="design_performance_group", width=260):
+            with st.container(key="performance_grupo_original", border=False, gap=None):
+                df_dim = filters.filtro_compacto(df, COL_GRUPO, "Grupo", _CHAVE, "grupos")
+            with st.container(key="performance_grupo_meta", border=False, gap=None):
+                with st.popover(
+                    "Grupo · Consolidado AdTarget", width="stretch", disabled=True,
+                    key="performance_meta_grupo",
+                ):
+                    pass
+        with st.container(key="design_performance_clear", width="content"):
+            filters.botao_limpar_filtros(_CHAVE)
 
     # Estado global dos toggles (widgets renderizados no Gráfico Hero)
     valor, criterio_mes = filters.toggles_do_estado(_CHAVE)
@@ -183,17 +186,23 @@ def render(
     # --------------------------------------------------- Radar Executivo
     cards.render_radar(
         radar.avaliar_radar(
-            df_dim, ano, agora=agora, valor=valor, criterio_mes=criterio_mes,
+            radar.recorte_por_grupos(df, df_dim[COL_GRUPO].unique()),
+            ano, agora=agora, valor=valor, criterio_mes=criterio_mes,
             sincronizado_em=sincronizado_em,
         )
     )
 
     # ----------------------------------------------- Gráfico Hero (2B.7)
-    with st.container(border=True):
-        col_titulo, col_toggles = st.columns([1.2, 2], vertical_alignment="center")
+    with st.container(key="design_performance_evolution", border=False, gap=None):
+        with st.container(
+            key="design_performance_evolution_header", horizontal=True,
+            vertical_alignment="center", gap="medium",
+        ):
+            col_titulo = st.container(key="design_performance_evolution_title", width="stretch")
+            col_toggles = st.container(key="design_performance_evolution_controls", width=800)
         with col_titulo:
             st.markdown(
-                '<div class="atg-rank-title" style="margin:0">Evolução</div>',
+                '<div class="atg-evolution-title">Evolução</div>',
                 unsafe_allow_html=True,
             )
         with col_toggles:
@@ -218,8 +227,10 @@ def render(
         mes_limite = hoje.month if ano == hoje.year else None
         _abas_evolucao(df, df_dim, ano, valor, criterio_mes, mes_limite, carregar_metas)
 
-    # -------------------------------------------------- Rankings (2B.8)
-    tend_veic = metrics.tendencia_grupo_veiculo(df_dim, ano, valor, criterio_mes)
+    # -------------------------------------------------- Rankings (Design 1E)
+    linhas_grupos = ranking_data.linhas_ranking_grupos(
+        df_ano, df_dim, ano, valor, criterio_mes, hoje=hoje,
+    )
     tend_agencia = metrics.tendencia_por_dimensao(
         df_dim, COL_AGENCIA, ano, valor, criterio_mes
     )
@@ -227,42 +238,33 @@ def render(
         df_dim, COL_CLIENTE, ano, valor, criterio_mes
     )
 
-    agg_veic = metrics.agregado_por_grupo_veiculo(df_ano, valor)
-    coluna_ref = "vendas_liquido" if valor == "liquido" else "vendas_bruto"
-    linhas_veic: list[dict] = []
-    if not agg_veic.empty:
-        total_v = float(agg_veic[coluna_ref].sum()) or 1.0
-        for _, linha in agg_veic.head(5).iterrows():
-            par = (linha[COL_GRUPO], linha[COL_VEICULO])
-            linhas_veic.append({
-                "nome": f"{linha[COL_GRUPO]}{filters.SEPARADOR_PAR}{linha[COL_VEICULO]}",
-                "valor": float(linha[coluna_ref]),
-                "pct": float(linha[coluna_ref]) / total_v * 100.0,
-                "tendencia": tend_veic.get(par),
-            })
-
-    r1, r2, r3 = st.columns(3)
+    with st.container(key="design_performance_rankings", border=False, gap=None):
+        r1, r2, r3 = st.columns(3)
     with r1:
-        cards.bloco_ranking("Top 5 Veículos", linhas_veic)
-        st.button(
-            "ver tudo →", key=f"{_CHAVE}_ver_veiculos",
-            on_click=_navegar, args=("Analítico Veículos",), type="tertiary",
-        )
+        with st.container(key="design_performance_ranking_groups", border=False, gap=None):
+            cards.bloco_ranking("Top 5 Grupos", linhas_grupos)
+            # O destino existente inclui a visão completa "Vendas por Grupo".
+            st.button(
+                "ver tudo →", key=f"{_CHAVE}_ver_veiculos",
+                on_click=_navegar, args=("Analítico Veículos",), type="tertiary",
+            )
     with r2:
-        cards.bloco_ranking(
-            "Top 5 Agências",
-            _linhas_ranking_dimensao(df_ano, COL_AGENCIA, valor, tend_agencia),
-        )
-        st.button(
-            "ver tudo →", key=f"{_CHAVE}_ver_agencias",
-            on_click=_navegar, args=("Analítico Comercial",), type="tertiary",
-        )
+        with st.container(key="design_performance_ranking_agencies", border=False, gap=None):
+            cards.bloco_ranking(
+                "Top 5 Agências",
+                _linhas_ranking_dimensao(df_ano, COL_AGENCIA, valor, tend_agencia),
+            )
+            st.button(
+                "ver tudo →", key=f"{_CHAVE}_ver_agencias",
+                on_click=_navegar, args=("Analítico Comercial",), type="tertiary",
+            )
     with r3:
-        cards.bloco_ranking(
-            "Top 5 Clientes",
-            _linhas_ranking_dimensao(df_ano, COL_CLIENTE, valor, tend_cliente),
-        )
-        st.button(
-            "ver tudo →", key=f"{_CHAVE}_ver_clientes",
-            on_click=_navegar, args=("Analítico Comercial",), type="tertiary",
-        )
+        with st.container(key="design_performance_ranking_clients", border=False, gap=None):
+            cards.bloco_ranking(
+                "Top 5 Clientes",
+                _linhas_ranking_dimensao(df_ano, COL_CLIENTE, valor, tend_cliente),
+            )
+            st.button(
+                "ver tudo →", key=f"{_CHAVE}_ver_clientes",
+                on_click=_navegar, args=("Analítico Comercial",), type="tertiary",
+            )

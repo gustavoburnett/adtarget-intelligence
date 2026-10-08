@@ -68,6 +68,78 @@ def _serie(figura, nome):
     return next(serie for serie in figura.data if serie.name == nome)
 
 
+def _contraste(frente, fundo):
+    def luminancia(cor):
+        canais = [int(cor[posicao:posicao + 2], 16) / 255 for posicao in (1, 3, 5)]
+        lineares = [
+            canal / 12.92 if canal <= 0.04045 else ((canal + 0.055) / 1.055) ** 2.4
+            for canal in canais
+        ]
+        return sum(canal * peso for canal, peso in zip(lineares, (0.2126, 0.7152, 0.0722)))
+
+    menor, maior = sorted((luminancia(frente), luminancia(fundo)))
+    return (maior + 0.05) / (menor + 0.05)
+
+
+@pytest.mark.parametrize("mensal", [False, True])
+def test_textos_do_eixo_e_nota_de_estados_atendem_contraste_aa(mensal):
+    resultado, pulso = _resultados()
+    figura = (
+        metas_charts.evolucao_mensal(resultado, pulso)
+        if mensal else metas_charts.evolucao_acumulada(resultado)
+    )
+    nota = next(
+        anotacao for anotacao in figura.layout.annotations
+        if "Em andamento" in anotacao.text and "Futuro" in anotacao.text
+    )
+    for texto in (figura.layout.yaxis.tickfont, nota.font):
+        assert _contraste(texto.color, figura.layout.plot_bgcolor) >= 4.5
+    assert list(figura.layout.xaxis.ticktext) == list(metas_charts._eixo_meses(resultado))
+
+
+def test_rotulo_do_ano_anterior_atende_contraste_aa_sem_alterar_serie_cinza():
+    resultado, _ = _resultados()
+    figura = metas_charts.evolucao_acumulada(resultado)
+    rotulo = next(anotacao for anotacao in figura.layout.annotations if "2025 · R$" in anotacao.text)
+    assert _contraste(rotulo.font.color, figura.layout.plot_bgcolor) >= 4.5
+    anterior = _serie(figura, "2025 · mesmo perímetro")
+    assert anterior.line.color == anterior.marker.color == metas_charts.COR_NEUTRO
+    assert anterior.line.dash == "dash"
+    assert anterior.line.width == 1.5
+    assert list(anterior.y) == [mes * 5 for mes in range(1, 13)]
+    assert anterior.hovertemplate == "%{customdata}<extra></extra>"
+
+
+def test_contornos_do_calendario_preservam_cor_neutra_das_figuras():
+    resultado, pulso = _resultados()
+    acumulada = metas_charts.evolucao_acumulada(resultado)
+    mensal = metas_charts.evolucao_mensal(resultado, pulso)
+    assert acumulada.layout.shapes[0].line.color == metas_charts.COR_NEUTRO
+    assert all(shape.line.color == metas_charts.COR_NEUTRO for shape in mensal.layout.shapes)
+
+
+def test_nota_mensal_tem_respiro_em_pixels_sem_deslocar_nota_acumulada():
+    resultado, pulso = _resultados()
+    mensal = metas_charts.evolucao_mensal(resultado, pulso)
+    acumulada = metas_charts.evolucao_acumulada(resultado)
+    nota_mensal = mensal.layout.annotations[0]
+    nota_acumulada = acumulada.layout.annotations[0]
+    assert nota_mensal.yshift == -12
+    assert nota_acumulada.yshift is None
+    assert nota_mensal.text == nota_acumulada.text == "<b>*</b> Em andamento · <b>°</b> Futuro"
+    assert nota_mensal.yref == nota_acumulada.yref == "paper"
+    assert nota_mensal.y == nota_acumulada.y == -0.20
+    assert mensal.layout.height == 330
+    assert acumulada.layout.height == 430
+
+
+def test_deslocamento_da_nota_mensal_nao_cria_anotacao_em_ano_encerrado():
+    resultado, pulso = _resultados(referencia=dt.date(2027, 1, 1))
+    figura = metas_charts.evolucao_mensal(resultado, pulso)
+    assert not figura.layout.annotations
+    assert list(figura.layout.xaxis.ticktext) == list(metas_charts._MESES)
+
+
 def test_acumulada_preserva_meta_e_anterior_ate_dez_sem_estender_realizado():
     resultado, _ = _resultados()
     figura = metas_charts.evolucao_acumulada(resultado)

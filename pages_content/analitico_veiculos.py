@@ -3,7 +3,7 @@
 Cards: Vendas do recorte, Ticket Médio, Veículos Ativos.
 Gráficos: Vendas por Grupo (barra), drill-down Vendas por Veículo dentro
 do grupo, rankings completos (Veículos, Agências, Clientes).
-Tabela agregada por Grupo + Veículo com % do total.
+Ranking agregado por Grupo + Veículo com % do total.
 Filtros: Ano, Grupo, Agência, Cliente.
 
 Agregação SEMPRE por Grupo + Veículo (decisão 15). Métricas de metrics.py.
@@ -16,42 +16,31 @@ import pandas as pd
 import streamlit as st
 
 from src.components import cards, charts, filters
+from src.components.kpi_icons import ICONES_KPI
+from src.components.veiculos_tables import (
+    configuracao_colunas_ranking, preparar_ranking_dimensao, preparar_ranking_veiculos,
+)
 from src.data import metrics
 from src.data.cleaning import COL_AGENCIA, COL_CLIENTE, COL_GRUPO, COL_VEICULO
 
 _CHAVE = "anvei"
 
 
-def _tabela_formatada(agregado: pd.DataFrame) -> pd.DataFrame:
-    """Formata a tabela agregada para exibição (moeda pt-BR, % com vírgula)."""
-    tabela = agregado.copy()
-    tabela["Veículo"] = tabela[COL_GRUPO] + filters.SEPARADOR_PAR + tabela[COL_VEICULO]
-    tabela["Vendas (Bruto)"] = tabela["vendas_bruto"].map(cards.formatar_moeda)
-    tabela["Vendas (Líquido)"] = tabela["vendas_liquido"].map(cards.formatar_moeda)
-    tabela["Ticket Médio"] = tabela["ticket_medio"].map(cards.formatar_moeda)
-    tabela["Qtd PIs"] = tabela["qtd_pis"]
-    tabela["% do Total"] = tabela["pct_do_total"].map(
-        lambda v: f"{v:.1f}".replace(".", ",") + "%"
-    )
-    return tabela[
-        ["Veículo", "Vendas (Bruto)", "Vendas (Líquido)",
-         "Ticket Médio", "Qtd PIs", "% do Total"]
-    ]
-
-
 def render(df: pd.DataFrame) -> None:
     # ------------------------------------------------------------- filtros
-    with st.container():
-        col_ano, col_resto, col_limpar = st.columns(
-            [1, 2.6, 0.7], vertical_alignment="bottom"
-        )
-        with col_ano:
+    with st.container(key="design_veiculos_filters"):
+        with st.container(key="design_veiculos_filter_top"):
+            col_ano, col_resto, col_limpar = st.columns(
+                [1, 2.6, 0.7], vertical_alignment="bottom"
+            )
+        with col_ano, st.container(key="design_veiculos_year"):
             ano = filters.selecionar_ano(df, _CHAVE)
-        with col_resto:
+        with col_resto, st.container(key="design_veiculos_toggles"):
             valor, criterio_mes = filters.selecionar_toggles(_CHAVE)
-        with col_limpar:
+        with col_limpar, st.container(key="design_veiculos_clear"):
             filters.botao_limpar_filtros(_CHAVE)
-        f1, f2, f3 = st.columns(3)
+        with st.container(key="design_veiculos_filter_dimensions"):
+            f1, f2, f3 = st.columns(3)
         with f1:
             df_dim = filters.filtro_compacto(
                 df, COL_GRUPO, "Grupo", _CHAVE, "grupos"
@@ -70,89 +59,79 @@ def render(df: pd.DataFrame) -> None:
     coluna_ref = "vendas_liquido" if valor == "liquido" else "vendas_bruto"
 
     # --------------------------------------------------------------- cards
-    c1, c2, c3 = st.columns(3)
-    with c1:
+    with st.container(key="design_veiculos_kpis"):
+        c1, c2, c3 = st.columns(3)
+    with c1, st.container(key="design_veiculos_kpi_vendas"):
+        st.markdown(f'<div class="atg-analytic-kpi-icon">{ICONES_KPI["vendas"]}</div>', unsafe_allow_html=True)
         cards.card_moeda("Vendas", metrics.vendas(df_ano, valor))
-    with c2:
+    with c2, st.container(key="design_veiculos_kpi_ticket"):
+        st.markdown(f'<div class="atg-analytic-kpi-icon">{ICONES_KPI["ticket"]}</div>', unsafe_allow_html=True)
         cards.card_moeda(
             "Ticket Médio",
             metrics.ticket_medio(df_ano, valor),
             legenda="detalhe por veículo na tabela abaixo",
         )
-    with c3:
+    with c3, st.container(key="design_veiculos_kpi_ativos"):
+        st.markdown(f'<div class="atg-analytic-kpi-icon">{ICONES_KPI["veiculos"]}</div>', unsafe_allow_html=True)
         cards.card_numero(
             "Veículos Ativos",
             metrics.veiculos_ativos(df_ano),
             legenda="pares Grupo+Veículo com PI na base Vendas",
         )
 
-    st.divider()
-
     # ------------------------------------------------------ vendas por grupo
     por_grupo = metrics.agregado_por_dimensao(df_ano, COL_GRUPO, valor)
-    charts.grafico_barra_horizontal(
-        por_grupo, COL_GRUPO, "valor", "Vendas por Grupo"
-    )
+    with st.container(key="design_veiculos_groups"):
+        st.subheader("Vendas por Grupo")
+        charts.grafico_barra_horizontal(
+            por_grupo, COL_GRUPO, "valor", "Vendas por Grupo", estilo_veiculos=True,
+        )
 
     # ------------------------------------------------ drill-down por veículo
     if not agregado.empty:
         grupos_com_dado = list(por_grupo[COL_GRUPO])
-        grupo_escolhido = st.selectbox(
-            "Detalhar veículos do grupo",
-            grupos_com_dado,
-            key=f"{_CHAVE}_drill",
-        )
-        detalhe = agregado[agregado[COL_GRUPO] == grupo_escolhido]
-        charts.grafico_barra_horizontal(
-            detalhe,
-            COL_VEICULO,
-            coluna_ref,
-            f"Vendas por Veículo — {grupo_escolhido}",
-        )
-
-    st.divider()
+        with st.container(key="design_veiculos_detail"):
+            grupo_escolhido = st.selectbox(
+                "Detalhar veículos do grupo",
+                grupos_com_dado,
+                key=f"{_CHAVE}_drill",
+            )
+            detalhe = agregado[agregado[COL_GRUPO] == grupo_escolhido]
+            st.subheader(f"Vendas por Veículo — {grupo_escolhido}")
+            charts.grafico_barra_horizontal(
+                detalhe, COL_VEICULO, coluna_ref,
+                f"Vendas por Veículo — {grupo_escolhido}", estilo_veiculos=True,
+            )
 
     # --------------------------------------------------- rankings completos
-    st.subheader("Rankings completos")
-    aba_veic, aba_agencia, aba_cliente = st.tabs(["Veículos", "Agências", "Clientes"])
+    with st.container(key="design_veiculos_rankings"):
+        st.subheader("Rankings completos")
+        aba_veic, aba_agencia, aba_cliente = st.tabs(["Veículos", "Agências", "Clientes"])
     with aba_veic:
+        tabela_veiculos = preparar_ranking_veiculos(agregado)
         st.dataframe(
-            _tabela_formatada(agregado), width="stretch", hide_index=True,
-            row_height=40,
+            tabela_veiculos, width="stretch", hide_index=True, row_height=40,
+            column_config=configuracao_colunas_ranking(tabela_veiculos.data),
         )
+        if agregado.empty:
+            st.info(cards.SEM_DADOS)
     with aba_agencia:
-        st.dataframe(
+        tabela_agencias = preparar_ranking_dimensao(
             metrics.agregado_por_dimensao(df_ano, COL_AGENCIA, valor).rename(
                 columns={"valor": "Vendas", "qtd_pis": "Qtd PIs"}
-            ),
-            width="stretch",
-            hide_index=True,
-            row_height=40,
-            column_config={
-                "Vendas": st.column_config.NumberColumn(format="R$ %.2f")
-            },
+            )
+        )
+        st.dataframe(
+            tabela_agencias, width="stretch", hide_index=True, row_height=40,
+            column_config=configuracao_colunas_ranking(tabela_agencias.data),
         )
     with aba_cliente:
-        st.dataframe(
+        tabela_clientes = preparar_ranking_dimensao(
             metrics.agregado_por_dimensao(df_ano, COL_CLIENTE, valor).rename(
                 columns={"valor": "Vendas", "qtd_pis": "Qtd PIs"}
-            ),
-            width="stretch",
-            hide_index=True,
-            row_height=40,
-            column_config={
-                "Vendas": st.column_config.NumberColumn(format="R$ %.2f")
-            },
+            )
         )
-
-    st.divider()
-
-    # ------------------------------------------- tabela agregada consolidada
-    st.subheader("Consolidado por Grupo + Veículo")
-    if agregado.empty:
-        st.info(cards.SEM_DADOS)
-    else:
         st.dataframe(
-            _tabela_formatada(agregado), width="stretch", hide_index=True,
-            row_height=40,
+            tabela_clientes, width="stretch", hide_index=True, row_height=40,
+            column_config=configuracao_colunas_ranking(tabela_clientes.data),
         )

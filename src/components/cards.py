@@ -25,6 +25,8 @@ from typing import Optional
 
 import streamlit as st
 
+from src.components.kpi_icons import ICONES_KPI, TRIANGULOS_HERO
+from src.components.radar_icons import ICONES_RADAR
 from src.data.metrics import ROTULOS_CRITERIO_MES
 from src.data.radar import RadarState
 
@@ -151,29 +153,15 @@ div[data-testid="stPopoverBody"] .stCheckbox p{font-size:13px;}
 .atg-trend.alta{color:#1E9E52;}
 .atg-trend.queda{color:#DC4545;}
 .atg-trend.neutro{color:#8B93A1;font-weight:600;}
-/* ---- P7: sidebar ---- */
-section[data-testid="stSidebar"]{width:248px !important;}
-[data-testid="stSidebar"] div[role="radiogroup"]{gap:2px;}
-[data-testid="stSidebar"] div[role="radiogroup"] label>div:first-child{display:none;}
-[data-testid="stSidebar"] div[role="radiogroup"] label{
-  padding:8px 12px;border-radius:8px;width:100%;margin:0;cursor:pointer;}
-[data-testid="stSidebar"] div[role="radiogroup"] label p{
-  font-size:13px;font-weight:500;color:#5B6472;white-space:nowrap;
-  overflow:hidden;text-overflow:ellipsis;}
-[data-testid="stSidebar"] div[role="radiogroup"] label:hover{background:#FAFBFC;}
-[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked){
-  background:#E7F3F0;}
-[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) p{
-  color:#0B7A66;font-weight:600;}
-[data-testid="stSidebar"] hr{margin:16px 0;}
+/* Status legado; a apresentação da sidebar está em design_styles.py. */
 .atg-status-line{display:flex;align-items:center;gap:8px;font-size:11.5px;
   color:#5B6472;white-space:nowrap;}
 .atg-status-dot{width:6px;height:6px;border-radius:50%;background:#1E9E52;
   box-shadow:0 0 0 3px #E9F8EE;display:inline-block;flex-shrink:0;}
 /* ---- P6a/abas/tabelas ---- */
 [data-testid="stTabs"] button p{font-size:13px;font-weight:600;}
-[data-testid="stDataFrame"]{border:1px solid #F0F2F4;border-radius:12px;
-  overflow:hidden;}
+/* A toolbar nativa fica acima da tabela e não pode ser recortada pelo wrapper. */
+[data-testid="stDataFrame"]{border:1px solid #F0F2F4;border-radius:12px;}
 </style>
 """
 
@@ -382,15 +370,22 @@ def _celula_stat(
 ) -> str:
     if valor is None:
         exibido, completo = SEM_DADOS, ""
+        classe = f"{classe} atg-kpi-empty".strip()
     else:
         exibido = formatar_moeda_executiva(valor)
         completo = formatar_moeda(valor)
+    tipo = {
+        "Vendas": "vendas", "Em Aberto": "em-aberto", "Ticket Médio": "ticket",
+    }.get(rotulo, "neutro")
     return (
-        '<div class="atg-stat">'
+        f'<article class="atg-card atg-stat atg-kpi-card atg-kpi-{tipo}">'
+        '<div class="atg-kpi-heading">'
+        f'<span class="atg-kpi-icon">{ICONES_KPI.get(tipo, "")}</span>'
         f'<div class="atg-kpi-label">{rotulo}</div>'
+        '</div>'
         f'<div class="atg-kpi-value num {classe}" title="{completo}">{exibido}</div>'
         f'<div class="atg-kpi-caption">{caption}</div>'
-        "</div>"
+        "</article>"
     )
 
 
@@ -403,25 +398,28 @@ def linha_kpis(
     valor_ticket: Optional[float],
     qtd_campanhas: int,
 ) -> None:
-    """KPI band (Sprint 3B, P3): Card Hero YTD + stat strip em superfície
-    única com divisores hairline — mesmos dados, mesma ordem de sempre."""
+    """Hero e quatro cards individuais, com os mesmos dados, textos e ordem."""
     pecas = montar_ytd(ytd_resultado, ano, sem_dados)
+    estado_visual = {"▲": "alta", "▼": "queda"}.get(pecas["seta"], "neutro")
     seta = (
-        f'<span class="atg-hero-arrow" style="color:{pecas["cor"]}">'
-        f'{pecas["seta"]}</span>'
+        '<span class="atg-hero-arrow">'
+        '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" '
+        'aria-hidden="true" focusable="false">'
+        f'{TRIANGULOS_HERO[pecas["seta"]]}</svg>'
+        f'<span class="atg-sr-only">{pecas["seta"]}</span></span>'
     ) if pecas["seta"] else ""
     hero = (
-        '<div class="atg-card atg-kpi-hero">'
+        f'<article class="atg-card atg-kpi-hero atg-hero-{estado_visual}">'
         '<div class="atg-eyebrow">KPI Principal · YTD vs Ano Anterior</div>'
         f'<div class="atg-hero-value">{seta}'
-        f'<span class="atg-hero-number num" style="color:{pecas["cor"]}">'
+        '<span class="atg-hero-number num">'
         f'{pecas["percentual"]}</span></div>'
         f'<div class="atg-hero-caption num">{pecas["suporte"]}</div>'
-        "</div>"
+        "</article>"
     )
     faturado_fmt = formatar_moeda_executiva(vendas_detalhado["faturado"])
     strip = (
-        '<div class="atg-statstrip">'
+        '<div class="atg-statstrip atg-kpi-grid">'
         + _celula_stat(
             "Vendas", vendas_detalhado["total"],
             f"{faturado_fmt} já faturado", classe="positivo",
@@ -432,17 +430,21 @@ def linha_kpis(
         )
         + _celula_stat("Ticket Médio", valor_ticket, "Vendas ÷ PIs da base")
         + (
-            '<div class="atg-stat">'
+            '<article class="atg-card atg-stat atg-kpi-card atg-kpi-campanhas">'
+            '<div class="atg-kpi-heading">'
+            f'<span class="atg-kpi-icon">{ICONES_KPI["campanhas"]}</span>'
             '<div class="atg-kpi-label">Campanhas</div>'
+            '</div>'
             f'<div class="atg-kpi-value num">{formatar_inteiro(qtd_campanhas)}</div>'
             '<div class="atg-kpi-caption" title="Combinações distintas de '
             'Cliente + Campanha (base Vendas)">Cliente + Campanha</div>'
-            "</div>"
+            "</article>"
         )
         + "</div>"
     )
     st.markdown(
-        f'<div class="atg-kpi-row">{hero}{strip}</div>',
+        '<div class="atg-performance-indicators">'
+        f'<div class="atg-kpi-row">{hero}{strip}</div></div>',
         unsafe_allow_html=True,
     )
 
@@ -482,7 +484,13 @@ def capsulas_insights(destaques: dict) -> None:
 
 
 def render_radar(estado: RadarState) -> None:
-    """Faixa compacta; CTAs orientativos, sem navegação ou filtro automático."""
+    """Cards de exceções; CTAs orientativos e conteúdo funcional preservado."""
+    with st.container(key="design_performance_radar"):
+        _render_radar_conteudo(estado)
+
+
+def _render_radar_conteudo(estado: RadarState) -> None:
+    """Apresenta o estado recebido, sem reordenar ou selecionar insights."""
     metadados = (
         f"{'Valor Líquido' if estado.valor == 'liquido' else 'Valor Bruto'} · "
         f"{ROTULOS_CRITERIO_MES[estado.criterio_mes]}"
@@ -506,31 +514,33 @@ def render_radar(estado: RadarState) -> None:
                     f"{formatar_moeda_executiva(insight.valor_anterior)}"
                 )
             else:
-                entidade = insight.entidade.upper().rstrip().removesuffix("+").rstrip()
-                ano_atual = insight.periodo_atual[0].year
-                ano_anterior = insight.periodo_anterior[0].year
+                entidade = insight.entidade.upper().strip()
+                periodo_atual = rotulo_periodo(insight.periodo_atual[1].month, insight.periodo_atual[0].year)
+                periodo_anterior = rotulo_periodo(insight.periodo_anterior[1].month, insight.periodo_anterior[0].year)
                 if insight.tipo == "queda" and insight.valor_atual == 0:
-                    manchete = f"Sem vendas em {ano_atual}"
+                    # Saldo zero não comprova ausência de registros de vendas.
+                    manchete = f"Saldo de vendas zero em {periodo_atual}"
                     contexto = (
                         f"{formatar_moeda_executiva(insight.valor_anterior)} "
-                        f"no mesmo período de {ano_anterior}"
+                        f"em {periodo_anterior}"
                     )
                 else:
                     manchete = (
-                        f"{formatar_pct(insight.variacao_pct)} vs. mesmo período "
-                        f"de {ano_anterior}"
+                        f"{formatar_pct(insight.variacao_pct)} vs. {periodo_anterior}"
                     )
                     contexto = (
-                        f"{formatar_moeda_executiva(insight.valor_atual)} em {ano_atual} · "
-                        f"{formatar_moeda_executiva(insight.valor_anterior)} em {ano_anterior}"
+                        f"{formatar_moeda_executiva(insight.valor_atual)} em {periodo_atual} · "
+                        f"{formatar_moeda_executiva(insight.valor_anterior)} em {periodo_anterior}"
                     )
             itens.append(
-                '<div class="atg-radar-item">'
+                f'<div class="atg-radar-item" data-radar-kind="{escape(insight.tipo)}">'
+                f'<span class="atg-radar-icon">{ICONES_RADAR[insight.tipo]}</span>'
+                '<div class="atg-radar-copy">'
                 f'<div class="atg-radar-category">{escape(rotulos[insight.tipo])} · {escape(entidade)}</div>'
                 f'<div class="atg-radar-headline num"><strong>{escape(manchete)}</strong></div>'
                 f'<div class="atg-radar-context num" title="{escape(insight.referencia_comparacao)}">'
                 f'{escape(contexto)}</div>'
-                f'<div class="atg-radar-cta"><em>{escape(insight.cta.texto)}</em></div></div>'
+                f'<div class="atg-radar-cta"><em>{escape(insight.cta.texto)}</em></div></div></div>'
             )
         classes = {1: "atg-radar-single", 2: "atg-radar-two", 3: "atg-radar-three"}
         classe = "atg-radar " + classes.get(len(itens), "")
@@ -548,49 +558,78 @@ def render_radar(estado: RadarState) -> None:
             nomes[r] for r in estado.regras_sem_comparacao
         ) + ".")
     if estado.sincronizado_em is not None:
-        st.caption(f"Última sincronização com a fonte: {estado.sincronizado_em:%d/%m/%Y %H:%M}")
+        with st.container(key="design_performance_radar_sync"):
+            st.caption(f"Última sincronização com a fonte: {estado.sincronizado_em:%d/%m/%Y %H:%M}")
 
 
 def _badge_tendencia(variacao: Optional[float]) -> str:
-    """Badge ▲/▼ + % (Variante 1 aprovada). None -> neutro."""
+    """Selo de YoY dos rankings, mantendo direção e ausência de comparação."""
     if variacao is None:
-        return '<span class="atg-trend neutro">—</span>'
+        return ('<span class="atg-trend neutro" '
+                'aria-label="Sem base de comparação">—</span>')
     pct = f"{abs(variacao):.0f}".replace(".", ",")
     if variacao > 0:
-        return f'<span class="atg-trend alta num">▲{pct}%</span>'
+        return (f'<span class="atg-trend alta num" '
+                f'aria-label="Crescimento de {pct}% em relação ao ano anterior">'
+                '<span class="atg-rank-trend-arrow" aria-hidden="true">▲</span>'
+                f'<span>{pct}%</span></span>')
     if variacao < 0:
-        return f'<span class="atg-trend queda num">▼{pct}%</span>'
-    return '<span class="atg-trend neutro num">0%</span>'
+        return (f'<span class="atg-trend queda num" '
+                f'aria-label="Queda de {pct}% em relação ao ano anterior">'
+                '<span class="atg-rank-trend-arrow" aria-hidden="true">▼</span>'
+                f'<span>{pct}%</span></span>')
+    return ('<span class="atg-trend neutro num" '
+            'aria-label="Sem variação em relação ao ano anterior">0%</span>')
 
 
 def bloco_ranking(titulo: str, linhas: list[dict]) -> None:
-    """Ranking Top 5: nome, barra, valor, % e badge — tudo inline."""
+    """Até cinco posições reais, com valor e participação em camadas distintas.
+
+    A barra mantém a convenção existente: valor relativo ao maior da lista,
+    com piso visual de 2%. A participação exibida vem pronta do recorte total.
+    """
+    titulo = escape(titulo)
+    linhas = linhas[:5]
     if not linhas:
         st.markdown(
-            f'<div class="atg-card atg-rank"><div class="atg-rank-title">'
-            f'{titulo}</div><div class="atg-kpi-caption">{SEM_DADOS}</div></div>',
+            '<div class="atg-card atg-rank"><div class="atg-rank-title" '
+            'role="heading" aria-level="3">'
+            f'{titulo}</div><div class="atg-kpi-caption atg-rank-empty">'
+            f'{SEM_DADOS}</div></div>',
             unsafe_allow_html=True,
         )
         return
-    maximo = max(item["valor"] for item in linhas) or 1.0
+    maximo = max(0, max(item["valor"] for item in linhas))
     linhas_html = []
-    for item in linhas:
-        largura = max(2, round(item["valor"] / maximo * 100))
-        pct_txt = f"{item['pct']:.0f}".replace(".", ",")
+    for posicao, item in enumerate(linhas, start=1):
+        # Só vendas positivas têm barra; participação continua sobre o total líquido.
+        largura = min(100, max(2, round(item["valor"] / maximo * 100))) if item["valor"] > 0 else 0
+        pct_txt = f"{item['pct']:.0f}%".replace(".", ",") if item["pct"] is not None else "—"
+        nome = escape(str(item["nome"]))
+        participacao = (f"Participação no total: {pct_txt}" if item["pct"] is not None
+                        else "Participação indisponível: total de vendas zero ou negativo")
+        descricao_barra = ("barra relativa ao maior valor do ranking" if item["valor"] > 0
+                           else "valor não positivo; sem barra de vendas positivas")
         linhas_html.append(
-            '<div class="atg-rank-row">'
-            f'<div class="atg-rank-name" title="{item["nome"]}">{item["nome"]}</div>'
-            f'<div class="atg-rank-barwrap"><div class="atg-rank-bar" '
-            f'style="width:{largura}%"></div></div>'
+            f'<div class="atg-rank-row" role="listitem" aria-label="Posição {posicao}">'
+            f'<span class="atg-rank-position num" aria-hidden="true">{posicao}</span>'
+            '<div class="atg-rank-content"><div class="atg-rank-top">'
+            f'<div class="atg-rank-name" title="{nome}" aria-label="{nome}">{nome}</div>'
             f'<span class="atg-rank-value num" '
             f'title="{formatar_moeda(item["valor"])}">'
-            f'{formatar_moeda_executiva(item["valor"])}</span>'
-            f'<span class="atg-rank-pct num">{pct_txt}%</span>'
+            f'{formatar_moeda_executiva(item["valor"])}</span></div>'
+            '<div class="atg-rank-bottom">'
+            f'<div class="atg-rank-barwrap" role="img" title="{participacao}" '
+            f'aria-label="{participacao}; {descricao_barra}">'
+            f'<div class="atg-rank-bar" style="width:{largura}%" aria-hidden="true"></div></div>'
+            f'<span class="atg-rank-pct num" title="{participacao}">{pct_txt}</span>'
             f'{_badge_tendencia(item["tendencia"])}'
-            "</div>"
+            "</div></div></div>"
         )
     st.markdown(
-        f'<div class="atg-card atg-rank"><div class="atg-rank-title">{titulo}'
-        "</div>" + "".join(linhas_html) + "</div>",
+        '<div class="atg-card atg-rank"><div class="atg-rank-title" '
+        f'role="heading" aria-level="3">{titulo}</div>'
+        '<div class="atg-rank-list" role="list">'
+        + "".join(linhas_html) + "</div></div>",
         unsafe_allow_html=True,
     )

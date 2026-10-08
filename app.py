@@ -2,8 +2,8 @@
 
 A SIDEBAR é a navegação oficial do produto: Performance Comercial,
 Metas e Resultados, Analítico Comercial, Analítico Veículos e,
-temporariamente, 🔧 Auditoria. A marca identifica o produto acima do
-Masthead; a sidebar reúne navegação e status dos dados (somente leitura).
+temporariamente, 🔧 Auditoria. A sidebar reúne marca, navegação e status
+dos dados (somente leitura); o masthead mantém o título da página ativa.
 
 Fluxo: gate de senha -> carga com cache (15 min) -> limpeza -> shell
 (sidebar + masthead) -> página ativa. Erros de configuração geram mensagem
@@ -13,8 +13,6 @@ amigável, nunca stack trace.
 from __future__ import annotations
 
 import datetime as _dt
-from base64 import b64encode
-from pathlib import Path
 
 import pandas as pd
 import streamlit as st
@@ -27,7 +25,11 @@ from pages_content import (
     performance_comercial,
 )
 from src.auth.gate import exigir_autenticacao
-from src.components import cards
+from src.components import (
+    analitico_styles, cards, design_styles, evolution_styles, performance_styles, radar_styles,
+    ranking_styles, shell, veiculos_styles,
+)
+from src.components.design_tokens import SIDEBAR_WIDTH
 from src.data.cleaning import limpar_dataframe
 from src.data.loader import ErroDeCarga, load_all_sheets
 from src.data.metas_loader import load_metas
@@ -37,13 +39,16 @@ st.set_page_config(
     page_title="AdTarget Intelligence",
     page_icon="📊",
     layout="wide",
+    initial_sidebar_state=SIDEBAR_WIDTH,
 )
 
 # ---------------------------------------------------------------- gate
 exigir_autenticacao()
 
-# Fundação visual da Sprint 2B (Design System aplicado — 2B.1)
+# Conteúdo legado preservado; fundação do shell no Design System v1.0.1.
 st.markdown(cards.CSS_GLOBAL, unsafe_allow_html=True)
+st.html(shell.font_style())
+st.html(design_styles.CSS_SHELL)
 
 
 # ---------------------------------------------------------------- dados
@@ -113,7 +118,7 @@ PAGINAS = {
     ),
     "Analítico Veículos": (
         analitico_veiculos.render,
-        "Vendas por grupo e veículo, rankings e consolidado",
+        "Vendas por grupo e veículo e rankings completos",
     ),
 }
 
@@ -128,48 +133,79 @@ if st.secrets.get("dev_auditoria", False):
     )
 
 # --------------------------------------------------------------- sidebar
-# Navegação -> separador -> status. A marca fica no conteúdo principal.
+# Shell compartilhado; valores, chave de seleção e roteamento preservados.
+minutos = max(
+    0, int((_dt.datetime.now() - sincronizado_em).total_seconds() // 60)
+)
 with st.sidebar:
-    pagina_ativa = st.radio(
-        "Navegação",
-        list(PAGINAS),
-        key="nav_pagina",
-        label_visibility="collapsed",
-    )
-    st.divider()
-    minutos = max(
-        0, int((_dt.datetime.now() - sincronizado_em).total_seconds() // 60)
-    )
-    # Sprint 3B (P7): status em uma linha, sem jargão
-    st.markdown(
-        '<div class="atg-status-line"><span class="atg-status-dot"></span>'
-        f"Sincronizado às {sincronizado_em:%H:%M} · há {minutos} min</div>",
-        unsafe_allow_html=True,
-    )
+    with st.container(key="design_sidebar_shell"):
+        with st.container(key="design_sidebar_brand"):
+            st.markdown(shell.sidebar_brand(), unsafe_allow_html=True)
+        with st.container(key="design_sidebar_nav"):
+            pagina_ativa = st.radio(
+                "Navegação",
+                list(PAGINAS),
+                key="nav_pagina",
+                label_visibility="collapsed",
+                format_func=shell.navigation_label,
+            )
+        with st.container(key="design_sidebar_footer"):
+            st.markdown(
+                shell.sidebar_footer(sincronizado_em, minutos),
+                unsafe_allow_html=True,
+            )
 
 # -------------------------------------------------------------- masthead
-logo_oficial = Path(__file__).resolve().parent / "assets" / "AdTarget_Intelligence_logo.svg"
-logo_svg = b64encode(logo_oficial.read_bytes()).decode("ascii")
-st.markdown(
-    '<div class="atg-product-brand">'
-    f'<img src="data:image/svg+xml;base64,{logo_svg}" '
-    'alt="AdTarget Intelligence"></div>',
-    unsafe_allow_html=True,
-)
 render_pagina, subtitulo = PAGINAS[pagina_ativa]
 titulo_visivel = pagina_ativa.replace("🔧 ", "")
+cabecalho_executivo = pagina_ativa in (
+    "Performance Comercial", "Metas e Resultados", "Analítico Comercial", "Analítico Veículos",
+)
+prefixo_cabecalho = {
+    "Performance Comercial": "design_performance",
+    "Metas e Resultados": "design_metas",
+    "Analítico Comercial": "design_comercial",
+    "Analítico Veículos": "design_veiculos",
+}.get(pagina_ativa, "design_metas")
 
-col_titulo, col_acoes = st.columns([4, 1.6], vertical_alignment="center")
+if pagina_ativa == "Performance Comercial":
+    st.html(performance_styles.CSS_PERFORMANCE)
+    st.html(radar_styles.CSS_RADAR)
+    st.html(evolution_styles.CSS_EVOLUTION)
+    st.html(ranking_styles.CSS_RANKING)
+elif pagina_ativa == "Analítico Comercial":
+    st.html(analitico_styles.CSS_ANALITICO_COMERCIAL)
+elif pagina_ativa == "Analítico Veículos":
+    st.html(veiculos_styles.CSS_VEICULOS)
+if cabecalho_executivo:
+    with st.container(
+        key=f"{prefixo_cabecalho}_header", horizontal=True,
+        vertical_alignment="center", gap="medium",
+    ):
+        col_titulo = st.container(key=f"{prefixo_cabecalho}_title", width="stretch")
+        col_acoes = st.container(
+            key=f"{prefixo_cabecalho}_actions", width="content", horizontal=True,
+            vertical_alignment="center", gap="small",
+        )
+else:
+    col_titulo, col_acoes = st.columns([4, 1.6], vertical_alignment="center")
 with col_titulo:
     cards.masthead(titulo_visivel, subtitulo)
 with col_acoes:
     st.markdown(
         f'<div class="atg-updated">atualizado há {minutos} min</div>',
         unsafe_allow_html=True,
+        width="content" if cabecalho_executivo else "auto",
     )
-    col_refresh, col_tema = st.columns([3, 1])
+    if cabecalho_executivo:
+        col_refresh = st.container(key=f"{prefixo_cabecalho}_refresh", width="content")
+        col_tema = st.container(key=f"{prefixo_cabecalho}_theme", width="content")
+    else:
+        col_refresh, col_tema = st.columns([3, 1])
     with col_refresh:
-        if st.button("↻ Atualizar", key="masthead_refresh",
+        if st.button("Atualizar" if cabecalho_executivo else "↻ Atualizar",
+                     icon=":material/refresh:" if cabecalho_executivo else None,
+                     key="masthead_refresh",
                      help="Recarregar os dados da planilha agora"):
             _carregar_dados_brutos.clear()
             _carregar_metas.clear()
