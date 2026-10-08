@@ -252,10 +252,25 @@ def test_radar_dinamico_preserva_quantidade_ordem_copy_e_sincronizacao(monkeypat
     assert len(estado.insights) == quantidade
     antigas, captions_antigas = _radar_html(monkeypatch, _checkpoint("src/components/cards.py"), estado)
     atuais, captions_atuais = _radar_html(monkeypatch, cards, estado)
-    assert _copy_radar(atuais, captions_atuais) == _copy_radar(antigas, captions_antigas)
+    copy_atual, _ = _copy_radar(atuais, captions_atuais)
+    copy_antiga, _ = _copy_radar(antigas, captions_antigas)
+    # Hardening autoriza nome integral e períodos explícitos; título, metadados,
+    # CTA, sincronização e referência técnica continuam protegidos.
+    for classe in ("atg-radar-title", "atg-radar-meta", "atg-radar-cta"):
+        assert copy_atual[classe] == copy_antiga[classe]
+    assert captions_atuais == captions_antigas
+    assert [titulo for _, titulo in copy_atual["atg-radar-context"]] == [
+        titulo for _, titulo in copy_antiga["atg-radar-context"]
+    ]
     itens = _com_classe(atuais, "atg-radar-item")
     assert len(itens) == quantidade
     assert [item.get("data-radar-kind") for item in itens] == [insight.tipo for insight in estado.insights]
+    for item, insight in zip(itens, estado.insights, strict=True):
+        for classe in ("atg-radar-category", "atg-radar-headline", "atg-radar-context", "atg-radar-cta"):
+            assert len(_com_classe([item], classe)) == 1
+        if insight.tipo == "destaque":
+            antigo = _com_classe(antigas, "atg-radar-item")[[i.tipo for i in estado.insights].index("destaque")]
+            assert _copy_radar([item], []) == _copy_radar([antigo], [])
     assert "Última sincronização com a fonte: 18/09/2026 12:30" in captions_atuais
     for item in itens:
         assert not any(elemento.tag in ("a", "button", "input") for elemento in item.iter())

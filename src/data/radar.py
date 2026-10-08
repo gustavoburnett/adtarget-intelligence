@@ -8,12 +8,13 @@ from __future__ import annotations
 
 import datetime as dt
 from dataclasses import dataclass
-from typing import Literal, Mapping
+from typing import Iterable, Literal, Mapping
 
 import pandas as pd
 
 from src.data import metrics
 from src.data.cleaning import COL_GRUPO
+from src.data.metas_schema import ALIASES_METAS
 
 TipoInsight = Literal["risco", "queda", "destaque", "crescimento"]
 StatusRadar = Literal["ativo", "silencio", "dados_desatualizados", "dados_insuficientes"]
@@ -68,6 +69,17 @@ def _periodo(ano: int, mes: int) -> Periodo:
     return dt.date(ano, 1, 1), fim.date()
 
 
+def recorte_por_grupos(dados: pd.DataFrame, grupos: Iterable[str]) -> pd.DataFrame:
+    """Recupera o histórico dos aliases exatos só para o recorte do Radar.
+
+    O filtro literal da página permanece intacto para os demais indicadores.
+    A seleção vazia permanece vazia; nenhum alias por semelhança é inferido.
+    """
+    selecionados = {ALIASES_METAS.get(nome, nome) for nome in grupos}
+    identidades = dados[COL_GRUPO].map(lambda nome: ALIASES_METAS.get(nome, nome))
+    return dados.loc[identidades.isin(selecionados)].copy(deep=True)
+
+
 def avaliar_radar(
     dados: pd.DataFrame,
     ano: int,
@@ -91,7 +103,9 @@ def avaliar_radar(
     """
     col_mes = metrics.coluna_mes(criterio_mes)
     col_valor = metrics.coluna_valor(valor)
-    base = dados.loc[metrics.mascara_vendas(dados)]
+    base = dados.loc[metrics.mascara_vendas(dados)].copy(deep=True)
+    # Mesmas equivalências explícitas de Metas, sem alterar a fonte ou somas.
+    base[COL_GRUPO] = base[COL_GRUPO].map(lambda nome: ALIASES_METAS.get(nome, nome))
     insights: list[Insight] = []
     avaliadas: list[str] = []
     sem_comparacao: list[str] = []

@@ -20,7 +20,7 @@ CSS_PERFORMANCE = "<style>" + """
   letter-spacing:-.03em;line-height:1.1;margin:0;}
 .st-key-design_performance_actions {gap:var(--atg-space-12);}
 .st-key-design_performance_header .atg-updated {
-  color:var(--atg-text-meta);font-size:var(--atg-type-metadata-size);
+  color:var(--atg-text-muted);font-size:var(--atg-type-metadata-size);
   line-height:1.5;white-space:nowrap;}
 .st-key-design_performance_header button,
 .st-key-design_performance_filters button {

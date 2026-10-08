@@ -39,7 +39,7 @@ def linhas_ranking_grupos(
         {
             "nome": linha[COL_GRUPO],
             "valor": float(linha["valor"]),
-            "pct": float(linha["valor"]) / total * 100.0 if total else 0.0,
+            "pct": float(linha["valor"]) / total * 100.0 if total > 0 else None,
             "tendencia": tendencias.get(linha[COL_GRUPO]),
         }
         for _, linha in ordenado.head(5).iterrows()

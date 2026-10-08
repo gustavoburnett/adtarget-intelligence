@@ -514,23 +514,23 @@ def _render_radar_conteudo(estado: RadarState) -> None:
                     f"{formatar_moeda_executiva(insight.valor_anterior)}"
                 )
             else:
-                entidade = insight.entidade.upper().rstrip().removesuffix("+").rstrip()
-                ano_atual = insight.periodo_atual[0].year
-                ano_anterior = insight.periodo_anterior[0].year
+                entidade = insight.entidade.upper().strip()
+                periodo_atual = rotulo_periodo(insight.periodo_atual[1].month, insight.periodo_atual[0].year)
+                periodo_anterior = rotulo_periodo(insight.periodo_anterior[1].month, insight.periodo_anterior[0].year)
                 if insight.tipo == "queda" and insight.valor_atual == 0:
-                    manchete = f"Sem vendas em {ano_atual}"
+                    # Saldo zero não comprova ausência de registros de vendas.
+                    manchete = f"Saldo de vendas zero em {periodo_atual}"
                     contexto = (
                         f"{formatar_moeda_executiva(insight.valor_anterior)} "
-                        f"no mesmo período de {ano_anterior}"
+                        f"em {periodo_anterior}"
                     )
                 else:
                     manchete = (
-                        f"{formatar_pct(insight.variacao_pct)} vs. mesmo período "
-                        f"de {ano_anterior}"
+                        f"{formatar_pct(insight.variacao_pct)} vs. {periodo_anterior}"
                     )
                     contexto = (
-                        f"{formatar_moeda_executiva(insight.valor_atual)} em {ano_atual} · "
-                        f"{formatar_moeda_executiva(insight.valor_anterior)} em {ano_anterior}"
+                        f"{formatar_moeda_executiva(insight.valor_atual)} em {periodo_atual} · "
+                        f"{formatar_moeda_executiva(insight.valor_anterior)} em {periodo_anterior}"
                     )
             itens.append(
                 f'<div class="atg-radar-item" data-radar-kind="{escape(insight.tipo)}">'
@@ -599,13 +599,17 @@ def bloco_ranking(titulo: str, linhas: list[dict]) -> None:
             unsafe_allow_html=True,
         )
         return
-    maximo = max(item["valor"] for item in linhas) or 1.0
+    maximo = max(0, max(item["valor"] for item in linhas))
     linhas_html = []
     for posicao, item in enumerate(linhas, start=1):
-        largura = max(2, round(item["valor"] / maximo * 100))
-        pct_txt = f"{item['pct']:.0f}".replace(".", ",")
+        # Só vendas positivas têm barra; participação continua sobre o total líquido.
+        largura = min(100, max(2, round(item["valor"] / maximo * 100))) if item["valor"] > 0 else 0
+        pct_txt = f"{item['pct']:.0f}%".replace(".", ",") if item["pct"] is not None else "—"
         nome = escape(str(item["nome"]))
-        participacao = f"Participação no total: {pct_txt}%"
+        participacao = (f"Participação no total: {pct_txt}" if item["pct"] is not None
+                        else "Participação indisponível: total de vendas zero ou negativo")
+        descricao_barra = ("barra relativa ao maior valor do ranking" if item["valor"] > 0
+                           else "valor não positivo; sem barra de vendas positivas")
         linhas_html.append(
             f'<div class="atg-rank-row" role="listitem" aria-label="Posição {posicao}">'
             f'<span class="atg-rank-position num" aria-hidden="true">{posicao}</span>'
@@ -616,9 +620,9 @@ def bloco_ranking(titulo: str, linhas: list[dict]) -> None:
             f'{formatar_moeda_executiva(item["valor"])}</span></div>'
             '<div class="atg-rank-bottom">'
             f'<div class="atg-rank-barwrap" role="img" title="{participacao}" '
-            f'aria-label="{participacao}; barra relativa ao maior valor do ranking">'
+            f'aria-label="{participacao}; {descricao_barra}">'
             f'<div class="atg-rank-bar" style="width:{largura}%" aria-hidden="true"></div></div>'
-            f'<span class="atg-rank-pct num" title="{participacao}">{pct_txt}%</span>'
+            f'<span class="atg-rank-pct num" title="{participacao}">{pct_txt}</span>'
             f'{_badge_tendencia(item["tendencia"])}'
             "</div></div></div>"
         )

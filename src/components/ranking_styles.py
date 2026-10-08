@@ -53,8 +53,8 @@ CSS_RANKING = """<style>
 .st-key-design_performance_rankings .atg-rank-bar {
   height:6px;border-radius:var(--atg-radius-pill);background:var(--atg-brand);}
 .st-key-design_performance_rankings .atg-rank-pct {
-  width:30px;flex:0 0 30px;text-align:right;font-size:var(--atg-type-badge-size);
-  font-weight:600;line-height:1.3;color:var(--atg-text-muted);white-space:nowrap;}
+  width:auto;min-width:30px;max-width:35%;flex:0 1 auto;text-align:right;font-size:var(--atg-type-badge-size);
+  font-weight:600;line-height:1.3;color:var(--atg-text-muted);overflow-wrap:anywhere;}
 .st-key-design_performance_rankings .atg-trend {
   box-sizing:border-box;
   display:inline-flex;align-items:center;justify-content:center;

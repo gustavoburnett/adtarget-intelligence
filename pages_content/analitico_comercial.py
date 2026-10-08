@@ -18,6 +18,7 @@ import streamlit as st
 
 from src.components import cards, charts, filters
 from src.data import metrics, quality_checks
+from src.data.csv_export import gerar_csv_seguro
 from src.data.cleaning import (
     COL_AGENCIA,
     COL_CLIENTE,
@@ -173,7 +174,7 @@ def render(df: pd.DataFrame) -> None:
     st.caption(f"{len(tabela)} linha(s) no recorte")
     st.download_button(
         "Exportar CSV",
-        tabela[colunas_presentes].to_csv(index=False).encode("utf-8-sig"),
+        gerar_csv_seguro(tabela[colunas_presentes]),
         file_name=f"analitico_comercial_{ano}.csv",
         mime="text/csv",
         key=f"{_CHAVE}_csv",

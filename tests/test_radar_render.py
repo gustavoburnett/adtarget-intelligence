@@ -41,15 +41,17 @@ def test_render_um_insight_referencia_cta_e_escape(monkeypatch):
     classes = ["atg-radar-category", "atg-radar-headline", "atg-radar-context", "atg-radar-cta"]
     assert [html[1].index(c) for c in classes] == sorted(html[1].index(c) for c in classes)
     assert "CRESCIMENTO · &lt;GRUPO&gt;" in html[1]
-    assert "+20,0% vs. mesmo período de 2025" in html[1]
-    assert "R$ 120,00 em 2026 · R$ 100,00 em 2025" in html[1]
-    assert "<strong>+20,0% vs. mesmo período de 2025</strong>" in html[1]
+    assert "+20,0% vs. Jan–Set/2025" in html[1]
+    assert "R$ 120,00 em Jan–Set/2026 · R$ 100,00 em Jan–Set/2025" in html[1]
+    assert "<strong>+20,0% vs. Jan–Set/2025</strong>" in html[1]
     assert "<em>Acompanhe este parceiro.</em>" in html[1]
 
 
-@pytest.mark.parametrize("ano,manchete", [(2025, "Sem vendas em 2025"),
-                                         (2026, "Sem vendas em 2026")])
-def test_queda_zero_copy_dinamica(monkeypatch, ano, manchete):
+@pytest.mark.parametrize("ano,mes,manchete", [
+    (2025, "Dez", "Saldo de vendas zero em Jan–Dez/2025"),
+    (2026, "Set", "Saldo de vendas zero em Jan–Set/2026"),
+])
+def test_queda_zero_copy_dinamica(monkeypatch, ano, mes, manchete):
     estado = avaliar(frame(linha(f"{ano-1}-01-01", 117570, "Parceiro"),
                            linha(f"{ano}-01-01", 0, "Parceiro")), ano)
     html = []
@@ -58,7 +60,8 @@ def test_queda_zero_copy_dinamica(monkeypatch, ano, manchete):
     cards.render_radar(estado)
     assert "QUEDA · PARCEIRO" in html[1]
     assert manchete in html[1]
-    assert f"R$ 117,57 mil no mesmo período de {ano-1}" in html[1]
+    assert f"R$ 117,57 mil em Jan–{mes}/{ano-1}" in html[1]
+    assert "Sem vendas em" not in html[1]
     assert "Verifique este parceiro." in html[1]
     assert "-100,0%" not in html[1]
 
@@ -76,16 +79,16 @@ def test_destaque_manchete_mes_e_referencia(monkeypatch):
     assert "Acompanhe esta tendência." in html[1]
 
 
-def test_sufixo_mais_removido_apenas_do_cabecalho(monkeypatch):
+def test_identificador_comercial_mais_preservado_no_cabecalho(monkeypatch):
     estado = avaliar(frame(linha("2025-01-01", 100, "CARREGA +"),
                            linha("2026-01-01", 120, "CARREGA +")))
     html = []
     monkeypatch.setattr(cards.st, "caption", lambda value: None)
     monkeypatch.setattr(cards.st, "markdown", lambda value, **kwargs: html.append(value))
     cards.render_radar(estado)
-    assert 'class="atg-radar-category">CRESCIMENTO · CARREGA</div>' in html[1]
-    assert "+20,0% vs. mesmo período de 2025" in html[1]
-    assert estado.insights[0].entidade == "CARREGA +"
+    assert 'class="atg-radar-category">CRESCIMENTO · CARREGA+</div>' in html[1]
+    assert "+20,0% vs. Jan–Set/2025" in html[1]
+    assert estado.insights[0].entidade == "CARREGA+"
 
 
 def test_multiplos_insights_preservam_ordem_sem_estilo_single(monkeypatch):

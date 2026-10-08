@@ -63,12 +63,12 @@ def _linhas_ranking_dimensao(
     agg = metrics.agregado_por_dimensao(df_ano, coluna, valor)
     if agg.empty:
         return []
-    total = float(agg["valor"].sum()) or 1.0
+    total = float(agg["valor"].sum())
     return [
         {
             "nome": linha[coluna],
             "valor": float(linha["valor"]),
-            "pct": float(linha["valor"]) / total * 100.0,
+            "pct": float(linha["valor"]) / total * 100.0 if total > 0 else None,
             "tendencia": tendencias.get(linha[coluna]),
         }
         for _, linha in agg.head(5).iterrows()
@@ -186,7 +186,8 @@ def render(
     # --------------------------------------------------- Radar Executivo
     cards.render_radar(
         radar.avaliar_radar(
-            df_dim, ano, agora=agora, valor=valor, criterio_mes=criterio_mes,
+            radar.recorte_por_grupos(df, df_dim[COL_GRUPO].unique()),
+            ano, agora=agora, valor=valor, criterio_mes=criterio_mes,
             sincronizado_em=sincronizado_em,
         )
     )

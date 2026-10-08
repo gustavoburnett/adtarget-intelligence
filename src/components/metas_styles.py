@@ -15,7 +15,7 @@ CSS_METAS = """<style>
   letter-spacing:-.03em;line-height:1.1;margin:0;}
 .st-key-design_metas_actions {gap:var(--atg-space-12);}
 .st-key-design_metas_header .atg-updated {
-  color:var(--atg-text-meta);font-size:var(--atg-type-metadata-size);
+  color:var(--atg-text-muted);font-size:var(--atg-type-metadata-size);
   line-height:1.5;white-space:nowrap;}
 .st-key-design_metas_header button,.st-key-design_metas_filters button {
   min-height:44px;border-radius:var(--atg-radius-control);box-shadow:none;
@@ -123,7 +123,7 @@ CSS_METAS = """<style>
   margin:0 0 var(--atg-space-24);padding:0 var(--atg-space-4);}
 .st-key-design_metas_content .atg-metas-empty {padding:var(--atg-space-24);margin:var(--atg-space-8) 0 var(--atg-space-24);}
 .st-key-design_metas_content .atg-metas-footer {
-  font-size:var(--atg-type-label-size);color:var(--atg-text-meta);line-height:1.6;margin-top:var(--atg-space-24);}
+  font-size:var(--atg-type-label-size);color:var(--atg-text-muted);line-height:1.6;margin-top:var(--atg-space-24);}
 .st-key-design_metas_content :is(.st-key-design_metas_chart_metas_mensal,.st-key-design_metas_chart_metas_acumulada) {
   padding:var(--atg-space-24);gap:var(--atg-space-12);min-width:0;
   background:var(--atg-surface-card);border:1px solid var(--atg-line-card);

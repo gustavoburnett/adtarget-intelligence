@@ -191,7 +191,7 @@ def test_grupo_somente_anterior_nao_cria_posicao_com_venda_atual_ficticia():
 
 def test_zero_real_permanece_zero_e_nao_vira_ausencia_de_registro():
     df = _dados(_linha("ZERO", liquido=0), _linha("ZERO", liquido=100, ano=2025))
-    assert _ranking(df) == [{"nome": "ZERO", "valor": 0, "pct": 0, "tendencia": -100}]
+    assert _ranking(df) == [{"nome": "ZERO", "valor": 0, "pct": None, "tendencia": -100}]
 
 
 def test_registro_so_futuro_preserva_ausencia_comparavel_da_tendencia_existente():
