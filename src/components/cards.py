@@ -563,45 +563,69 @@ def _render_radar_conteudo(estado: RadarState) -> None:
 
 
 def _badge_tendencia(variacao: Optional[float]) -> str:
-    """Badge ▲/▼ + % (Variante 1 aprovada). None -> neutro."""
+    """Selo de YoY dos rankings, mantendo direção e ausência de comparação."""
     if variacao is None:
-        return '<span class="atg-trend neutro">—</span>'
+        return ('<span class="atg-trend neutro" '
+                'aria-label="Sem base de comparação">—</span>')
     pct = f"{abs(variacao):.0f}".replace(".", ",")
     if variacao > 0:
-        return f'<span class="atg-trend alta num">▲{pct}%</span>'
+        return (f'<span class="atg-trend alta num" '
+                f'aria-label="Crescimento de {pct}% em relação ao ano anterior">'
+                '<span class="atg-rank-trend-arrow" aria-hidden="true">▲</span>'
+                f'<span>{pct}%</span></span>')
     if variacao < 0:
-        return f'<span class="atg-trend queda num">▼{pct}%</span>'
-    return '<span class="atg-trend neutro num">0%</span>'
+        return (f'<span class="atg-trend queda num" '
+                f'aria-label="Queda de {pct}% em relação ao ano anterior">'
+                '<span class="atg-rank-trend-arrow" aria-hidden="true">▼</span>'
+                f'<span>{pct}%</span></span>')
+    return ('<span class="atg-trend neutro num" '
+            'aria-label="Sem variação em relação ao ano anterior">0%</span>')
 
 
 def bloco_ranking(titulo: str, linhas: list[dict]) -> None:
-    """Ranking Top 5: nome, barra, valor, % e badge — tudo inline."""
+    """Até cinco posições reais, com valor e participação em camadas distintas.
+
+    A barra mantém a convenção existente: valor relativo ao maior da lista,
+    com piso visual de 2%. A participação exibida vem pronta do recorte total.
+    """
+    titulo = escape(titulo)
+    linhas = linhas[:5]
     if not linhas:
         st.markdown(
-            f'<div class="atg-card atg-rank"><div class="atg-rank-title">'
-            f'{titulo}</div><div class="atg-kpi-caption">{SEM_DADOS}</div></div>',
+            '<div class="atg-card atg-rank"><div class="atg-rank-title" '
+            'role="heading" aria-level="3">'
+            f'{titulo}</div><div class="atg-kpi-caption atg-rank-empty">'
+            f'{SEM_DADOS}</div></div>',
             unsafe_allow_html=True,
         )
         return
     maximo = max(item["valor"] for item in linhas) or 1.0
     linhas_html = []
-    for item in linhas:
+    for posicao, item in enumerate(linhas, start=1):
         largura = max(2, round(item["valor"] / maximo * 100))
         pct_txt = f"{item['pct']:.0f}".replace(".", ",")
+        nome = escape(str(item["nome"]))
+        participacao = f"Participação no total: {pct_txt}%"
         linhas_html.append(
-            '<div class="atg-rank-row">'
-            f'<div class="atg-rank-name" title="{item["nome"]}">{item["nome"]}</div>'
-            f'<div class="atg-rank-barwrap"><div class="atg-rank-bar" '
-            f'style="width:{largura}%"></div></div>'
+            f'<div class="atg-rank-row" role="listitem" aria-label="Posição {posicao}">'
+            f'<span class="atg-rank-position num" aria-hidden="true">{posicao}</span>'
+            '<div class="atg-rank-content"><div class="atg-rank-top">'
+            f'<div class="atg-rank-name" title="{nome}" aria-label="{nome}">{nome}</div>'
             f'<span class="atg-rank-value num" '
             f'title="{formatar_moeda(item["valor"])}">'
-            f'{formatar_moeda_executiva(item["valor"])}</span>'
-            f'<span class="atg-rank-pct num">{pct_txt}%</span>'
+            f'{formatar_moeda_executiva(item["valor"])}</span></div>'
+            '<div class="atg-rank-bottom">'
+            f'<div class="atg-rank-barwrap" role="img" title="{participacao}" '
+            f'aria-label="{participacao}; barra relativa ao maior valor do ranking">'
+            f'<div class="atg-rank-bar" style="width:{largura}%" aria-hidden="true"></div></div>'
+            f'<span class="atg-rank-pct num" title="{participacao}">{pct_txt}%</span>'
             f'{_badge_tendencia(item["tendencia"])}'
-            "</div>"
+            "</div></div></div>"
         )
     st.markdown(
-        f'<div class="atg-card atg-rank"><div class="atg-rank-title">{titulo}'
-        "</div>" + "".join(linhas_html) + "</div>",
+        '<div class="atg-card atg-rank"><div class="atg-rank-title" '
+        f'role="heading" aria-level="3">{titulo}</div>'
+        '<div class="atg-rank-list" role="list">'
+        + "".join(linhas_html) + "</div></div>",
         unsafe_allow_html=True,
     )

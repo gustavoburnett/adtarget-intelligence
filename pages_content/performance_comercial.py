@@ -19,9 +19,9 @@ from typing import Callable
 import pandas as pd
 import streamlit as st
 
-from src.components import cards, charts, filters, metas_charts
+from src.components import cards, charts, filters, metas_charts, ranking_data
 from src.data import metas, metrics, radar
-from src.data.cleaning import COL_AGENCIA, COL_CLIENTE, COL_GRUPO, COL_VEICULO
+from src.data.cleaning import COL_AGENCIA, COL_CLIENTE, COL_GRUPO
 from src.data.metas_schema import ErroDeMetas
 
 _CHAVE = "perf"
@@ -226,8 +226,10 @@ def render(
         mes_limite = hoje.month if ano == hoje.year else None
         _abas_evolucao(df, df_dim, ano, valor, criterio_mes, mes_limite, carregar_metas)
 
-    # -------------------------------------------------- Rankings (2B.8)
-    tend_veic = metrics.tendencia_grupo_veiculo(df_dim, ano, valor, criterio_mes)
+    # -------------------------------------------------- Rankings (Design 1E)
+    linhas_grupos = ranking_data.linhas_ranking_grupos(
+        df_ano, df_dim, ano, valor, criterio_mes, hoje=hoje,
+    )
     tend_agencia = metrics.tendencia_por_dimensao(
         df_dim, COL_AGENCIA, ano, valor, criterio_mes
     )
@@ -235,43 +237,33 @@ def render(
         df_dim, COL_CLIENTE, ano, valor, criterio_mes
     )
 
-    agg_veic = metrics.agregado_por_grupo_veiculo(df_ano, valor)
-    coluna_ref = "vendas_liquido" if valor == "liquido" else "vendas_bruto"
-    linhas_veic: list[dict] = []
-    if not agg_veic.empty:
-        total_v = float(agg_veic[coluna_ref].sum()) or 1.0
-        for _, linha in agg_veic.head(5).iterrows():
-            par = (linha[COL_GRUPO], linha[COL_VEICULO])
-            linhas_veic.append({
-                "nome": f"{linha[COL_GRUPO]}{filters.SEPARADOR_PAR}{linha[COL_VEICULO]}",
-                "valor": float(linha[coluna_ref]),
-                "pct": float(linha[coluna_ref]) / total_v * 100.0,
-                "tendencia": tend_veic.get(par),
-            })
-
     with st.container(key="design_performance_rankings", border=False, gap=None):
         r1, r2, r3 = st.columns(3)
     with r1:
-        cards.bloco_ranking("Top 5 Veículos", linhas_veic)
-        st.button(
-            "ver tudo →", key=f"{_CHAVE}_ver_veiculos",
-            on_click=_navegar, args=("Analítico Veículos",), type="tertiary",
-        )
+        with st.container(key="design_performance_ranking_groups", border=False, gap=None):
+            cards.bloco_ranking("Top 5 Grupos", linhas_grupos)
+            # O destino existente inclui a visão completa "Vendas por Grupo".
+            st.button(
+                "ver tudo →", key=f"{_CHAVE}_ver_veiculos",
+                on_click=_navegar, args=("Analítico Veículos",), type="tertiary",
+            )
     with r2:
-        cards.bloco_ranking(
-            "Top 5 Agências",
-            _linhas_ranking_dimensao(df_ano, COL_AGENCIA, valor, tend_agencia),
-        )
-        st.button(
-            "ver tudo →", key=f"{_CHAVE}_ver_agencias",
-            on_click=_navegar, args=("Analítico Comercial",), type="tertiary",
-        )
+        with st.container(key="design_performance_ranking_agencies", border=False, gap=None):
+            cards.bloco_ranking(
+                "Top 5 Agências",
+                _linhas_ranking_dimensao(df_ano, COL_AGENCIA, valor, tend_agencia),
+            )
+            st.button(
+                "ver tudo →", key=f"{_CHAVE}_ver_agencias",
+                on_click=_navegar, args=("Analítico Comercial",), type="tertiary",
+            )
     with r3:
-        cards.bloco_ranking(
-            "Top 5 Clientes",
-            _linhas_ranking_dimensao(df_ano, COL_CLIENTE, valor, tend_cliente),
-        )
-        st.button(
-            "ver tudo →", key=f"{_CHAVE}_ver_clientes",
-            on_click=_navegar, args=("Analítico Comercial",), type="tertiary",
-        )
+        with st.container(key="design_performance_ranking_clients", border=False, gap=None):
+            cards.bloco_ranking(
+                "Top 5 Clientes",
+                _linhas_ranking_dimensao(df_ano, COL_CLIENTE, valor, tend_cliente),
+            )
+            st.button(
+                "ver tudo →", key=f"{_CHAVE}_ver_clientes",
+                on_click=_navegar, args=("Analítico Comercial",), type="tertiary",
+            )

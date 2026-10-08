@@ -26,7 +26,8 @@ from pages_content import (
 )
 from src.auth.gate import exigir_autenticacao
 from src.components import (
-    cards, design_styles, evolution_styles, performance_styles, radar_styles, shell,
+    cards, design_styles, evolution_styles, performance_styles, radar_styles,
+    ranking_styles, shell,
 )
 from src.components.design_tokens import SIDEBAR_WIDTH
 from src.data.cleaning import limpar_dataframe
@@ -162,6 +163,7 @@ if pagina_ativa == "Performance Comercial":
     st.html(performance_styles.CSS_PERFORMANCE)
     st.html(radar_styles.CSS_RADAR)
     st.html(evolution_styles.CSS_EVOLUTION)
+    st.html(ranking_styles.CSS_RANKING)
     with st.container(
         key="design_performance_header", horizontal=True,
         vertical_alignment="center", gap="medium",

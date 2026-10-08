@@ -145,7 +145,12 @@ render(recorde(), sincronizado_em=dt.datetime(2026,9,18,12,30))
         return [m.value for m in app.markdown if 'class="atg-kpi-row"' in m.value
                 or 'class="atg-card atg-rank"' in m.value]
     assert len(kpis_rankings(antes)) == 4
-    assert kpis_rankings(antes) == kpis_rankings(depois)
+    assert len(kpis_rankings(depois)) == 4
+    # Design 1E aprova a consolidação do primeiro ranking por GRUPO. Hero,
+    # Agências e Clientes continuam comparados integralmente à Release 1.0.
+    assert kpis_rankings(antes)[0:1] + kpis_rankings(antes)[2:] == (
+        kpis_rankings(depois)[0:1] + kpis_rankings(depois)[2:]
+    )
     assert [p.proto.spec for p in antes.get("plotly_chart")] == [
         p.proto.spec for p in depois.get("plotly_chart")
     ]

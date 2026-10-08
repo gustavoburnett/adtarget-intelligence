@@ -184,12 +184,12 @@ def test_tres_rankings_preservam_numeros_ordem_barras_e_limpeza_dos_filtros():
     assert not app.exception
     antes = _rankings(app)
     assert [_texto(_unico(ET.fromstring(html), "atg-rank-title")) for html in antes] == [
-        "Top 5 Veículos", "Top 5 Agências", "Top 5 Clientes",
+        "Top 5 Grupos", "Top 5 Agências", "Top 5 Clientes",
     ]
     assert [_linhas_ranking(html) for html in antes] == [
-        [("FORA — VEICULO H", "R$ 4.000,00", "57%", "width:100%"),
-         ("H — VEICULO H", "R$ 2.100,00", "30%", "width:52%"),
-         ("G — VEICULO G", "R$ 920,00", "13%", "width:23%")],
+        [("FORA", "R$ 4.000,00", "57%", "width:100%"),
+         ("H", "R$ 2.100,00", "30%", "width:52%"),
+         ("G", "R$ 920,00", "13%", "width:23%")],
         [("TESTE", "R$ 7.020,00", "100%", "width:100%")],
         [("CLIENTE H", "R$ 6.100,00", "87%", "width:100%"),
          ("CLIENTE G", "R$ 920,00", "13%", "width:15%")],
@@ -203,7 +203,7 @@ def test_tres_rankings_preservam_numeros_ordem_barras_e_limpeza_dos_filtros():
     assert not app.exception
     assert app.session_state[f"perf_fc_{COL_GRUPO}_aplicado"] == ["G"]
     assert [_linhas_ranking(html) for html in _rankings(app)] == [
-        [("G — VEICULO G", "R$ 920,00", "100%", "width:100%")],
+        [("G", "R$ 920,00", "100%", "width:100%")],
         [("TESTE", "R$ 920,00", "100%", "width:100%")],
         [("CLIENTE G", "R$ 920,00", "100%", "width:100%")],
     ]
