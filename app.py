@@ -27,7 +27,7 @@ from pages_content import (
 from src.auth.gate import exigir_autenticacao
 from src.components import (
     analitico_styles, cards, design_styles, evolution_styles, performance_styles, radar_styles,
-    ranking_styles, shell,
+    ranking_styles, shell, veiculos_styles,
 )
 from src.components.design_tokens import SIDEBAR_WIDTH
 from src.data.cleaning import limpar_dataframe
@@ -118,7 +118,7 @@ PAGINAS = {
     ),
     "Analítico Veículos": (
         analitico_veiculos.render,
-        "Vendas por grupo e veículo, rankings e consolidado",
+        "Vendas por grupo e veículo e rankings completos",
     ),
 }
 
@@ -159,12 +159,13 @@ with st.sidebar:
 render_pagina, subtitulo = PAGINAS[pagina_ativa]
 titulo_visivel = pagina_ativa.replace("🔧 ", "")
 cabecalho_executivo = pagina_ativa in (
-    "Performance Comercial", "Metas e Resultados", "Analítico Comercial",
+    "Performance Comercial", "Metas e Resultados", "Analítico Comercial", "Analítico Veículos",
 )
 prefixo_cabecalho = {
     "Performance Comercial": "design_performance",
     "Metas e Resultados": "design_metas",
     "Analítico Comercial": "design_comercial",
+    "Analítico Veículos": "design_veiculos",
 }.get(pagina_ativa, "design_metas")
 
 if pagina_ativa == "Performance Comercial":
@@ -174,6 +175,8 @@ if pagina_ativa == "Performance Comercial":
     st.html(ranking_styles.CSS_RANKING)
 elif pagina_ativa == "Analítico Comercial":
     st.html(analitico_styles.CSS_ANALITICO_COMERCIAL)
+elif pagina_ativa == "Analítico Veículos":
+    st.html(veiculos_styles.CSS_VEICULOS)
 if cabecalho_executivo:
     with st.container(
         key=f"{prefixo_cabecalho}_header", horizontal=True,

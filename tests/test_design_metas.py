@@ -438,6 +438,9 @@ def test_design_1f_preserva_fontes_protegidas_do_design_1e(caminho):
         "src/data/loader.py": {"load_all_sheets"},
         "pages_content/performance_comercial.py": {"render", "_linhas_ranking_dimensao"},
         "pages_content/analitico_comercial.py": {"render"},
+        # Design 1H aprovado: render visual e substituição do formatador de
+        # strings pelo adaptador nativo numérico; não libera regras comerciais.
+        "pages_content/analitico_veiculos.py": {"render", "_tabela_formatada"},
     }
     if caminho not in autorizadas:
         assert atual == anterior
@@ -447,8 +450,18 @@ def test_design_1f_preserva_fontes_protegidas_do_design_1e(caminho):
         def protegidas(fonte):
             return [ast.dump(no) for no in ast.parse(fonte).body
                     if not isinstance(no, (ast.Import, ast.ImportFrom))
+                    and not (caminho == "pages_content/analitico_veiculos.py"
+                             and isinstance(no, ast.Expr)
+                             and isinstance(no.value, ast.Constant)
+                             and isinstance(no.value.value, str))
                     and getattr(no, "name", None) not in autorizadas[caminho]]
         assert protegidas(atual) == protegidas(anterior)
+        if caminho == "pages_content/analitico_veiculos.py":
+            # A antiga função monetária textual saiu da página. Os valores
+            # continuam vindo exclusivamente da engine oficial congelada.
+            assert "def _tabela_formatada(" in anterior
+            assert "def _tabela_formatada(" not in atual
+            assert (RAIZ / "src/data/metrics.py").read_text() == _fonte_congelada("src/data/metrics.py")
 
 
 def test_novo_css_isola_metas_e_usa_largura_util_sem_ocultar_dados_financeiros():

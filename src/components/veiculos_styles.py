@@ -1,0 +1,187 @@
+"""Design 1H: apresentação exclusiva do Analítico Veículos.
+
+Os containers medem a largura útil depois da sidebar. Os widgets e tabelas
+continuam nativos, com seus estados, rolagem interna e interação por teclado.
+"""
+
+from urllib.parse import quote
+
+_FUNIL = quote(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" '
+    'fill="none" stroke="currentColor" stroke-width="1.9" '
+    'stroke-linecap="round" stroke-linejoin="round">'
+    '<path d="M4 4h16l-6 7v7l-4 2v-9Z"/></svg>'
+)
+
+CSS_VEICULOS = "<style>" + """
+/* Shell compartilhado, aplicado somente à página de veículos. */
+[data-testid="stMainBlockContainer"]:has(.st-key-design_veiculos_header) {
+  max-width:1336px;padding-left:var(--atg-space-48);padding-right:var(--atg-space-48);}
+.st-key-design_veiculos_header {gap:var(--atg-space-24);margin-bottom:var(--atg-space-8);}
+.st-key-design_veiculos_title {min-width:min(100%,360px);}
+.st-key-design_veiculos_header .atg-h1 {
+  color:var(--atg-ink);font-size:var(--atg-type-page-size);font-weight:800;
+  letter-spacing:-.03em;line-height:1.1;margin:0;}
+.st-key-design_veiculos_actions {gap:var(--atg-space-12);}
+.st-key-design_veiculos_header .atg-updated {
+  color:var(--atg-text-muted);font-size:var(--atg-type-metadata-size);
+  line-height:1.5;white-space:nowrap;}
+.st-key-design_veiculos_header button,.st-key-design_veiculos_filters button {
+  min-height:44px;border-radius:var(--atg-radius-control);box-shadow:none;
+  border:1px solid var(--atg-line-control);background:var(--atg-surface-card);
+  color:var(--atg-ink);font-size:var(--atg-type-control-size);font-weight:600;
+  padding:0 var(--atg-space-16);}
+.st-key-design_veiculos_header button p,.st-key-design_veiculos_filters button p {
+  font-size:var(--atg-type-control-size);font-weight:600;line-height:1.3;}
+.st-key-design_veiculos_header button:not(:disabled):hover,
+.st-key-design_veiculos_filters button:not(:disabled):hover {
+  border-color:var(--atg-line-control-hover);color:var(--atg-brand);}
+.st-key-design_veiculos_header button:focus-visible,
+.st-key-design_veiculos_filters button:focus-visible {
+  outline:2px solid var(--atg-focus-ring);outline-offset:2px;}
+.st-key-design_veiculos_refresh button {
+  background:var(--atg-side-bg);border-color:var(--atg-side-bg);color:var(--atg-side-text-strong);}
+.st-key-design_veiculos_refresh button:not(:disabled):hover {
+  background:var(--atg-side-bg);color:var(--atg-side-text-strong);}
+.st-key-design_veiculos_header [data-testid="stIconMaterial"] {font-size:16px;}
+.st-key-design_veiculos_theme button {width:44px;min-width:44px;padding:0;}
+.st-key-design_veiculos_theme button p {font-size:20px;font-weight:400;}
+
+/* Os mesmos filtros comerciais, em uma superfície própria. */
+.st-key-design_veiculos_filters {
+  min-width:0;max-width:100%;padding:var(--atg-space-20);
+  background:var(--atg-surface-card);border:1px solid var(--atg-line-card);
+  border-radius:var(--atg-radius-card);box-shadow:var(--atg-shadow-card);
+  container-type:inline-size;container-name:atg-veiculos-filters;gap:var(--atg-space-20);}
+.st-key-design_veiculos_filter_top {gap:var(--atg-space-20);}
+.st-key-design_veiculos_filter_top [data-testid="stHorizontalBlock"]:not(.st-key-design_veiculos_toggles [data-testid="stHorizontalBlock"]) {
+  display:grid;grid-template-columns:minmax(190px,.9fr) minmax(0,2.5fr) max-content;
+  gap:var(--atg-space-20);align-items:end;}
+.st-key-design_veiculos_filter_top [data-testid="stColumn"],
+.st-key-design_veiculos_filter_dimensions [data-testid="stColumn"] {min-width:0;width:100%;}
+.st-key-design_veiculos_filters [data-testid="stWidgetLabel"] {margin:0 0 var(--atg-space-6);min-height:0;}
+.st-key-design_veiculos_filters [data-testid="stWidgetLabel"] p {
+  color:var(--atg-text-meta);font-size:var(--atg-type-label-size);
+  font-weight:600;letter-spacing:.06em;line-height:1.4;text-transform:uppercase;}
+.st-key-design_veiculos_filters [role="radiogroup"] {
+  display:flex;padding:3px;gap:2px;border-radius:var(--atg-radius-control);
+  background:var(--atg-surface-muted);width:max-content;max-width:100%;}
+.st-key-design_veiculos_filters [data-testid="stButtonGroup"] [role="radiogroup"] button {
+  border:0;border-radius:var(--atg-radius-option);background:transparent;
+  min-width:0;min-height:44px;padding:var(--atg-space-8) var(--atg-space-14);
+  color:var(--atg-text-secondary);white-space:nowrap;flex:1 1 auto;}
+.st-key-design_veiculos_filters [data-testid="stButtonGroup"] [role="radiogroup"] button[aria-checked="true"] {
+  background:var(--atg-brand);color:var(--atg-side-text-strong);}
+.st-key-design_veiculos_year [data-testid="stButtonGroup"] [role="radiogroup"] button {min-width:58px;}
+.st-key-design_veiculos_toggles [data-testid="stHorizontalBlock"] {
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.18fr);gap:var(--atg-space-20);}
+.st-key-design_veiculos_clear button p {display:flex;align-items:center;gap:var(--atg-space-8);}
+.st-key-design_veiculos_clear button p::before {
+  content:"";width:16px;height:16px;flex-shrink:0;background:currentColor;
+  mask:center/contain no-repeat url("data:image/svg+xml,ICON_FUNIL");}
+.st-key-design_veiculos_filter_dimensions [data-testid="stHorizontalBlock"] {
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--atg-space-12);}
+.st-key-design_veiculos_filter_dimensions [data-testid="stPopover"] {width:100%;min-width:0;}
+.st-key-design_veiculos_filter_dimensions [data-testid="stPopover"] button {
+  width:100%;max-width:100%;min-height:54px;justify-content:space-between;
+  padding:var(--atg-space-10) var(--atg-space-12);
+  border:1px solid var(--atg-line-control);background:var(--atg-surface-card);}
+.st-key-design_veiculos_filter_dimensions [data-testid="stPopover"] button p {
+  white-space:normal;text-align:left;overflow-wrap:anywhere;line-height:1.4;}
+
+/* Três indicadores existentes; nenhuma fórmula ou legenda é alterada. */
+.st-key-design_veiculos_kpis {
+  min-width:0;container-type:inline-size;container-name:atg-veiculos-kpis;}
+.st-key-design_veiculos_kpis [data-testid="stHorizontalBlock"] {
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--atg-space-16);align-items:stretch;}
+.st-key-design_veiculos_kpis [data-testid="stColumn"] {min-width:0;width:100%;}
+.st-key-design_veiculos_kpis :is(.st-key-design_veiculos_kpi_vendas,
+  .st-key-design_veiculos_kpi_ticket,.st-key-design_veiculos_kpi_ativos) {
+  position:relative;height:100%;min-height:172px;padding:var(--atg-space-24) var(--atg-space-20);
+  gap:var(--atg-space-10);background:var(--atg-surface-card);border:1px solid var(--atg-line-card);
+  border-radius:var(--atg-radius-card);box-shadow:var(--atg-shadow-card);min-width:0;}
+.st-key-design_veiculos_kpis .atg-analytic-kpi-icon {
+  display:flex;align-items:center;justify-content:center;
+  width:44px;height:44px;border-radius:var(--atg-radius-tile);
+  background:var(--atg-neutral-tile-bg);color:var(--atg-neutral-tile-fg);}
+.st-key-design_veiculos_kpis .stElementContainer:has(.atg-analytic-kpi-icon) {
+  position:absolute;top:24px;left:20px;width:44px;height:44px;}
+.st-key-design_veiculos_kpi_vendas .atg-analytic-kpi-icon {
+  background:var(--atg-brand-tint);color:var(--atg-brand);}
+.st-key-design_veiculos_kpis [data-testid="stMetric"] {min-width:0;}
+.st-key-design_veiculos_kpis [data-testid="stMetricLabel"] {
+  min-height:44px;margin-bottom:var(--atg-space-10);padding-left:56px;}
+.st-key-design_veiculos_kpis [data-testid="stMetricLabel"] p {
+  color:var(--atg-text-meta);font-size:var(--atg-type-label-size);font-weight:600;
+  letter-spacing:.04em;line-height:1.35;text-transform:uppercase;white-space:normal;}
+.st-key-design_veiculos_kpis [data-testid="stMetricValue"] {
+  color:var(--atg-ink);font-size:var(--atg-type-kpi-size);font-weight:800;
+  letter-spacing:-.03em;line-height:1.2;white-space:nowrap;overflow:visible;text-overflow:clip;}
+.st-key-design_veiculos_kpis [data-testid="stMetricValue"] div {overflow:visible;text-overflow:clip;}
+.st-key-design_veiculos_kpi_vendas [data-testid="stMetricValue"] {color:var(--atg-brand);}
+.st-key-design_veiculos_kpis [data-testid="stCaptionContainer"] p {
+  color:var(--atg-text-muted);font-size:var(--atg-type-context-size);line-height:1.5;
+  white-space:normal;overflow-wrap:anywhere;margin:0;}
+
+/* Gráficos e rankings conservam todos os registros e controles nativos. */
+.st-key-design_veiculos_groups,.st-key-design_veiculos_detail,.st-key-design_veiculos_rankings {
+  min-width:0;max-width:100%;padding:var(--atg-space-24);gap:var(--atg-space-16);
+  background:var(--atg-surface-card);border:1px solid var(--atg-line-card);
+  border-radius:var(--atg-radius-card);box-shadow:var(--atg-shadow-card);}
+.st-key-design_veiculos_groups h3,.st-key-design_veiculos_detail h3,.st-key-design_veiculos_rankings h3 {
+  color:var(--atg-ink);font-size:var(--atg-type-section-size);font-weight:800;
+  letter-spacing:-.02em;line-height:1.3;margin:0;padding:0;overflow-wrap:anywhere;}
+.st-key-design_veiculos_groups [data-testid="stPlotlyChart"],
+.st-key-design_veiculos_detail [data-testid="stPlotlyChart"],
+.st-key-design_veiculos_rankings [data-testid="stDataFrame"] {min-width:0;max-width:100%;}
+.st-key-design_veiculos_detail [data-testid="stSelectbox"] {width:284px;max-width:100%;}
+.st-key-design_veiculos_detail [data-testid="stWidgetLabel"] p {
+  color:var(--atg-text-secondary);font-size:var(--atg-type-control-size);font-weight:600;line-height:1.5;}
+.st-key-design_veiculos_detail [data-baseweb="select"] > div {
+  min-height:44px;background:var(--atg-surface-card);border-radius:var(--atg-radius-control);
+  border-color:var(--atg-line-control);font-size:var(--atg-type-control-size);}
+.st-key-design_veiculos_detail [data-baseweb="select"]:focus-within {
+  outline:2px solid var(--atg-focus-ring);outline-offset:2px;border-radius:var(--atg-radius-control);}
+.st-key-design_veiculos_rankings [data-baseweb="tab-list"] {
+  gap:var(--atg-space-24);border-bottom:1px solid var(--atg-line-divider);}
+.st-key-design_veiculos_rankings [data-baseweb="tab"] {
+  color:var(--atg-text-secondary);font-size:var(--atg-type-control-size);font-weight:600;}
+.st-key-design_veiculos_rankings [data-baseweb="tab"][aria-selected="true"] {color:var(--atg-brand);}
+.st-key-design_veiculos_rankings [data-baseweb="tab-highlight"] {background:var(--atg-brand);}
+.st-key-design_veiculos_rankings [data-baseweb="tab"]:focus-visible {
+  outline:2px solid var(--atg-focus-ring);outline-offset:-2px;}
+.st-key-design_veiculos_rankings [data-baseweb="tab-panel"] {min-width:0;max-width:100%;}
+
+/* Pontos de quebra são do conteúdo útil, incluindo o efeito da sidebar. */
+@container atg-veiculos-filters (width < 1080px) {
+  .st-key-design_veiculos_filter_top [data-testid="stHorizontalBlock"]:not(.st-key-design_veiculos_toggles [data-testid="stHorizontalBlock"]) {
+    grid-template-columns:minmax(0,1fr) minmax(0,2.6fr);}
+  .st-key-design_veiculos_filter_top [data-testid="stHorizontalBlock"]:not(.st-key-design_veiculos_toggles [data-testid="stHorizontalBlock"]) > [data-testid="stColumn"]:last-child {
+    grid-column:1/-1;justify-self:end;}
+}
+@container atg-veiculos-filters (width < 720px) {
+  .st-key-design_veiculos_filter_top [data-testid="stHorizontalBlock"]:not(.st-key-design_veiculos_toggles [data-testid="stHorizontalBlock"]) {grid-template-columns:minmax(0,1fr);}
+  .st-key-design_veiculos_toggles [data-testid="stHorizontalBlock"] {grid-template-columns:minmax(0,1fr);}
+  .st-key-design_veiculos_filter_top [data-testid="stHorizontalBlock"]:not(.st-key-design_veiculos_toggles [data-testid="stHorizontalBlock"]) > [data-testid="stColumn"]:last-child {
+    grid-column:auto;justify-self:stretch;}
+  .st-key-design_veiculos_filters [role="radiogroup"] {width:100%;}
+  .st-key-design_veiculos_clear button {width:100%;}
+}
+@container atg-veiculos-filters (width < 580px) {
+  .st-key-design_veiculos_filter_dimensions [data-testid="stHorizontalBlock"] {
+    grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@container atg-veiculos-kpis (width < 820px) {
+  .st-key-design_veiculos_kpis [data-testid="stHorizontalBlock"] {grid-template-columns:minmax(0,1fr);}
+}
+@media(max-width:640px) {
+  [data-testid="stMainBlockContainer"]:has(.st-key-design_veiculos_header) {
+    padding-left:var(--atg-space-16);padding-right:var(--atg-space-16);}
+  .st-key-design_veiculos_header {align-items:flex-start;}
+  .st-key-design_veiculos_actions {max-width:100%;gap:var(--atg-space-8);}
+  .st-key-design_veiculos_filters,.st-key-design_veiculos_groups,
+  .st-key-design_veiculos_detail,.st-key-design_veiculos_rankings {padding:var(--atg-space-16);}
+  .st-key-design_veiculos_detail [data-testid="stSelectbox"] {width:100%;}
+}
+</style>
+""".replace("ICON_FUNIL", _FUNIL)

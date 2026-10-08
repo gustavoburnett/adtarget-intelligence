@@ -15,7 +15,7 @@ import pytest
 from streamlit.testing.v1 import AppTest
 
 from src.components import cards
-from src.data import cleaning
+from src.data import cleaning, metrics
 from tests.test_design_performance import _elementos, _rankings, _texto, _unico
 from tests.test_performance_meta import (
     _entrada, _figuras, _isolamento, _pagina, _plano,
@@ -197,13 +197,24 @@ def test_nomes_e_titulos_sao_escapados_e_nome_integral_permanece_acessivel(monke
 
 
 def test_cta_grupos_abre_destino_existente_com_vendas_consolidadas_por_grupo(monkeypatch):
-    app, _, _, leituras = _entrada(monkeypatch)
+    app, fonte, _, leituras = _entrada(monkeypatch)
     assert not app.exception
     app.button(key="perf_ver_veiculos").click().run(timeout=20)
     assert not app.exception
     assert app.session_state["nav_pagina"] == "Analítico Veículos"
-    titulos = [figura.get("layout", {}).get("title", {}).get("text") for figura in _figuras(app)]
-    assert "Vendas por Grupo" in titulos
+    # Design 1H usa o título de seção fora do Plotly, sem duplicá-lo no gráfico.
+    assert "Vendas por Grupo" in [titulo.value for titulo in app.subheader]
+    figuras = _figuras(app)
+    assert figuras[0]["layout"]["title"]["text"] == ""
+    assert app.button_group(key="anvei_ano").value == 2026
+    assert app.button_group(key="anvei_valor").value == "Valor Líquido"
+    assert app.button_group(key="anvei_mes").value == "Mês (Veiculação)"
+    base = cleaning.limpar_dataframe(fonte)
+    recorte = base[base[cleaning.COL_MES_VEICULACAO_DATA].dt.year == 2026]
+    esperado = metrics.agregado_por_dimensao(recorte, cleaning.COL_GRUPO, "liquido")
+    assert figuras[0]["data"][0]["y"] == esperado[cleaning.COL_GRUPO].tolist()
+    assert figuras[0]["data"][0]["x"] == pytest.approx(esperado["valor"].tolist())
+    assert app.selectbox(key="anvei_drill").options == esperado[cleaning.COL_GRUPO].tolist()
     assert leituras == {"vendas": 1, "metas": 0}
 
 

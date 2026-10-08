@@ -37,6 +37,10 @@ ICONES_KPI = {
         '<path d="m12 3 9 17H3Z"/>'
         '<path d="M12 9v4M12 16h.01"/>'
     ),
+    "veiculos": _icone(
+        '<rect x="3" y="6" width="18" height="14" rx="2"/>'
+        '<path d="m8 2 4 4 4-4M8 23h8"/>'
+    ),
 }
 
 

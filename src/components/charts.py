@@ -39,6 +39,8 @@ def grafico_barra_horizontal(
     coluna_valor: str,
     titulo: str,
     top_n: Optional[int] = None,
+    *,
+    estilo_veiculos: bool = False,
 ) -> None:
     """Barra horizontal ordenada do maior para o menor (rankings)."""
     if dados.empty:
@@ -65,7 +67,68 @@ def grafico_barra_horizontal(
         margin=dict(t=52, b=16, l=8, r=8),
         bargap=0.38,
     )
+    if estilo_veiculos:
+        _aplicar_estilo_barras_veiculos(fig, recorte, coluna_rotulo, coluna_valor)
     st.plotly_chart(fig, width="stretch")
+
+
+def _aplicar_estilo_barras_veiculos(
+    fig: go.Figure, recorte: pd.DataFrame, coluna_rotulo: str, coluna_valor: str,
+) -> None:
+    """Design 1H optativo: apresentação, sem alterar séries ou escala.
+
+    Os valores completos vêm da mesma formatação monetária das tabelas.
+    O Plotly posiciona o texto dentro da barra quando cabe e fora quando não
+    cabe; a margem reserva espaço para a etiqueta, sem estender o eixo.
+    Quebras de linha afetam somente os ticks, nunca as dimensões comerciais.
+    """
+    from html import escape
+    from textwrap import wrap
+
+    from src.components.cards import formatar_moeda
+
+    partes = [wrap(str(rotulo), width=16) or [""] for rotulo in recorte[coluna_rotulo]]
+    rotulos = ["<br>".join(escape(parte) for parte in linhas) for linhas in partes]
+    valores = list(recorte[coluna_valor])
+    etiquetas = [formatar_moeda(valor) for valor in valores]
+    # Aproximação tipográfica só define espaço de apresentação. A extensão
+    # numérica e o autorange permanecem os mesmos do gráfico legado.
+    margem_etiqueta = max(88, int(max(map(len, etiquetas)) * 6.5) + 16)
+    altura_linha = max(44, max(map(len, partes)) * 14 + 20)
+    fig.update_traces(
+        marker=dict(color=COLOR["brand"]),
+        text=etiquetas,
+        textposition=["outside" if valor == 0 else "auto" for valor in valores],
+        textangle=0,
+        insidetextfont=dict(family=TYPOGRAPHY["family"], size=12, color=COLOR["surface-card"]),
+        outsidetextfont=dict(family=TYPOGRAPHY["family"], size=12, color=COLOR["ink"]),
+        cliponaxis=False,
+    )
+    fig.update_layout(
+        title=dict(text=""),
+        font=dict(family=TYPOGRAPHY["family"], size=12, color=COLOR["text-secondary"]),
+        plot_bgcolor=COLOR["surface-card"],
+        paper_bgcolor="rgba(0,0,0,0)",
+        margin=dict(t=12, b=28, l=8, r=margem_etiqueta),
+        height=max(320, len(recorte) * altura_linha + 64),
+        bargap=0.38,
+        uniformtext=dict(minsize=11, mode="show"),
+        hoverlabel=dict(
+            bgcolor=COLOR["surface-card"], bordercolor=COLOR["line-card"],
+            font=dict(family=TYPOGRAPHY["family"], size=12, color=COLOR["ink"]),
+        ),
+        xaxis=dict(
+            gridcolor=COLOR["chart-grid"], gridwidth=1, zeroline=False,
+            tickfont=dict(size=11, color=COLOR["text-muted"]), automargin=True,
+        ),
+        yaxis=dict(
+            tickmode="array", tickvals=list(recorte[coluna_rotulo]), ticktext=rotulos,
+            tickfont=dict(size=11, color=COLOR["text-secondary"]),
+            showgrid=False, zeroline=False, automargin=True,
+        ),
+    )
+    if "griddash" in go.layout.XAxis()._valid_props:
+        fig.update_xaxes(griddash="2px,5px")
 
 
 def _aplicar_estilo_hero(
