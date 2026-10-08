@@ -29,6 +29,14 @@ ICONES_KPI = {
         '<path d="m8 9 11-4v14L8 15H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h4Z'
         'M8 9v6m-2 0 1.5 6h3L9 15M22 9v6"/>'
     ),
+    "cancelado": _icone(
+        '<circle cx="12" cy="12" r="8"/>'
+        '<path d="m6.4 6.4 11.2 11.2"/>'
+    ),
+    "alertas": _icone(
+        '<path d="m12 3 9 17H3Z"/>'
+        '<path d="M12 9v4M12 16h.01"/>'
+    ),
 }
 
 

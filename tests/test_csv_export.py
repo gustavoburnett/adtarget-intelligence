@@ -6,6 +6,7 @@ from decimal import Decimal
 import io
 
 import pandas as pd
+import pyarrow as pa
 import pytest
 import streamlit as st
 from streamlit.testing.v1 import AppTest
@@ -93,7 +94,7 @@ def _render_pagina(tabela):
     render(tabela)
 
 
-def test_pagina_protege_somente_download_preservando_tabela_filtros_e_valores(monkeypatch):
+def test_pagina_protege_downloads_preservando_aparencia_filtros_e_valores(monkeypatch):
     vendas = cleaning.limpar_dataframe(_fonte_vendas())
     alvo = vendas[cleaning.COL_MES_VEICULACAO_DATA].dt.year.eq(2026)
     vendas.loc[alvo, cleaning.COL_CLIENTE] = '=HYPERLINK("https://example.invalid","TESTE")'
@@ -114,14 +115,17 @@ def test_pagina_protege_somente_download_preservando_tabela_filtros_e_valores(mo
     app = app.run(timeout=20)
     assert not app.exception
     exibida = app.dataframe[-1].value
-    assert exibida[cleaning.COL_CLIENTE].str.startswith("=").all()
+    visual = pa.ipc.open_stream(
+        app.dataframe[-1].proto.arrow_data.styler.display_values,
+    ).read_all().to_pandas()
+    assert exibida[cleaning.COL_CLIENTE].str.startswith("'=").all()
+    assert visual[cleaning.COL_CLIENTE].str.startswith("=").all()
     assert exibida[cleaning.COL_VALOR_LIQUIDO].eq(-123.45).all()
     assert len(downloads) == 1
     label, conteudo, opcoes = downloads[0]
     assert label == "Exportar CSV"
     assert opcoes["file_name"] == "analitico_comercial_2026.csv"
     assert opcoes["mime"] == "text/csv" and opcoes["key"] == "anfat_csv"
-    esperado = exibida.copy(deep=True)
-    esperado[cleaning.COL_CLIENTE] = "'" + esperado[cleaning.COL_CLIENTE]
-    assert conteudo == esperado.to_csv(index=False).encode("utf-8-sig")
+    esperado = vendas.loc[alvo, exibida.columns]
+    assert conteudo == gerar_csv_seguro(esperado)
     pd.testing.assert_frame_equal(vendas, copia)

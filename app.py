@@ -26,7 +26,7 @@ from pages_content import (
 )
 from src.auth.gate import exigir_autenticacao
 from src.components import (
-    cards, design_styles, evolution_styles, performance_styles, radar_styles,
+    analitico_styles, cards, design_styles, evolution_styles, performance_styles, radar_styles,
     ranking_styles, shell,
 )
 from src.components.design_tokens import SIDEBAR_WIDTH
@@ -158,14 +158,22 @@ with st.sidebar:
 # -------------------------------------------------------------- masthead
 render_pagina, subtitulo = PAGINAS[pagina_ativa]
 titulo_visivel = pagina_ativa.replace("🔧 ", "")
-cabecalho_executivo = pagina_ativa in ("Performance Comercial", "Metas e Resultados")
-prefixo_cabecalho = "design_performance" if pagina_ativa == "Performance Comercial" else "design_metas"
+cabecalho_executivo = pagina_ativa in (
+    "Performance Comercial", "Metas e Resultados", "Analítico Comercial",
+)
+prefixo_cabecalho = {
+    "Performance Comercial": "design_performance",
+    "Metas e Resultados": "design_metas",
+    "Analítico Comercial": "design_comercial",
+}.get(pagina_ativa, "design_metas")
 
 if pagina_ativa == "Performance Comercial":
     st.html(performance_styles.CSS_PERFORMANCE)
     st.html(radar_styles.CSS_RADAR)
     st.html(evolution_styles.CSS_EVOLUTION)
     st.html(ranking_styles.CSS_RANKING)
+elif pagina_ativa == "Analítico Comercial":
+    st.html(analitico_styles.CSS_ANALITICO_COMERCIAL)
 if cabecalho_executivo:
     with st.container(
         key=f"{prefixo_cabecalho}_header", horizontal=True,

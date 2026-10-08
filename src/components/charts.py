@@ -275,7 +275,59 @@ def grafico_hero_ticket(
     st.plotly_chart(fig, width="stretch")
 
 
-def grafico_por_status(resumo: pd.DataFrame, titulo: str) -> None:
+def _aplicar_estilo_status(fig: go.Figure, resumo: pd.DataFrame) -> None:
+    """Design 1G optativo, sem alterar valores, contagens ou escala.
+
+    O Plotly decide se o rótulo cabe dentro da barra na largura disponível.
+    Zero tem rótulo externo explícito; ``cliponaxis=False`` conserva os textos
+    nas extremidades, inclusive em barras negativas. O eixo continua automático.
+    """
+    from html import escape
+    from textwrap import wrap
+
+    rotulos = [
+        "<br>".join(escape(parte) for parte in wrap(str(status), width=20))
+        for status in resumo["STATUS"]
+    ]
+    fig.update_traces(
+        marker=dict(color=COLOR["brand"]),
+        textposition=["outside" if valor == 0 else "auto" for valor in resumo["valor"]],
+        insidetextfont=dict(family=TYPOGRAPHY["family"], size=12, color=COLOR["surface-card"]),
+        outsidetextfont=dict(family=TYPOGRAPHY["family"], size=12, color=COLOR["ink"]),
+        cliponaxis=False,
+    )
+    fig.update_layout(
+        # Texto vazio explícito: ``None`` é serializado como título sem texto
+        # e pode aparecer como "undefined" no renderer nativo do Streamlit.
+        title=dict(text=""),
+        font=dict(family=TYPOGRAPHY["family"], size=12, color=COLOR["text-secondary"]),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor=COLOR["surface-card"],
+        margin=dict(t=12, b=24, l=8, r=28),
+        height=max(320, len(resumo) * 42 + 76),
+        bargap=0.36,
+        uniformtext=dict(minsize=11, mode="show"),
+        hoverlabel=dict(
+            bgcolor=COLOR["surface-card"], bordercolor=COLOR["line-card"],
+            font=dict(family=TYPOGRAPHY["family"], size=12, color=COLOR["ink"]),
+        ),
+        xaxis=dict(
+            gridcolor=COLOR["chart-grid"], gridwidth=1, zeroline=False,
+            tickfont=dict(size=11, color=COLOR["text-muted"]), automargin=True,
+        ),
+        yaxis=dict(
+            tickmode="array", tickvals=list(resumo["STATUS"]), ticktext=rotulos,
+            tickfont=dict(size=11, color=COLOR["text-secondary"]),
+            showgrid=False, zeroline=False, automargin=True,
+        ),
+    )
+    if "griddash" in go.layout.XAxis()._valid_props:
+        fig.update_xaxes(griddash="2px,5px")
+
+
+def grafico_por_status(
+    resumo: pd.DataFrame, titulo: str, *, estilo_analitico: bool = False,
+) -> None:
     """Barra por status com valor e contagem (saúde da carteira,
     documento 04). Recebe o DataFrame de metrics.resumo_por_status."""
     if resumo.empty:
@@ -296,4 +348,6 @@ def grafico_por_status(resumo: pd.DataFrame, titulo: str) -> None:
         yaxis=dict(autorange="reversed"),
         margin=dict(t=60, b=20),
     )
+    if estilo_analitico:
+        _aplicar_estilo_status(fig, resumo)
     st.plotly_chart(fig, width="stretch")

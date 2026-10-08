@@ -15,3 +15,5 @@ primaryColor = "#0B7A66"
 backgroundColor = "#F5F6F8"
 secondaryBackgroundColor = "#FFFFFF"
 textColor = "#14171C"
+# A família usa o @font-face local já incorporado por shell.font_style().
+font = "Inter, sans-serif"
