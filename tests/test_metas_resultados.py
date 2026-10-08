@@ -3,12 +3,12 @@
 import datetime as dt
 import re
 from decimal import Decimal
+from html import unescape
 
 import pandas as pd
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from src.components import cards
 from src.data.cleaning import (
     COL_GRUPO,
     COL_MES_GANHO_DATA,
@@ -308,11 +308,32 @@ def test_rodape_e_valores_completos_preservam_metodologia_e_precisao():
 
 def test_css_especifico_reutiliza_tokens_e_responsividade_sem_efeito_global():
     from pages_content.metas_resultados import _CSS
-    assert cards.COR_MARCA in _CSS and cards.COR_POSITIVO in _CSS and cards.COR_NEGATIVO in _CSS
-    assert "@media(max-width:600px)" in _CSS
-    assert "grid-template-columns:1fr" in _CSS
+    from src.components.metas_styles import CSS_METAS
+    from src.components.partner_logos import CSS_PARTNER_LOGOS
+
+    # Uma única fonte de estilos; marca e semântica usam os tokens aprovados.
+    assert _CSS == CSS_METAS.replace("</style>", CSS_PARTNER_LOGOS + "</style>")
+    assert "var(--atg-brand)" in _CSS
+    assert re.search(r'\.st-key-design_metas_content \.atg-metas-positive\s*\{color:var\(--atg-positive\)', _CSS)
+    assert re.search(r'\.st-key-design_metas_content \.atg-metas-negative\s*\{color:var\(--atg-negative\)', _CSS)
+    assert "background:var(--atg-surface-card)" in _CSS
+    assert "border:1px solid var(--atg-line-card)" in _CSS
+    for responsivo in (
+        "@container atg-metas-partners (width < 1040px)",
+        "@container atg-metas-content (width < 700px)",
+        "@container atg-metas-partners (width < 480px)",
+        "@media(max-width:640px)",
+    ):
+        assert responsivo in _CSS
+    assert "grid-template-columns:minmax(0,1fr)" in _CSS
     assert "overflow-wrap:anywhere" in _CSS
-    assert "stSidebar" not in _CSS and "stMain" not in _CSS
+    assert "min-width:0" in _CSS and "font-variant-numeric:tabular-nums" in _CSS
+    assert "stSidebar" not in _CSS and "design_performance_" not in _CSS
+    texto = re.sub(r'/\*.*?\*/', '', _CSS, flags=re.DOTALL).replace('<style>', '').replace('</style>', '')
+    for seletor, _ in re.findall(r'([^{}]+)\{([^{}]*)\}', texto):
+        assert '.st-key-design_metas_' in seletor or '.atg-metas.atg-metas-partner-section' in seletor
+        if 'stMain' in seletor:
+            assert '[data-testid="stMainBlockContainer"]:has(.st-key-design_metas_header)' in seletor
 
 
 def test_percentual_da_engine_ja_esta_em_pontos_percentuais():
@@ -351,11 +372,17 @@ def test_parceiro_status_ytd_visivel_e_detalhes_acessiveis_sem_hover():
     vendas = pd.concat([_base(atual=90), _vendas(_venda("2026-12-01", 1000))], ignore_index=True)
     html = _html(_pagina(vendas=vendas))
     parceiro = re.search(r'<article class="atg-metas-partner".*?</article>', html).group()
-    essencial = parceiro.split("<details>")[0]
-    assert "G</div>" in essencial and "≈ No ritmo" in essencial
+    essencial = re.split(r'<details\b', parceiro, maxsplit=1)[0]
+    fallback = re.search(r'<span class="atg-partner-logo-fallback">(.*?)</span>', essencial)
+    assert fallback is not None and unescape(fallback.group(1)) == "G"
+    assert 'aria-label="G"' in essencial and "≈ No ritmo" in essencial
     assert "90,0%" in essencial
     assert 'title="R$ 180,00"' in essencial and 'title="R$ 200,00"' in essencial
-    assert '<details><summary>Compromisso anual e saldo</summary>' in parceiro
+    summary = re.search(r'<details\b[^>]*><summary\b[^>]*>(.*?)</summary>', parceiro, re.DOTALL)
+    assert summary is not None
+    # A seta decorativa indica aberto/fechado; o nome do controle permanece.
+    acessivel = re.sub(r'<[^>]+aria-hidden="true"[^>]*>.*?</[^>]+>', '', summary.group(1))
+    assert unescape(re.sub(r'<[^>]+>', '', acessivel)).strip() == "Compromisso anual e saldo"
     assert "98,3%" in parceiro  # Annual commitment does not classify the closed rhythm.
     assert "Déficit YTD" in parceiro and 'title="R$ 20,00"' in parceiro
     assert 'title="R$ 1.000,00"' in parceiro

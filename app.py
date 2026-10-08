@@ -158,19 +158,22 @@ with st.sidebar:
 # -------------------------------------------------------------- masthead
 render_pagina, subtitulo = PAGINAS[pagina_ativa]
 titulo_visivel = pagina_ativa.replace("🔧 ", "")
+cabecalho_executivo = pagina_ativa in ("Performance Comercial", "Metas e Resultados")
+prefixo_cabecalho = "design_performance" if pagina_ativa == "Performance Comercial" else "design_metas"
 
 if pagina_ativa == "Performance Comercial":
     st.html(performance_styles.CSS_PERFORMANCE)
     st.html(radar_styles.CSS_RADAR)
     st.html(evolution_styles.CSS_EVOLUTION)
     st.html(ranking_styles.CSS_RANKING)
+if cabecalho_executivo:
     with st.container(
-        key="design_performance_header", horizontal=True,
+        key=f"{prefixo_cabecalho}_header", horizontal=True,
         vertical_alignment="center", gap="medium",
     ):
-        col_titulo = st.container(key="design_performance_title", width="stretch")
+        col_titulo = st.container(key=f"{prefixo_cabecalho}_title", width="stretch")
         col_acoes = st.container(
-            key="design_performance_actions", width="content", horizontal=True,
+            key=f"{prefixo_cabecalho}_actions", width="content", horizontal=True,
             vertical_alignment="center", gap="small",
         )
 else:
@@ -181,16 +184,16 @@ with col_acoes:
     st.markdown(
         f'<div class="atg-updated">atualizado há {minutos} min</div>',
         unsafe_allow_html=True,
-        width="content" if pagina_ativa == "Performance Comercial" else "auto",
+        width="content" if cabecalho_executivo else "auto",
     )
-    if pagina_ativa == "Performance Comercial":
-        col_refresh = st.container(key="design_performance_refresh", width="content")
-        col_tema = st.container(key="design_performance_theme", width="content")
+    if cabecalho_executivo:
+        col_refresh = st.container(key=f"{prefixo_cabecalho}_refresh", width="content")
+        col_tema = st.container(key=f"{prefixo_cabecalho}_theme", width="content")
     else:
         col_refresh, col_tema = st.columns([3, 1])
     with col_refresh:
-        if st.button("Atualizar" if pagina_ativa == "Performance Comercial" else "↻ Atualizar",
-                     icon=":material/refresh:" if pagina_ativa == "Performance Comercial" else None,
+        if st.button("Atualizar" if cabecalho_executivo else "↻ Atualizar",
+                     icon=":material/refresh:" if cabecalho_executivo else None,
                      key="masthead_refresh",
                      help="Recarregar os dados da planilha agora"):
             _carregar_dados_brutos.clear()
