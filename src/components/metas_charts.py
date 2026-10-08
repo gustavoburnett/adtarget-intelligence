@@ -21,6 +21,7 @@ from src.components.cards import (
     formatar_moeda,
     formatar_moeda_executiva,
 )
+from src.components.design_tokens import COLOR
 from src.data.metas import (
     MesMetas,
     MesPulso,
@@ -332,7 +333,8 @@ def evolucao_mensal(resultado: ResultadoMetas, pulso: ResultadoPulso) -> go.Figu
 
 
 def evolucao_performance_meta(
-    resultado: ResultadoMetas, pulso: ResultadoPulso
+    resultado: ResultadoMetas, pulso: ResultadoPulso, *,
+    design_performance: bool = False,
 ) -> go.Figure:
     """Resumo acumulado: realizado fechado e continuação da carteira já vendida.
 
@@ -428,7 +430,7 @@ def evolucao_performance_meta(
             connectgaps=False,
         ))
 
-    _aplicar_estilo_hero(fig, resultado.ano, None)
+    _aplicar_estilo_hero(fig, resultado.ano, None, design_performance=design_performance)
     fig.update_layout(autosize=True, hovermode="closest")
     for mes in resultado.meses:
         if mes.estado_mes == "em_andamento":
@@ -442,4 +444,22 @@ def evolucao_performance_meta(
                 text="Mês em andamento", showarrow=False,
                 font=dict(size=10, color=COR_NEUTRO),
             )
+    if design_performance:
+        # A paleta aprovada é opt-in na página; o contrato legado da figura
+        # continua disponível sem modificar constantes de cards compartilhados.
+        fig.update_traces(
+            line_color=COLOR["text-secondary"], selector=dict(name="Meta acumulada"),
+        )
+        fig.update_traces(
+            line_color=COLOR["brand"], marker_color=COLOR["surface-card"],
+            marker_line=dict(color=COLOR["brand"], width=2),
+            selector=dict(name="Realizado acumulado · fechado"),
+        )
+        fig.update_traces(
+            line_color=COLOR["brand"], marker_color=COLOR["brand"],
+            marker_line=dict(color=COLOR["brand"], width=2),
+            selector=dict(name="Já vendido acumulado"),
+        )
+        fig.update_shapes(fillcolor=COLOR["brand-tint"], line_color=COLOR["chart-previous"])
+        fig.update_annotations(font_size=11, font_color=COLOR["text-muted"])
     return fig

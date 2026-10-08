@@ -101,7 +101,9 @@ def _render_meta(
                 st.info(f"Não há metas cadastradas para {ano}.")
             else:
                 st.plotly_chart(
-                    metas_charts.evolucao_performance_meta(resultado, pulso),
+                    metas_charts.evolucao_performance_meta(
+                        resultado, pulso, design_performance=True,
+                    ),
                     width="stretch", key="perf_meta",
                     config={"displayModeBar": False, "responsive": True},
                 )
@@ -190,11 +192,16 @@ def render(
     )
 
     # ----------------------------------------------- Gráfico Hero (2B.7)
-    with st.container(border=True):
-        col_titulo, col_toggles = st.columns([1.2, 2], vertical_alignment="center")
+    with st.container(key="design_performance_evolution", border=False, gap=None):
+        with st.container(
+            key="design_performance_evolution_header", horizontal=True,
+            vertical_alignment="center", gap="medium",
+        ):
+            col_titulo = st.container(key="design_performance_evolution_title", width="stretch")
+            col_toggles = st.container(key="design_performance_evolution_controls", width=800)
         with col_titulo:
             st.markdown(
-                '<div class="atg-rank-title" style="margin:0">Evolução</div>',
+                '<div class="atg-evolution-title">Evolução</div>',
                 unsafe_allow_html=True,
             )
         with col_toggles:

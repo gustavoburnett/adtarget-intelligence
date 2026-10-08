@@ -15,6 +15,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from src.components.design_tokens import COLOR, TYPOGRAPHY
+
 MESES_ROTULOS = [
     "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
     "Jul", "Ago", "Set", "Out", "Nov", "Dez",
@@ -66,12 +68,16 @@ def grafico_barra_horizontal(
     st.plotly_chart(fig, width="stretch")
 
 
-def _aplicar_estilo_hero(fig: go.Figure, ano: int, mes_limite: Optional[int]) -> None:
-    """Estilo do Gráfico Hero (2B.7): grid sutil, fundo branco, zona de
-    meses futuros esmaecida com rótulo "sem dado disponível"."""
-    # Sprint 2B.1 (1.5): o gráfico é o protagonista — mais altura,
-    # tipografia maior e contraste melhor. Dados/escalas intocados.
-    # Sprint 3B (P6a): grid só horizontal, zeroline fora, hover premium.
+def _aplicar_estilo_hero(
+    fig: go.Figure, ano: int, mes_limite: Optional[int], *,
+    design_performance: bool = True,
+    rotulo_futuro: str = "<i>sem dado disponível</i>",
+) -> None:
+    """Apresentação da Evolução, exclusiva da Performance Comercial.
+
+    A faixa de calendário e seus textos preservam o comportamento existente.
+    Nenhum limite, unidade, hover ou lacuna é alterado pelo estilo.
+    """
     fig.update_layout(
         plot_bgcolor="#FFFFFF",
         paper_bgcolor="rgba(0,0,0,0)",
@@ -97,17 +103,82 @@ def _aplicar_estilo_hero(fig: go.Figure, ano: int, mes_limite: Optional[int]) ->
             tickfont=dict(size=12, color="#8B93A1"),
         ),
     )
+    if design_performance:
+        # O caminho legado continua idêntico para a API pública da Meta.
+        fig.update_layout(
+            plot_bgcolor=COLOR["surface-card"],
+            font=dict(family=TYPOGRAPHY["family"], size=12, color=COLOR["text-muted"]),
+            hoverlabel=dict(
+                bgcolor=COLOR["surface-card"], bordercolor=COLOR["line-card"],
+                font=dict(family=TYPOGRAPHY["family"], size=12, color=COLOR["ink"]),
+            ),
+            legend=dict(
+                x=0, xanchor="left", font=dict(size=13, color=COLOR["text-secondary"]),
+            ),
+            xaxis=dict(
+                showline=True, linecolor=COLOR["chart-base"], linewidth=1,
+                tickfont=dict(size=12, color=COLOR["text-muted"]),
+            ),
+            yaxis=dict(
+                gridcolor=COLOR["chart-grid"], gridwidth=1,
+                tickfont=dict(size=11, color=COLOR["text-muted"]),
+            ),
+        )
+        # A versão mínima declarada pode não oferecer o traço da grade.
+        # A aproximação sólida usa os tokens, sem atualizar dependências.
+        if "griddash" in go.layout.YAxis()._valid_props:
+            fig.update_yaxes(griddash="2px,5px")
     if mes_limite is not None and mes_limite < 12:
         fig.add_vrect(
             x0=mes_limite + 0.5, x1=12.5,
-            fillcolor=_COR_ZONA_FUTURA, opacity=0.9,
+            fillcolor=COLOR["surface-page"] if design_performance else _COR_ZONA_FUTURA,
+            opacity=0.9,
             layer="below", line_width=0,
         )
         fig.add_annotation(
             x=(mes_limite + 0.5 + 12.5) / 2, y=0.5, yref="paper",
-            text="<i>sem dado disponível</i>", showarrow=False,
-            font=dict(size=12, color="#8B93A1"),
+            text=rotulo_futuro, showarrow=False,
+            font=dict(
+                size=11 if design_performance else 12,
+                color=COLOR["text-muted"] if design_performance else "#8B93A1",
+            ),
         )
+        if design_performance:
+            fig.layout.annotations[-1].xanchor = "right"
+
+
+def _rotulo_meses_vendas(meses: list[int]) -> str:
+    """Compacta meses consecutivos apenas para a nota de apresentação."""
+    intervalos: list[str] = []
+    inicio = fim = 0
+    for mes in meses:
+        if not intervalos or mes != fim + 1:
+            inicio = mes
+            intervalos.append(MESES_ROTULOS[mes - 1])
+        else:
+            intervalos[-1] = f"{MESES_ROTULOS[inicio - 1]}–{MESES_ROTULOS[mes - 1]}"
+        fim = mes
+    return ", ".join(intervalos)
+
+
+def _contexto_calendario_vendas(comparativo: pd.DataFrame, mes_atual: int) -> str:
+    """Distingue calendário e presença; saldo zero não implica ausência."""
+    presentes = comparativo["atual"].notna()
+    partes: list[str] = []
+    if mes_atual > 1:
+        partes.append(f"{_rotulo_meses_vendas(list(range(1, mes_atual)))}: meses encerrados")
+    disponibilidade = "com registros de vendas" if presentes.loc[mes_atual] else "sem registros no recorte"
+    partes.append(f"{MESES_ROTULOS[mes_atual - 1]}: em andamento, {disponibilidade}")
+    futuros = list(range(mes_atual + 1, 13))
+    for com_registros, rotulo in ((True, "com registros de vendas"), (False, "sem registros no recorte")):
+        meses = [mes for mes in futuros if bool(presentes.loc[mes]) == com_registros]
+        if meses:
+            estado = "futuro" if len(meses) == 1 else "futuros"
+            partes.append(f"{_rotulo_meses_vendas(meses)}: {estado} {rotulo}")
+    ausentes_encerrados = [mes for mes in range(1, mes_atual) if not presentes.loc[mes]]
+    if ausentes_encerrados:
+        partes.append(f"Sem registros no recorte: {_rotulo_meses_vendas(ausentes_encerrados)}")
+    return " · ".join(partes)
 
 
 def grafico_hero_vendas(
@@ -121,18 +192,28 @@ def grafico_hero_vendas(
     fig = go.Figure()
     fig.add_trace(go.Scatter(
         x=meses, y=list(comparativo["anterior"]), name=f"{ano - 1} (ano anterior)",
-        mode="lines", line=dict(dash="dash", color=COR_SERIE_COMPARATIVA, width=2),
+        mode="lines", line=dict(dash="dash", color=COLOR["chart-previous"], width=1.8),
         connectgaps=False, hovertemplate=_FORMATO_MOEDA_HOVER,
     ))
     fig.add_trace(go.Scatter(
         x=meses, y=list(comparativo["atual"]), name=f"{ano} (ano selecionado)",
         mode="lines+markers",
-        line=dict(color=COR_SERIE_PRINCIPAL, width=3),
-        marker=dict(size=8),
+        line=dict(color=COLOR["brand"], width=3),
+        marker=dict(
+            size=7, color=COLOR["surface-card"],
+            line=dict(color=COLOR["brand"], width=2),
+        ),
         fill="tozeroy",
-        fillcolor="rgba(11,122,102,0.06)",  # 3B: área sutil sob o ano atual
+        fillcolor=COLOR["chart-highlight"],
         connectgaps=False, hovertemplate=_FORMATO_MOEDA_HOVER,
     ))
+    # Gradiente é apresentação da área existente, sem mudar sua geometria.
+    # O preenchimento discreto acima serve de aproximação em versões antigas.
+    if "fillgradient" in go.Scatter()._valid_props:
+        fig.data[1].fillgradient = dict(
+            type="vertical",
+            colorscale=[(0, COLOR["chart-area-end"]), (1, COLOR["chart-area-start"])],
+        )
     atual = comparativo["atual"].dropna()
     if not atual.empty:
         from src.components.cards import formatar_moeda_executiva
@@ -140,25 +221,39 @@ def grafico_hero_vendas(
         # pico destacado: marcador maior + rótulo com mais presença
         fig.add_trace(go.Scatter(
             x=[mes_pico], y=[float(atual.max())], mode="markers",
-            marker=dict(size=11, color=COR_SERIE_PRINCIPAL,
-                        line=dict(width=2, color="#FFFFFF")),
+            marker=dict(size=13, color=COLOR["brand"],
+                        line=dict(width=2.5, color=COLOR["surface-card"])),
             showlegend=False, hoverinfo="skip",
         ))
         fig.add_annotation(
             x=mes_pico, y=float(atual.max()), yshift=16, showarrow=False,
+            xanchor="left" if mes_pico <= 2 else "right" if mes_pico >= 11 else "center",
             text=f"<b>{formatar_moeda_executiva(float(atual.max()))}</b>",
-            font=dict(size=13, color=COR_SERIE_PRINCIPAL),
+            font=dict(size=13, color=COLOR["brand"]),
+            bgcolor=COLOR["surface-card"], bordercolor=COLOR["line-card"],
+            borderwidth=1, borderpad=5,
         )
         ultimo_mes = int(atual.index.max())
         if ultimo_mes != mes_pico:
             fig.add_annotation(
                 x=ultimo_mes, y=float(atual.loc[ultimo_mes]), yshift=-18,
                 showarrow=False,
+                xanchor="left" if ultimo_mes <= 2 else "right" if ultimo_mes >= 11 else "center",
                 text=f"<b>{formatar_moeda_executiva(float(atual.loc[ultimo_mes]))}</b>",
-                font=dict(size=11, color=COR_SERIE_PRINCIPAL),
+                font=dict(size=12, color=COLOR["brand"]),
+                bgcolor=COLOR["surface-card"], bordercolor=COLOR["line-card"],
+                borderwidth=1, borderpad=4,
             )
-    _aplicar_estilo_hero(fig, ano, mes_limite)
+    _aplicar_estilo_hero(fig, ano, mes_limite, rotulo_futuro="<i>meses futuros</i>")
+    if not atual.empty:
+        fig.add_vrect(
+            x0=mes_pico - 0.42, x1=mes_pico + 0.42,
+            fillcolor=COLOR["chart-highlight"], opacity=1,
+            layer="below", line_width=0,
+        )
     st.plotly_chart(fig, width="stretch")
+    if mes_limite is not None:
+        st.caption(_contexto_calendario_vendas(comparativo, mes_limite))
 
 
 def grafico_hero_ticket(
@@ -169,7 +264,11 @@ def grafico_hero_ticket(
     fig = go.Figure(go.Scatter(
         x=meses, y=[por_mes.get(m) for m in meses], name=f"{ano}",
         mode="lines+markers",
-        line=dict(color=COR_SERIE_PRINCIPAL, width=2.5), marker=dict(size=7),
+        line=dict(color=COLOR["brand"], width=3),
+        marker=dict(
+            size=7, color=COLOR["surface-card"],
+            line=dict(color=COLOR["brand"], width=2),
+        ),
         connectgaps=False, hovertemplate=_FORMATO_MOEDA_HOVER,
     ))
     _aplicar_estilo_hero(fig, ano, mes_limite)

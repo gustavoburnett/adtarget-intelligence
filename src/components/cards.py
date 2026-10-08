@@ -26,6 +26,7 @@ from typing import Optional
 import streamlit as st
 
 from src.components.kpi_icons import ICONES_KPI, TRIANGULOS_HERO
+from src.components.radar_icons import ICONES_RADAR
 from src.data.metrics import ROTULOS_CRITERIO_MES
 from src.data.radar import RadarState
 
@@ -483,7 +484,13 @@ def capsulas_insights(destaques: dict) -> None:
 
 
 def render_radar(estado: RadarState) -> None:
-    """Faixa compacta; CTAs orientativos, sem navegação ou filtro automático."""
+    """Cards de exceções; CTAs orientativos e conteúdo funcional preservado."""
+    with st.container(key="design_performance_radar"):
+        _render_radar_conteudo(estado)
+
+
+def _render_radar_conteudo(estado: RadarState) -> None:
+    """Apresenta o estado recebido, sem reordenar ou selecionar insights."""
     metadados = (
         f"{'Valor Líquido' if estado.valor == 'liquido' else 'Valor Bruto'} · "
         f"{ROTULOS_CRITERIO_MES[estado.criterio_mes]}"
@@ -526,12 +533,14 @@ def render_radar(estado: RadarState) -> None:
                         f"{formatar_moeda_executiva(insight.valor_anterior)} em {ano_anterior}"
                     )
             itens.append(
-                '<div class="atg-radar-item">'
+                f'<div class="atg-radar-item" data-radar-kind="{escape(insight.tipo)}">'
+                f'<span class="atg-radar-icon">{ICONES_RADAR[insight.tipo]}</span>'
+                '<div class="atg-radar-copy">'
                 f'<div class="atg-radar-category">{escape(rotulos[insight.tipo])} · {escape(entidade)}</div>'
                 f'<div class="atg-radar-headline num"><strong>{escape(manchete)}</strong></div>'
                 f'<div class="atg-radar-context num" title="{escape(insight.referencia_comparacao)}">'
                 f'{escape(contexto)}</div>'
-                f'<div class="atg-radar-cta"><em>{escape(insight.cta.texto)}</em></div></div>'
+                f'<div class="atg-radar-cta"><em>{escape(insight.cta.texto)}</em></div></div></div>'
             )
         classes = {1: "atg-radar-single", 2: "atg-radar-two", 3: "atg-radar-three"}
         classe = "atg-radar " + classes.get(len(itens), "")
@@ -549,7 +558,8 @@ def render_radar(estado: RadarState) -> None:
             nomes[r] for r in estado.regras_sem_comparacao
         ) + ".")
     if estado.sincronizado_em is not None:
-        st.caption(f"Última sincronização com a fonte: {estado.sincronizado_em:%d/%m/%Y %H:%M}")
+        with st.container(key="design_performance_radar_sync"):
+            st.caption(f"Última sincronização com a fonte: {estado.sincronizado_em:%d/%m/%Y %H:%M}")
 
 
 def _badge_tendencia(variacao: Optional[float]) -> str:

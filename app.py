@@ -25,7 +25,9 @@ from pages_content import (
     performance_comercial,
 )
 from src.auth.gate import exigir_autenticacao
-from src.components import cards, design_styles, performance_styles, shell
+from src.components import (
+    cards, design_styles, evolution_styles, performance_styles, radar_styles, shell,
+)
 from src.components.design_tokens import SIDEBAR_WIDTH
 from src.data.cleaning import limpar_dataframe
 from src.data.loader import ErroDeCarga, load_all_sheets
@@ -158,6 +160,8 @@ titulo_visivel = pagina_ativa.replace("🔧 ", "")
 
 if pagina_ativa == "Performance Comercial":
     st.html(performance_styles.CSS_PERFORMANCE)
+    st.html(radar_styles.CSS_RADAR)
+    st.html(evolution_styles.CSS_EVOLUTION)
     with st.container(
         key="design_performance_header", horizontal=True,
         vertical_alignment="center", gap="medium",
