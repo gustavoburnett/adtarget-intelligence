@@ -480,6 +480,11 @@ def test_design_1f_preserva_fontes_protegidas_do_design_1e(caminho):
             assert anterior.count(original) == 1
             anterior = anterior.replace(original, aprovado, 1)
         assert atual == anterior
+    elif caminho == "src/auth/gate.py":
+        # Checkpoint 2A: libera somente apresentação e containers visuais;
+        # comparação, erros, estado, form_login, rerun e stop seguem congelados.
+        from tests.test_login_presentation import _contrato_autenticacao
+        assert _contrato_autenticacao(atual) == _contrato_autenticacao(anterior)
     elif caminho not in autorizadas:
         assert atual == anterior
     else:
