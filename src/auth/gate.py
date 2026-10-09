@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import streamlit as st
 
+from src.components import login, shell
+
 
 def exigir_autenticacao() -> None:
     """Bloqueia a execução até a senha correta ser informada."""
@@ -22,28 +24,31 @@ def exigir_autenticacao() -> None:
     if st.session_state["autenticado"]:
         return
 
-    if "app_password" not in st.secrets:
-        # Risco do documento 03: secrets ausentes geram mensagem amigável,
-        # nunca stack trace
-        st.error(
-            "Senha do aplicativo não configurada. "
-            "Defina `app_password` no arquivo .streamlit/secrets.toml "
-            "(local) ou na interface de secrets do Streamlit Cloud."
-        )
-        st.stop()
+    st.html(shell.font_style())
+    st.html(login.CSS_LOGIN)
+    with st.container(key="design_login_stage"):
+        with st.container(key="design_login_card"):
+            st.markdown(login.header(), unsafe_allow_html=True)
 
-    st.title("AdTarget Intelligence")
-    st.caption("Acesso restrito — informe a senha para continuar.")
+            if "app_password" not in st.secrets:
+                # Secrets ausentes continuam gerando somente a mensagem amigável.
+                st.error(
+                    "Senha do aplicativo não configurada. "
+                    "Defina `app_password` no arquivo .streamlit/secrets.toml "
+                    "(local) ou na interface de secrets do Streamlit Cloud."
+                )
+                st.stop()
 
-    with st.form("form_login"):
-        senha = st.text_input("Senha", type="password")
-        entrar = st.form_submit_button("Entrar")
+            with st.form("form_login", border=False):
+                senha = st.text_input("Senha", type="password")
+                entrar = st.form_submit_button("Entrar", type="primary", width="stretch")
 
-    if entrar:
-        if senha == st.secrets["app_password"]:
-            st.session_state["autenticado"] = True
-            st.rerun()
-        else:
-            st.error("Senha incorreta.")
+            if entrar:
+                if senha == st.secrets["app_password"]:
+                    st.session_state["autenticado"] = True
+                    st.rerun()
+                else:
+                    st.error("Senha incorreta.")
+        st.markdown(login.EDITORIAL, unsafe_allow_html=True)
 
     st.stop()
