@@ -61,7 +61,7 @@ def _entrada(monkeypatch, pagina, *, auditoria=False, erro_metas=None):
             raise erro_metas
         return metas
 
-    def render_performance(df, sincronizado_em=None, *, carregar_metas=None):
+    def render_performance(df, sincronizado_em=None, *, carregar_metas=None, carregar_representacoes=None):
         renders.append(("Performance Comercial", df, sincronizado_em))
 
     def render_simples(nome):
@@ -162,7 +162,7 @@ def test_atualizar_outra_pagina_invalida_metas_sem_carrega_las(monkeypatch):
     assert leituras == {"vendas": 2, "metas": 2}
 
 
-def test_ambas_as_fontes_tem_cache_independente_de_quinze_minutos(monkeypatch):
+def test_tres_fontes_tem_cache_independente_de_quinze_minutos(monkeypatch):
     cache_original = st.cache_data
     decoradores = []
 
@@ -173,9 +173,9 @@ def test_ambas_as_fontes_tem_cache_independente_de_quinze_minutos(monkeypatch):
     monkeypatch.setattr(st, "cache_data", observar_cache)
     app, _, _, _, _ = _entrada(monkeypatch, "Metas e Resultados")
     assert not app.exception
-    assert len(decoradores) == 2
+    assert len(decoradores) == 3
     assert all(decorador["ttl"] == 900 for decorador in decoradores)
-    assert len({decorador["show_spinner"] for decorador in decoradores}) == 2
+    assert len({decorador["show_spinner"] for decorador in decoradores}) == 3
 
 
 @pytest.mark.parametrize("categoria", ["fonte", "estrutura", "validacao"])

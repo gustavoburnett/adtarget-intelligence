@@ -15,6 +15,7 @@ import pandas as pd
 from src.data import metrics
 from src.data.cleaning import COL_GRUPO
 from src.data.metas_schema import ALIASES_METAS
+from src.data.representacoes import CadastroRepresentacoes, NAO_INFORMADO
 
 TipoInsight = Literal["risco", "queda", "destaque", "crescimento"]
 StatusRadar = Literal["ativo", "silencio", "dados_desatualizados", "dados_insuficientes"]
@@ -49,6 +50,7 @@ class Insight:
     magnitude: float
     referencia_comparacao: str
     cta: CTA
+    status_representacao: str = NAO_INFORMADO
 
 
 @dataclass(frozen=True)
@@ -89,6 +91,7 @@ def avaliar_radar(
     criterio_mes: metrics.CriterioMes = metrics.CRITERIO_MES_OFICIAL,
     sincronizado_em: dt.datetime | None = None,
     ctas: Mapping[str, CTA] | None = None,
+    representacoes: CadastroRepresentacoes | None = None,
 ) -> RadarState:
     """Avalia o recorte dimensional completo, antes do filtro de ano.
 
@@ -100,6 +103,9 @@ def avaliar_radar(
     Destaque: último mês COM dado no ano selecionado, anterior ao mês
     corrente, contra os 12 meses consecutivos anteriores COM dado.
     A idade da sincronização nunca decide a atualidade do conteúdo.
+    ENCERRADA impede apenas recomendações de recuperação (queda).
+    Cadastro ausente/não validado permanece NÃO INFORMADO, sem exclusão.
+    O status comercial atual não é usado para filtrar séries financeiras.
     """
     col_mes = metrics.coluna_mes(criterio_mes)
     col_valor = metrics.coluna_valor(valor)
@@ -133,6 +139,11 @@ def avaliar_radar(
             v_atual = float(somas_atual.get(grupo, 0.0))
             variacao = (v_atual - v_ant) / v_ant * 100.0
             tipo = "crescimento" if variacao >= 15 else "queda" if variacao <= -15 else None
+            status_comercial = (representacoes.status(grupo)
+                                if representacoes and representacoes.validacao_concluida else NAO_INFORMADO)
+            # Elegibilidade da ação apenas: nunca remove vendas do consolidado.
+            if tipo == "queda" and status_comercial == "ENCERRADA":
+                continue
             if tipo is None:
                 continue
             p_atual, p_ant = _periodo(ano, limite), _periodo(ano - 1, limite)
@@ -145,7 +156,7 @@ def avaliar_radar(
                 referencia_comparacao=(
                     f"{p_atual[0]:%m/%Y}–{p_atual[1]:%m/%Y} vs "
                     f"{p_ant[0]:%m/%Y}–{p_ant[1]:%m/%Y} (mesmo período do ano anterior)"
-                ), cta=ctas[tipo],
+                ), cta=ctas[tipo], status_representacao=status_comercial,
             ))
     for tipo in ("queda", "crescimento"):
         (avaliadas if comparaveis else sem_comparacao).append(tipo)
