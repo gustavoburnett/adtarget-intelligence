@@ -6,6 +6,7 @@ leitura real; teclado, toque e overflow são verificados no navegador.
 
 import ast
 import datetime as dt
+import json
 from decimal import Decimal
 from functools import lru_cache
 from html.parser import HTMLParser
@@ -337,15 +338,17 @@ def test_controle_nativo_de_ano_e_graficos_preservados_em_render(estado):
         apps.append(app.run(timeout=20))
     atual, congelada = apps
     assert not atual.exception and not congelada.exception
-    assert [(seletor.key, seletor.options, seletor.value) for seletor in atual.button_group] == [
+    assert [(seletor.key, seletor.options, seletor.value) for seletor in atual.button_group if seletor.key == "metas_ano"] == [
         (seletor.key, seletor.options, seletor.value) for seletor in congelada.button_group
     ]
     assert atual.button_group(key="metas_ano").value == ano
-    assert _figuras(atual) == _figuras(congelada)
+    figuras_legadas = [json.loads(elemento.proto.spec) for elemento in atual.get("plotly_chart")
+                       if "group_monthly_plot_" not in elemento.proto.id]
+    assert figuras_legadas == _figuras(congelada)
     assert [erro.value for erro in atual.error] == [erro.value for erro in congelada.error]
     assert [info.value for info in atual.info] == [info.value for info in congelada.info]
     if estado == "sem_ano":
-        assert not atual.get("plotly_chart")
+        assert not figuras_legadas
         assert not any("Metas por parceiro" in el.value for el in atual.markdown)
 
 

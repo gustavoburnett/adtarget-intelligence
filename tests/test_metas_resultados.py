@@ -174,8 +174,10 @@ def test_ano_sem_metas_nao_inventa_zero_ou_projecao():
     html = _html(app)
     assert "Sem meta lançada para o período" in html
     assert "Não há metas cadastradas para 2025" in html
+    legado = html.split('<h2 class="atg-group-title"', maxsplit=1)[0]
     for titulo in ("RITMO FECHADO", "META ANUAL ·", "GAP COMERCIAL", "NECESSIDADE COMERCIAL", "FORECAST", "Metas por parceiro"):
-        assert titulo not in html
+        assert titulo not in legado
+    assert "Meta anual não cadastrada" in html
     assert not app.expander
     assert 'title="R$ 0,00"' not in html
 
@@ -360,9 +362,9 @@ def test_pulso_e_gap_comercial_incluem_carteira_sem_alterar_hero():
 def test_graficos_integrados_e_hierarquia_antes_dos_parceiros():
     app = _pagina()
     html = _html(app)
-    assert len(app.get("plotly_chart")) == 2
+    assert len(app.get("plotly_chart")) == 4  # Dois legados e duas orientações do Checkpoint 2B.
     titulos = ["FECHADO ATÉ", "META ANUAL ·", "GAP COMERCIAL", "Projeção",
-               "Evolução Mensal", "Evolução Acumulada", "Metas por parceiro"]
+               "Evolução Mensal", "Evolução Acumulada", "Desempenho Mensal por Grupo", "Metas por parceiro"]
     posicoes = [html.index(titulo) for titulo in titulos]
     assert posicoes == sorted(posicoes)
     assert "Realizado nos meses encerrados · Já vendido" in html
@@ -399,5 +401,9 @@ def test_ranking_parceiros_por_atingimento_e_escape_de_entidades():
 
 def test_ano_sem_meta_suprime_graficos_e_lista_parceiros():
     app = _pagina(ano=2025)
-    assert not app.get("plotly_chart")
+    # A falta de metas continua suprimindo os gráficos consolidados antigos;
+    # o Checkpoint 2B permite consultar vendas históricas sem fabricar metas.
+    figuras = app.get("plotly_chart")
+    assert len(figuras) == 2
+    assert all("group_monthly_plot_" in figura.proto.id for figura in figuras)
     assert "Metas por parceiro" not in _html(app)

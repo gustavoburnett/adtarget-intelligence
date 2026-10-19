@@ -79,7 +79,10 @@ def _observar_calculos(monkeypatch):
 
 def _verificar_render(app, recebidas, resultados, referencia, encerrados):
     assert not app.exception
-    assert len(app.get("plotly_chart")) == 2
+    figuras = app.get("plotly_chart")
+    assert len(figuras) == 4
+    assert all("group_monthly_plot_" not in figura.proto.id for figura in figuras[:2])
+    assert all("group_monthly_plot_" in figura.proto.id for figura in figuras[2:])
     assert len(recebidas) == 7
     assert set(recebidas.values()) == {referencia}
     fechado = resultados["avaliar_metas"]
