@@ -13,7 +13,7 @@ from html import escape
 import pandas as pd
 import streamlit as st
 
-from src.components import cards, filters, metas_charts, metas_styles
+from src.components import cards, filters, metas_charts, metas_styles, monthly_groups
 from src.components.partner_logos import CSS_PARTNER_LOGOS, partner_logo
 from src.data.metas import (
     ParceiroMetas, ResultadoMetas, ResultadoPulso,
@@ -481,6 +481,11 @@ def _render_conteudo(
             unsafe_allow_html=True,
         )
         _mostrar_graficos(resultado, pulso)
+    monthly_groups.render(
+        df, base_metas, ano, data_referencia=data_referencia,
+        atividade=lambda grupo: _atividade_parceiro(grupo, resultado, metas_vigentes),
+    )
+    if resultado.estado != "sem_metas":
         st.markdown(_parceiros(parceiros, pulso, resultado, metas_vigentes), unsafe_allow_html=True)
     _mostrar_alertas(alertas)
     _rodape()
