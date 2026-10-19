@@ -21,6 +21,7 @@ import streamlit as st
 
 from src.components import cards, charts, filters, metas_charts, ranking_data
 from src.data import metas, metrics, radar
+from src.data.representacoes import CadastroRepresentacoes, ErroRepresentacoes
 from src.data.cleaning import COL_AGENCIA, COL_CLIENTE, COL_GRUPO
 from src.data.metas_schema import ErroDeMetas
 
@@ -144,6 +145,7 @@ def _abas_evolucao(
 def render(
     df: pd.DataFrame, sincronizado_em: _dt.datetime | None = None, *,
     carregar_metas: Callable[[], pd.DataFrame] | None = None,
+    carregar_representacoes: Callable[[], CadastroRepresentacoes] | None = None,
 ) -> None:
     agora = _dt.datetime.now()
     hoje = agora.date()
@@ -184,11 +186,22 @@ def render(
     )
 
     # --------------------------------------------------- Radar Executivo
+    cadastro = None
+    if carregar_representacoes is not None:
+        try:
+            cadastro = carregar_representacoes()
+        except ErroRepresentacoes as erro:
+            st.caption(str(erro))
+        else:
+            if cadastro.validacao_concluida:
+                st.caption("Fonte confirmada · cadastro acessível · regra de representações ativa.")
+            for aviso in cadastro.avisos:
+                st.caption(aviso)
     cards.render_radar(
         radar.avaliar_radar(
             radar.recorte_por_grupos(df, df_dim[COL_GRUPO].unique()),
             ano, agora=agora, valor=valor, criterio_mes=criterio_mes,
-            sincronizado_em=sincronizado_em,
+            sincronizado_em=sincronizado_em, representacoes=cadastro,
         )
     )
 

@@ -34,6 +34,7 @@ from src.data.cleaning import limpar_dataframe
 from src.data.loader import ErroDeCarga, load_all_sheets
 from src.data.metas_loader import load_metas
 from src.data.metas_schema import ErroDeMetas
+from src.data.representacoes import load_representacoes
 
 st.set_page_config(
     page_title="AdTarget Intelligence",
@@ -66,6 +67,11 @@ def _carregar_dados_brutos(
 def _carregar_metas(spreadsheet_id: str, credenciais: dict) -> pd.DataFrame:
     """Cache independente de METAS, consultado somente na visão de metas."""
     return load_metas(spreadsheet_id, credenciais)
+
+
+@st.cache_data(ttl=900, show_spinner="Carregando representações...")
+def _carregar_representacoes(spreadsheet_id: str, credenciais: dict):
+    return load_representacoes(spreadsheet_id, credenciais)
 
 
 def _validar_secrets() -> tuple[str, dict]:
@@ -209,6 +215,7 @@ with col_acoes:
                      help="Recarregar os dados da planilha agora"):
             _carregar_dados_brutos.clear()
             _carregar_metas.clear()
+            _carregar_representacoes.clear()
             st.session_state["_dados_recarregados"] = True
             st.rerun()
     with col_tema:
@@ -222,6 +229,7 @@ if pagina_ativa == "Performance Comercial":
     render_pagina(
         dados, sincronizado_em=sincronizado_em,
         carregar_metas=lambda: _carregar_metas(spreadsheet_id, credenciais),
+        carregar_representacoes=lambda: _carregar_representacoes(spreadsheet_id, credenciais),
     )
 elif pagina_ativa == "Metas e Resultados":
     try:
