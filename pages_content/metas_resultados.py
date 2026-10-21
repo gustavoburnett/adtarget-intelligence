@@ -113,7 +113,7 @@ def _hero(resultado: ResultadoMetas) -> str:
         '<section class="atg-card atg-metas-hero" aria-label="Meta acumulada">'
         '<div class="atg-metas-hero-grid"><div>'
         f'<div class="atg-metas-label atg-metas-eyebrow">{_fechado(resultado)}</div>'
-        '<div class="atg-metas-label">RITMO FECHADO</div>'
+        f'<div class="atg-metas-label">{"RESULTADO FINAL" if resultado.meses_encerrados == 12 else "RITMO FECHADO"}</div>'
         f'{destaque}<div class="atg-metas-context">da meta YTD realizada</div>'
         f'</div><div class="atg-metas-support">{apoio}</div></div></section>'
     )
@@ -137,7 +137,7 @@ def _meta_anual(pulso: ResultadoPulso) -> str:
         _moeda(gap) if gap > 0 else
         f'Meta superada em {_moeda(abs(gap))}' if gap < 0 else "Meta anual atingida"
     )
-    contexto_gap = "ainda precisam ser vendidos" if gap > 0 else "Compromisso anual cumprido"
+    contexto_gap = ("Meta anual não atingida" if not pulso.meses_restantes else "ainda precisam ser vendidos") if gap > 0 else "Compromisso anual cumprido"
     return (
         '<section class="atg-card atg-metas-annual" aria-label="Meta anual">'
         f'<h2 class="atg-metas-title">META ANUAL · {pulso.ano}</h2>'
@@ -154,6 +154,9 @@ def _meta_anual(pulso: ResultadoPulso) -> str:
 
 
 def _projecao(resultado: ResultadoMetas, pulso: ResultadoPulso) -> str:
+    if resultado.meses_encerrados == 12:
+        return ""
+
     def faixa(titulo: str, valor: str, contexto: str, *, estado: bool = False) -> str:
         classe = "atg-metas-state" if estado else "atg-metas-value"
         return (
@@ -289,6 +292,7 @@ def _parceiros(
     parceiros: tuple[ParceiroMetas, ...], pulso: ResultadoPulso,
     resultado: ResultadoMetas, metas_vigentes: pd.DataFrame | None = None,
 ) -> str:
+    encerrado = resultado.meses_encerrados == 12
     rotulos = {
         "acima_da_meta": ("✓ Acima do ritmo", "positive"),
         "proximo_da_meta": ("≈ No ritmo", "neutral"),
@@ -311,7 +315,10 @@ def _parceiros(
     def linha(parceiro: ParceiroMetas) -> str:
         ativo, contexto_operacao = atividade[parceiro.grupo]
         rotulo, classe = rotulos[parceiro.status]
-        if not ativo:
+        if encerrado and parceiro.meta_ytd > 0:
+            atingida = parceiro.saldo_ytd >= 0
+            rotulo, classe = ("✓ Meta atingida", "positive") if atingida else ("↓ Meta não atingida", "negative")
+        elif not ativo:
             rotulo, classe = contexto_operacao, "neutral"
         pct = parceiro.atingimento_ytd_pct
         percentual = _pct(pct) if pct is not None else "—"
@@ -338,10 +345,10 @@ def _parceiros(
             if pulso.meses_encerrados else _AGUARDANDO
         )
         complemento = (
-            f' · {escape(contexto_operacao)}' if ativo and contexto_operacao else
+            f' · {escape(contexto_operacao)}' if not encerrado and ativo and contexto_operacao else
             ' · Realizado zero no período' if ativo and pulso.meses_encerrados and parceiro.realizado_ytd == 0 else ""
         )
-        classe_operacao = "" if ativo else " atg-metas-partner-inactive"
+        classe_operacao = "" if ativo or encerrado else " atg-metas-partner-inactive"
         # Somente a apresentação da régua: os valores da engine permanecem intactos.
         excedente = min(escala, max(Decimal(100), pct or Decimal(0))) - Decimal(100)
         largura_excedente = format(excedente / escala * 100, '.2f')
@@ -367,16 +374,25 @@ def _parceiros(
             '<details class="atg-metas-partner-detail-shell"><summary>Compromisso anual e saldo</summary>'
             f'<div class="atg-metas-partner-details">{detalhes_html}</div></details></article>'
         )
-    resumo = [f'{len(ativos)} parceiros ativos']
-    for estado, texto in (
-        ("acima_da_meta", "acima do ritmo"), ("proximo_da_meta", "no ritmo"),
-        ("abaixo_da_meta", "abaixo do ritmo"),
-    ):
-        quantidade = sum(parceiro.status == estado for parceiro in ativos)
-        if quantidade:
-            resumo.append(f'{quantidade} {texto}')
+    if encerrado:
+        # Agrupamento histórico visual, sem inferir atividade atual da representação.
+        ativos, inativos = ordenados, []
+    resumo = [f'{len(ativos)} grupos com meta em {resultado.ano}' if encerrado else f'{len(ativos)} parceiros ativos']
+    if encerrado:
+        for atingida, texto in ((True, "com meta atingida"), (False, "com meta não atingida")):
+            quantidade = sum(p.meta_ytd > 0 and (p.saldo_ytd >= 0) == atingida for p in ativos)
+            if quantidade:
+                resumo.append(f'{quantidade} {texto}')
+    else:
+        for estado, texto in (
+            ("acima_da_meta", "acima do ritmo"), ("proximo_da_meta", "no ritmo"),
+            ("abaixo_da_meta", "abaixo do ritmo"),
+        ):
+            quantidade = sum(parceiro.status == estado for parceiro in ativos)
+            if quantidade:
+                resumo.append(f'{quantidade} {texto}')
     grupos = (
-        '<h3 class="atg-metas-partner-group">Parceiros ativos</h3>'
+        f'<h3 class="atg-metas-partner-group">{f"Grupos com meta em {resultado.ano}" if encerrado else "Parceiros ativos"}</h3>'
         '<div class="atg-card atg-metas-partners">'
         '<div class="atg-metas-scale"><span>100% da meta YTD</span></div>'
         + (''.join(linha(parceiro) for parceiro in ativos) if ativos else
