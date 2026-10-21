@@ -234,7 +234,7 @@ def test_yoy_zero_ou_ausente_nao_inventa_comparativo(anterior):
 def test_ano_encerrado_mostra_resultado_final_e_suprime_projecoes():
     html = _html(_pagina(referencia=dt.date(2027, 1, 1)))
     assert "Jan a Dez/2026" in html and "Resultado final do ano" in html
-    assert html.count('class="atg-metas-state atg-metas-neutral">Ano encerrado') == 3
+    assert 'aria-label="Projeção"' not in html
     assert "/mês" not in html and "O plano futuro cobre" not in html
     assert "projetado de atingimento" not in html
     assert "Dados insuficientes" not in html

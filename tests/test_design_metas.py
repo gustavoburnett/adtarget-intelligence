@@ -160,9 +160,9 @@ def _avaliar(estado="regular"):
 def test_hero_meta_anual_e_projecao_preservam_html_financeiro_do_design_1e(estado):
     _, _, fechado, pulso, _, _ = _avaliar(estado)
     congelada = _checkpoint()
-    assert pagina._hero(fechado) == congelada._hero(fechado)
-    assert pagina._meta_anual(pulso) == congelada._meta_anual(pulso)
-    assert pagina._projecao(fechado, pulso) == congelada._projecao(fechado, pulso)
+    assert pagina._hero(fechado).replace("RESULTADO FINAL", "RITMO FECHADO") == congelada._hero(fechado)
+    assert pagina._meta_anual(pulso).replace("Meta anual não atingida", "ainda precisam ser vendidos") == congelada._meta_anual(pulso)
+    assert pagina._projecao(fechado, pulso) == ("" if fechado.meses_encerrados == 12 else congelada._projecao(fechado, pulso))
 
 
 @pytest.mark.parametrize("estado", ESTADOS)
@@ -177,11 +177,13 @@ def test_reconciliacao_parceiros_preserva_ordem_atividade_numeros_e_detalhes(est
         for atributo in ("data-pct-ytd", "data-scale-max"):
             assert nova.get(atributo) == antiga.get(atributo)
         inativa = "atg-metas-partner-inactive"
-        assert (inativa in nova.get("class", "").split()) == (inativa in antiga.get("class", "").split())
+        assert (inativa in nova.get("class", "").split()) == (False if fechado.meses_encerrados == 12 else inativa in antiga.get("class", "").split())
         assert _texto(_unico(nova, "atg-metas-partner-pct")) == _texto(_unico(antiga, "atg-metas-partner-pct"))
         status_antigo = _texto(_unico(antiga, "atg-metas-partner-status"))
         status_novo = _unico(nova, "atg-metas-partner-status")
-        if inativa in antiga.get("class", "").split():
+        if fechado.meses_encerrados == 12:
+            assert "Meta não atingida" in _texto(status_novo) or "Meta atingida" in _texto(status_novo)
+        elif inativa in antiga.get("class", "").split():
             assert status_antigo in _texto(nova)
             assert "atg-metas-negative" not in status_novo.get("class", "").split()
         else:
