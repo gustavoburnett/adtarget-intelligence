@@ -41,8 +41,13 @@ def grafico_barra_horizontal(
     top_n: Optional[int] = None,
     *,
     estilo_veiculos: bool = False,
+    key: Optional[str] = None,
 ) -> None:
-    """Barra horizontal ordenada do maior para o menor (rankings)."""
+    """Barra horizontal ordenada do maior para o menor (rankings).
+
+    Passe uma key estável por posição da página: figuras equivalentes podem
+    coexistir, mesmo quando o estilo remove seus títulos internos.
+    """
     if dados.empty:
         st.info("Sem dados no recorte selecionado")
         return
@@ -69,7 +74,7 @@ def grafico_barra_horizontal(
     )
     if estilo_veiculos:
         _aplicar_estilo_barras_veiculos(fig, recorte, coluna_rotulo, coluna_valor)
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig, width="stretch", **({"key": key} if key is not None else {}))
 
 
 def _aplicar_estilo_barras_veiculos(

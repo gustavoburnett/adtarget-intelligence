@@ -85,6 +85,7 @@ def render(df: pd.DataFrame) -> None:
         st.subheader("Vendas por Grupo")
         charts.grafico_barra_horizontal(
             por_grupo, COL_GRUPO, "valor", "Vendas por Grupo", estilo_veiculos=True,
+            key=f"{_CHAVE}_vendas_grupo",
         )
 
     # ------------------------------------------------ drill-down por veículo
@@ -101,6 +102,7 @@ def render(df: pd.DataFrame) -> None:
             charts.grafico_barra_horizontal(
                 detalhe, COL_VEICULO, coluna_ref,
                 f"Vendas por Veículo — {grupo_escolhido}", estilo_veiculos=True,
+                key=f"{_CHAVE}_vendas_veiculo",
             )
 
     # --------------------------------------------------- rankings completos
