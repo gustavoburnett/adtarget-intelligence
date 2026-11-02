@@ -15,6 +15,8 @@ from src.data.metas_schema import COLUNAS_METAS, validar_metas
 
 def vendas_sinteticas(*_):
     rows = []
+    months = ("JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO",
+              "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO")
     for year in (2025, 2026):
         for month in range(1, 13):
             for group in ("PARCEIRO SINTÉTICO ALFA", "PARCEIRO SINTÉTICO BETA"):
@@ -23,8 +25,8 @@ def vendas_sinteticas(*_):
                     "GRUPO": group, "VEICULO": group + " FM",
                     "PI": f"SYN-{year}-{month}-{group[-4:]}",
                     "STATUS": "FATURADO", "ANO_ABA": year,
-                    "MÊS (GANHO)": pd.Timestamp(year, month, 1),
-                    "MÊS (VEICULAÇÃO)": pd.Timestamp(year, month, 1),
+                    "MÊS (GANHO)": f"{months[month - 1]}/{year}",
+                    "MÊS (VEICULAÇÃO)": f"{months[month - 1]}/{year}",
                     "VALOR PI BRUTO": month * 500.0,
                     "VALOR PI LIQUIDO": month * 400.0,
                     "VENCIMENTO PI": "CONTRA APRESENT.", "NOTA FISCAL": "SINTÉTICA",

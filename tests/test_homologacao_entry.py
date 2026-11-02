@@ -41,3 +41,11 @@ def test_synthetic_entry_keeps_anonymous_gate(monkeypatch):
 def test_real_sheet_client_always_blocked():
     with pytest.raises(RuntimeError, match="não permite"):
         app_homologacao.bloquear_cliente_real({})
+
+
+def test_synthetic_dates_survive_real_cleaning():
+    from src.data.cleaning import limpar_dataframe, COL_MES_VEICULACAO_DATA
+    frame = limpar_dataframe(app_homologacao.vendas_sinteticas())
+    assert len(frame) == 48
+    assert frame[COL_MES_VEICULACAO_DATA].notna().all()
+    assert frame["VALOR PI LIQUIDO"].sum() > 0
