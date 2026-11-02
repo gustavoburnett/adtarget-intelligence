@@ -1,5 +1,4 @@
 # CI-only lock input; production requirements remain unchanged.
 -r ../requirements.txt
-# pandas 3.1 rejects any() on empty datetime series in legacy CSV checks.
-# Keep the pandas 2 API used by the existing preservation suite.
-pandas==2.3.3
+# Preservation tests assert the pandas 3.0 frozen-checkpoint diagnostics.
+pandas==3.0.3

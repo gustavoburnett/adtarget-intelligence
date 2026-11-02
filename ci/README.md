@@ -6,9 +6,10 @@ Only contents:read is granted; checkout does not persist credentials. No Secrets
 Google Sheets configuration, deployment or application startup is used.
 
 `requirements-ci.txt` pins transitive dependencies and hashes, independently of
-production requirements. pandas 2.3.3 preserves the API used by legacy CSV tests;
-pandas 3.1.0 was reproduced failing on empty datetime Series.map(...).any().
-This is an environment compatibility pin, not a financial logic change.
+production requirements. pandas 3.0.3 preserves the frozen-checkpoint diagnostics
+asserted by the existing suite. pandas 3.1 changed the datetime any() error text;
+pandas 2.3 only warns instead of raising. Neither matches that checkpoint contract.
+This is a CI environment pin, not a financial logic change.
 
 Recreate the lock from the repository root with uv 0.13.6:
 
