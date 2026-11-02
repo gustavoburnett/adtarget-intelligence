@@ -164,12 +164,14 @@ with st.sidebar:
                 label_visibility="collapsed",
                 format_func=shell.navigation_label,
             )
-        st.button("Sair", key="logout_google", on_click=encerrar_sessao)
         with st.container(key="design_sidebar_footer"):
             st.markdown(
                 shell.sidebar_footer(sincronizado_em, minutos),
                 unsafe_allow_html=True,
             )
+            st.caption(st.user.get("email", ""))
+            st.button("Sair", key="logout_google", on_click=encerrar_sessao,
+                      type="tertiary")
 
 # -------------------------------------------------------------- masthead
 render_pagina, subtitulo = PAGINAS[pagina_ativa]
