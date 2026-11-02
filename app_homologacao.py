@@ -8,6 +8,7 @@ import runpy
 from unittest.mock import patch
 
 import pandas as pd
+from pages_content import carteira_vendas
 
 from src.data import cleaning, loader, metas_loader, representacoes
 from src.data.metas_schema import COLUNAS_METAS, validar_metas
@@ -47,6 +48,17 @@ def bloquear_cliente_real(*_, **__):
     raise RuntimeError("Homologação sintética não permite acesso ao Google Sheets.")
 
 
+_documento_original = carteira_vendas.documento
+
+
+def documento_homologacao(*args, **kwargs):
+    # Keep links inside the separate acceptance environment, including iframe links.
+    return _documento_original(*args, **kwargs).replace(
+        "https://adtarget-intelligence-e7ftyu8hg9jcek5gaguhpm.streamlit.app/",
+        "https://adtarget-intelligence-homologacao.streamlit.app/",
+    )
+
+
 if __name__ == "__main__":
     # Contexts restore functions even on Streamlit stop/rerun. No auth is patched.
     with (
@@ -54,5 +66,6 @@ if __name__ == "__main__":
         patch.object(loader, "criar_cliente", bloquear_cliente_real),
         patch.object(metas_loader, "load_metas", metas_sinteticas),
         patch.object(representacoes, "load_representacoes", representacoes_sinteticas),
+        patch.object(carteira_vendas, "documento", documento_homologacao),
     ):
         runpy.run_path(str(Path(__file__).with_name("app.py")), run_name="__main__")

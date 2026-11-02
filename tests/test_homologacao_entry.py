@@ -49,3 +49,9 @@ def test_synthetic_dates_survive_real_cleaning():
     assert len(frame) == 48
     assert frame[COL_MES_VEICULACAO_DATA].notna().all()
     assert frame["VALOR PI LIQUIDO"].sum() > 0
+
+
+def test_carteira_links_remain_in_acceptance_environment():
+    html = app_homologacao.documento_homologacao({"reference": "2026-11-02", "unassignedMonth": 0})
+    assert "https://adtarget-intelligence-homologacao.streamlit.app/" in html
+    assert "https://adtarget-intelligence-e7ftyu8hg9jcek5gaguhpm.streamlit.app/" not in html
