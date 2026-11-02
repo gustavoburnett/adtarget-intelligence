@@ -112,8 +112,8 @@ def test_apresentacao_cem_e_gap_zero_nao_mostra_deficit_ou_superavit_fantasma(pi
         (parceiro,), pulso, fechado, metas.vigencia(plano, data_referencia=REF),
     )
     assert "100,0%" in hero
-    assert "Diferença para a meta acumulada" in hero
-    assert "Abaixo da meta acumulada" not in hero and "Acima da meta acumulada" not in hero
+    assert "Saldo YTD" in hero
+    assert "Déficit YTD" not in hero and "Superávit YTD" not in hero
     assert "Meta anual atingida" in anual
     assert "ainda precisam ser vendidos" not in anual
     assert "Meta superada em" not in anual
@@ -121,7 +121,7 @@ def test_apresentacao_cem_e_gap_zero_nao_mostra_deficit_ou_superavit_fantasma(pi
     assert "Meta anual já superada" not in projecao
     assert "ainda precisamos conquistar" not in projecao
     assert "✓ Acima do ritmo" in parceiros
-    assert "Abaixo da meta acumulada" not in parceiros and "Acima da meta acumulada" not in parceiros
+    assert "Déficit YTD" not in parceiros and "Superávit YTD" not in parceiros
     assert "Meta anual superada em" not in parceiros
 
 

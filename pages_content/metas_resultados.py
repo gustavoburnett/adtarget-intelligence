@@ -92,29 +92,29 @@ def _hero(resultado: ResultadoMetas) -> str:
                 f'{_pct(resultado.atingimento_ytd_pct)}</div>'
             )
         saldo = resultado.saldo_ytd
-        rotulo_saldo = "Acima da meta acumulada" if saldo > 0 else "Abaixo da meta acumulada" if saldo < 0 else "Diferença para a meta acumulada"
+        rotulo_saldo = "Superávit YTD" if saldo > 0 else "Déficit YTD" if saldo < 0 else "Saldo YTD"
         apoio = (
-            _apoio("Vendas acumuladas no ano · no perímetro de metas", _moeda(resultado.realizado_ytd), periodo)
-            + _apoio("Meta acumulada no ano", _moeda(resultado.meta_ytd))
+            _apoio("Realizado YTD no perímetro de metas", _moeda(resultado.realizado_ytd), periodo)
+            + _apoio("Meta YTD", _moeda(resultado.meta_ytd))
             + _apoio(rotulo_saldo, _moeda(abs(saldo)), classe=_classe_saldo(saldo))
         )
         if resultado.yoy_pct is None:
             yoy = _SEM_BASE
             classe_yoy = "neutral"
         else:
-            yoy = f'{_pct(resultado.yoy_pct, sinal=True)} em relação ao ano anterior'
+            yoy = f'{_pct(resultado.yoy_pct, sinal=True)} YoY'
             classe_yoy = _classe_saldo(resultado.yoy_pct)
         anterior = resultado.realizado_anterior_ytd
         contexto_yoy = f'vs. {_periodo(resultado.meses_encerrados, resultado.ano - 1)}'
         if anterior is not None:
             contexto_yoy += f' · {_moeda(anterior)} no mesmo perímetro'
-        apoio += _apoio("Comparação com o mesmo período do ano anterior · no perímetro de metas", yoy, contexto_yoy, classe_yoy)
+        apoio += _apoio("YoY no perímetro de metas", yoy, contexto_yoy, classe_yoy)
     return (
         '<section class="atg-card atg-metas-hero" aria-label="Meta acumulada">'
         '<div class="atg-metas-hero-grid"><div>'
         f'<div class="atg-metas-label atg-metas-eyebrow">{_fechado(resultado)}</div>'
         f'<div class="atg-metas-label">{"RESULTADO FINAL" if resultado.meses_encerrados == 12 else "RITMO FECHADO"}</div>'
-        f'{destaque}<div class="atg-metas-context">Atingimento da meta acumulada</div>'
+        f'{destaque}<div class="atg-metas-context">da meta YTD realizada</div>'
         f'</div><div class="atg-metas-support">{apoio}</div></div></section>'
     )
 
@@ -326,7 +326,7 @@ def _parceiros(
         compromisso = parceiro.pulso
         anual = compromisso.percentual_meta_ja_vendida
         saldo = parceiro.saldo_ytd
-        saldo_rotulo = "Acima da meta acumulada" if saldo > 0 else "Abaixo da meta acumulada" if saldo < 0 else "Diferença para a meta acumulada"
+        saldo_rotulo = "Superávit YTD" if saldo > 0 else "Déficit YTD" if saldo < 0 else "Saldo YTD"
         detalhes = (
             ("Meta anual", _moeda(compromisso.meta_anual)),
             (f"Já vendido para {pulso.ano}", _moeda(compromisso.total_vendido_ano)),
@@ -341,7 +341,7 @@ def _parceiros(
             for titulo, valor in detalhes
         )
         comparacao = (
-            f'<strong>{_moeda(parceiro.realizado_ytd)}</strong> / {_moeda(parceiro.meta_ytd)} · acumulado no ano'
+            f'<strong>{_moeda(parceiro.realizado_ytd)}</strong> / {_moeda(parceiro.meta_ytd)} YTD'
             if pulso.meses_encerrados else _AGUARDANDO
         )
         complemento = (
@@ -394,7 +394,7 @@ def _parceiros(
     grupos = (
         f'<h3 class="atg-metas-partner-group">{f"Grupos com meta em {resultado.ano}" if encerrado else "Parceiros ativos"}</h3>'
         '<div class="atg-card atg-metas-partners">'
-        '<div class="atg-metas-scale"><span>100% da meta acumulada no ano</span></div>'
+        '<div class="atg-metas-scale"><span>100% da meta YTD</span></div>'
         + (''.join(linha(parceiro) for parceiro in ativos) if ativos else
            '<div class="atg-metas-context" style="padding:12px 0">Sem parceiros com meta ativa no período.</div>')
         + '</div>'
@@ -403,7 +403,7 @@ def _parceiros(
         grupos += (
             '<h3 class="atg-metas-partner-group">Parceiros fora da operação</h3>'
             '<div class="atg-card atg-metas-partners">'
-            '<div class="atg-metas-scale"><span>100% da meta acumulada no ano</span></div>'
+            '<div class="atg-metas-scale"><span>100% da meta YTD</span></div>'
             + ''.join(linha(parceiro) for parceiro in inativos) + '</div>'
         )
     return (
