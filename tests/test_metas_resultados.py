@@ -100,8 +100,8 @@ def test_hero_atingimento_monetarios_periodo_e_like_for_like():
     assert "FECHADO ATÉ FEV/2026" in html
     assert "100,0%" in html
     assert "Jan a Fev/2026" in html and "Jan a Fev/2025" in html
-    assert "Realizado YTD no perímetro de metas" in html
-    assert "YoY no perímetro de metas" in html and "+100,0% YoY" in html
+    assert "Vendas acumuladas no ano · no perímetro de metas" in html
+    assert "Comparação com o mesmo período do ano anterior · no perímetro de metas" in html and "+100,0% em relação ao ano anterior" in html
     assert "no mesmo perímetro" in html
     assert 'title="R$ 200,00"' in html and 'title="R$ 100,00"' in html
 
@@ -124,9 +124,9 @@ def test_meta_anual_e_projecao_sao_leituras_distintas():
 
 
 @pytest.mark.parametrize("atual,rotulo,classe", [
-    (150, "Superávit YTD", "positive"),
-    (50, "Déficit YTD", "negative"),
-    (100, "Saldo YTD", "neutral"),
+    (150, "Acima da meta acumulada", "positive"),
+    (50, "Abaixo da meta acumulada", "negative"),
+    (100, "Diferença para a meta acumulada", "neutral"),
 ])
 def test_saldo_ytd_rotulo_magnitude_e_semantica(atual, rotulo, classe):
     html = _html(_pagina(vendas=_base(atual=atual)))
@@ -162,7 +162,7 @@ def test_perimetro_exclui_entidades_e_mes_aberto_sem_mudar_vendas():
     original_plano = plano.copy(deep=True)
     html = _html(_pagina(vendas=vendas, plano=plano))
     hero = re.search(r'<section class="atg-card atg-metas-hero".*?</section>', html).group()
-    assert "100,0%" in hero and "+100,0% YoY" in hero
+    assert "100,0%" in hero and "+100,0% em relação ao ano anterior" in hero
     assert "9,99 mil" not in hero
     assert 'title="R$ 9.999,00"' in html  # Carteira aparece no módulo anual, sem entrar no Hero.
     pd.testing.assert_frame_equal(vendas, original)
@@ -187,9 +187,9 @@ def test_janeiro_sem_falso_realizado_saldo_yoy_ou_forecast():
     assert "Aguardando o primeiro mês encerrado" in html
     assert "META ANUAL · 2026" in html and 'title="R$ 1.200,00"' in html
     assert "Dados insuficientes" in html
-    assert "Realizado YTD no perímetro de metas</div>" not in html
-    assert "Déficit YTD" not in html and "Superávit YTD" not in html
-    assert "YoY no perímetro de metas" not in html
+    assert "Vendas acumuladas no ano · no perímetro de metas</div>" not in html
+    assert "Abaixo da meta acumulada" not in html and "Acima da meta acumulada" not in html
+    assert "Comparação com o mesmo período do ano anterior · no perímetro de metas" not in html
     assert "Run rate simples · Realizado YTD" not in html
     assert "O plano futuro cobre" not in html
 
@@ -206,7 +206,7 @@ def test_meta_ytd_zero_preserva_moeda_mas_nao_exibe_percentuais():
     html = _html(_pagina(plano=plano))
     assert "Sem meta lançada para o período" in html
     assert 'title="R$ 200,00"' in html
-    assert "Superávit YTD" in html  # Zero ativo mantém o realizado no perímetro.
+    assert "Acima da meta acumulada" in html  # Zero ativo mantém o realizado no perímetro.
     assert "da meta anual conquistada" not in html
     assert "projetado de atingimento" not in html
     assert "de cobertura do plano" not in html
@@ -228,7 +228,7 @@ def test_yoy_zero_ou_ausente_nao_inventa_comparativo(anterior):
     vendas = _base(anterior=0) if anterior == 0 else _vendas(_venda(), _venda("2026-02-01"))
     html = _html(_pagina(vendas=vendas))
     assert "Sem base de comparação" in html
-    assert "+100,0% YoY" not in html and "-100,0% YoY" not in html
+    assert "+100,0% em relação ao ano anterior" not in html and "-100,0% YoY" not in html
 
 
 def test_ano_encerrado_mostra_resultado_final_e_suprime_projecoes():
@@ -386,7 +386,7 @@ def test_parceiro_status_ytd_visivel_e_detalhes_acessiveis_sem_hover():
     acessivel = re.sub(r'<[^>]+aria-hidden="true"[^>]*>.*?</[^>]+>', '', summary.group(1))
     assert unescape(re.sub(r'<[^>]+>', '', acessivel)).strip() == "Compromisso anual e saldo"
     assert "98,3%" in parceiro  # Annual commitment does not classify the closed rhythm.
-    assert "Déficit YTD" in parceiro and 'title="R$ 20,00"' in parceiro
+    assert "Abaixo da meta acumulada" in parceiro and 'title="R$ 20,00"' in parceiro
     assert 'title="R$ 1.000,00"' in parceiro
 
 
