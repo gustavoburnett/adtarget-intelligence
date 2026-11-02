@@ -23,6 +23,7 @@ from pages_content import (
     auditoria_vendas,  # ferramenta de validação — visível só com dev_auditoria
     metas_resultados,
     performance_comercial,
+    carteira_vendas,
 )
 from src.auth.gate import exigir_autenticacao
 from src.components import (
@@ -128,6 +129,8 @@ PAGINAS = {
     ),
 }
 
+PAGINAS["Carteira de Vendas"] = (carteira_vendas.render, "Contratado, metas e PIs por mês de veiculação")
+
 # Ferramenta de validação de indicadores (Release 1.0, decisão 38): a
 # Auditoria sai da navegação de produção, mas permanece no produto para
 # reuso quando for preciso conciliar indicadores com a planilha. Para
@@ -165,15 +168,18 @@ with st.sidebar:
 render_pagina, subtitulo = PAGINAS[pagina_ativa]
 titulo_visivel = pagina_ativa.replace("🔧 ", "")
 cabecalho_executivo = pagina_ativa in (
-    "Performance Comercial", "Metas e Resultados", "Analítico Comercial", "Analítico Veículos",
+    "Performance Comercial", "Metas e Resultados", "Analítico Comercial", "Analítico Veículos", "Carteira de Vendas",
 )
 prefixo_cabecalho = {
     "Performance Comercial": "design_performance",
     "Metas e Resultados": "design_metas",
     "Analítico Comercial": "design_comercial",
     "Analítico Veículos": "design_veiculos",
+    "Carteira de Vendas": "design_carteira",
 }.get(pagina_ativa, "design_metas")
 
+if pagina_ativa == "Carteira de Vendas":
+    st.html("<style>.st-key-design_carteira_header .atg-h1{color:#13201B}.st-key-design_carteira_header .atg-updated{color:#4D5A55}</style>")
 if pagina_ativa == "Performance Comercial":
     st.html(performance_styles.CSS_PERFORMANCE)
     st.html(radar_styles.CSS_RADAR)
@@ -231,12 +237,15 @@ if pagina_ativa == "Performance Comercial":
         carregar_metas=lambda: _carregar_metas(spreadsheet_id, credenciais),
         carregar_representacoes=lambda: _carregar_representacoes(spreadsheet_id, credenciais),
     )
-elif pagina_ativa == "Metas e Resultados":
+elif pagina_ativa in ("Metas e Resultados", "Carteira de Vendas"):
     try:
         metas_df = _carregar_metas(spreadsheet_id, credenciais)
     except ErroDeMetas as erro:
         render_pagina(dados, erro_metas=erro)
     else:
-        render_pagina(dados, metas_df=metas_df)
+        if pagina_ativa == "Carteira de Vendas":
+            render_pagina(dados, metas_df=metas_df, sincronizado_em=sincronizado_em)
+        else:
+            render_pagina(dados, metas_df=metas_df)
 else:
     render_pagina(dados)

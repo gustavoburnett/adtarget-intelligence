@@ -44,10 +44,12 @@ def _relogio_e_cache(monkeypatch):
 
 @lru_cache
 def _fonte_congelada(caminho):
-    return subprocess.run(
+    from tests.carteira_labels import visible_source
+    fonte = subprocess.run(
         ["git", "show", f"{CHECKPOINT_1E}:{caminho}"],
         check=True, capture_output=True, text=True,
     ).stdout
+    return visible_source(fonte) if caminho.startswith(("pages_content/", "src/components/")) else fonte
 
 
 @lru_cache

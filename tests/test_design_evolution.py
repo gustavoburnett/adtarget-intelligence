@@ -35,6 +35,8 @@ def _checkpoint(arquivo):
         check=True, capture_output=True, text=True,
     ).stdout
     modulo = ModuleType("checkpoint_1bc_" + arquivo.replace("/", "_").replace(".", "_"))
+    from tests.carteira_labels import visible_source
+    fonte = visible_source(fonte)
     exec(compile(fonte, f"<{CHECKPOINT_1BC}:{arquivo}>", "exec"), modulo.__dict__)
     return modulo
 
@@ -184,7 +186,7 @@ def test_meta_preserva_exatamente_valores_hovers_e_distincao_temporal_do_checkpo
                 continue  # A âncora da carteira conserva o hover oficial fechado.
             assert "Total já vendido acumulado:" in hover
             assert all(texto not in hover for texto in (
-                "Realizado acumulado:", "Atingimento:", "Déficit:", "Superávit:", "YoY:",
+                "Realizado acumulado:", "Atingimento:", "Déficit:", "Superávit:", "Comparação com o ano anterior:",
             ))
 
 
