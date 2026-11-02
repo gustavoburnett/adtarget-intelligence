@@ -221,9 +221,9 @@ def test_status_visual_troca_so_redacao_sem_alterar_atingimento(valor, rotulo):
     antes = parceiros
     html = pagina._parceiros(parceiros, pulso, fechado, vigentes)
     assert rotulo in html
-    assert ">Acima da meta<" not in html
+    assert "Acima da meta" not in html
     assert "Próximo da meta" not in html
-    assert ">Abaixo da meta<" not in html
+    assert "Abaixo da meta" not in html
     assert parceiros == antes
     assert parceiros[0].atingimento_ytd_pct == Decimal(str(valor))
 

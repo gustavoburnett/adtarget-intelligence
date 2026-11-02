@@ -408,17 +408,13 @@ def linha_kpis(
         f'{TRIANGULOS_HERO[pecas["seta"]]}</svg>'
         f'<span class="atg-sr-only">{pecas["seta"]}</span></span>'
     ) if pecas["seta"] else ""
-    import datetime as _datetime
-    contexto_temporal = ("Inclui o mês atual inteiro" if ano == _datetime.date.today().year
-                         else "Total do ano selecionado · janeiro a dezembro")
     hero = (
         f'<article class="atg-card atg-kpi-hero atg-hero-{estado_visual}">'
-        '<div class="atg-eyebrow">Comparação com o mesmo período do ano anterior</div>'
+        '<div class="atg-eyebrow">KPI Principal · YTD vs Ano Anterior</div>'
         f'<div class="atg-hero-value">{seta}'
         '<span class="atg-hero-number num">'
         f'{pecas["percentual"]}</span></div>'
         f'<div class="atg-hero-caption num">{pecas["suporte"]}</div>'
-        f'<div class="atg-hero-context">Vendas acumuladas no ano · {pecas["periodo"]} · {contexto_temporal}</div>'
         "</article>"
     )
     faturado_fmt = formatar_moeda_executiva(vendas_detalhado["faturado"])

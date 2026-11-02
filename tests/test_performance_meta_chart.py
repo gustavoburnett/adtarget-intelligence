@@ -119,7 +119,7 @@ def test_hover_fechado_utiliza_indicadores_acumulados_da_engine():
     for texto in (
         "SETEMBRO 2026", "Mês encerrado", "Meta acumulada: R$ 900,00",
         "Realizado acumulado: R$ 90,00", "Atingimento: 10,0%",
-        "Déficit: R$ 810,00", "2025, mesmo perímetro: R$ 45,00", "Comparação com o ano anterior: +100,0%",
+        "Déficit: R$ 810,00", "2025, mesmo perímetro: R$ 45,00", "YoY: +100,0%",
     ):
         assert texto in hover
     assert "Total já vendido acumulado:" not in hover
@@ -142,7 +142,7 @@ def test_hover_aberto_exibe_ja_vendido_sem_resultados_oficiais_futuros(mes, valo
     assert "Atingimento:" not in hover
     assert "Déficit:" not in hover
     assert "Superávit:" not in hover
-    assert "Comparação com o ano anterior:" not in hover
+    assert "YoY:" not in hover
     assert _serie(figura, "Meta acumulada").customdata[mes - 1] == hover
 
 
@@ -205,7 +205,7 @@ def test_sem_base_anterior_preserva_ausencia_comparativa_no_hover():
     figura = metas_charts.evolucao_performance_meta(resultado, pulso)
     hover = _serie(figura, "Realizado acumulado · fechado").customdata[0]
     assert "2025, mesmo perímetro: sem base de comparação" in hover
-    assert "Comparação com o ano anterior: sem base de comparação" in hover
+    assert "YoY: sem base de comparação" in hover
 
 
 def test_valores_negativos_e_reducao_de_carteira_nao_sao_truncados():

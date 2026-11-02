@@ -44,12 +44,10 @@ def _relogio_e_cache(monkeypatch):
 
 @lru_cache
 def _fonte_congelada(caminho):
-    from tests.carteira_labels import visible_source
-    fonte = subprocess.run(
+    return subprocess.run(
         ["git", "show", f"{CHECKPOINT_1E}:{caminho}"],
         check=True, capture_output=True, text=True,
     ).stdout
-    return visible_source(fonte) if caminho.startswith(("pages_content/", "src/components/")) else fonte
 
 
 @lru_cache
@@ -492,16 +490,6 @@ def test_design_1f_preserva_fontes_protegidas_do_design_1e(caminho):
         # comparação, erros, estado, form_login, rerun e stop seguem congelados.
         from tests.test_login_presentation import _contrato_autenticacao
         assert _contrato_autenticacao(atual) == _contrato_autenticacao(anterior)
-    elif caminho == "requirements.txt":
-        # PR #11: reproduzido body antes de headers no middleware ASGI com
-        # Starlette 1.9.0. Libera só o pin comprovado pelo teste de protocolo;
-        # todas as dependências do checkpoint continuam byte a byte iguais.
-        acrescimo = (
-            "\n# Streamlit 1.59.1 subclasses private gzip responders; newer Starlette\n"
-            "# changes response-start forwarding (ASGI body before headers). See PR #11.\n"
-            "starlette==1.3.1\n"
-        )
-        assert atual == anterior + acrescimo
     elif caminho not in autorizadas:
         assert atual == anterior
     else:
