@@ -67,3 +67,12 @@ O login real corporativo foi comprovado, mas a homologação completa permanece 
 Na migração futura: concluir casos reais, revisar PR/CI, autorizar explicitamente
 produção, cadastrar redirect da produção e Secrets próprios, preservar revisão e
 Secrets anteriores para rollback. Esta etapa não executa essa migração.
+
+## Verificação final publicada
+
+Após reinício exclusivo da homologação, login corporativo repetido com sucesso.
+Performance exibiu R$ 62,40 mil sintéticos em 2026; Carteira de novembro exibiu
+R$ 8.800,00 sintéticos, zero PIs com mês inválido e link do recorte no domínio
+da própria homologação. Sessão independente continuou mostrando somente login.
+A main remota foi conferida e permanece em `2b95cc933fb45defd8ade25e75bc886077fb9e73`.
+Nenhum merge ou deploy na aplicação de produção foi executado.
