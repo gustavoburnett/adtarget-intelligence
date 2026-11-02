@@ -1,4 +1,6 @@
 """Falhas de fonte no loader de vendas, sem rede nem credenciais reais."""
+from tests.oidc_helpers import identity
+
 
 from pathlib import Path
 from types import SimpleNamespace
@@ -125,7 +127,7 @@ def test_aplicacao_exibe_erro_amigavel_sem_traceback(monkeypatch, etapa):
         "spreadsheet_id": "FONTE_SINTETICA", "gcp_service_account": {},
     })
     app = AppTest.from_file(str(Path(__file__).resolve().parents[1] / "app.py"))
-    app.session_state["autenticado"] = True
+    monkeypatch.setattr(st, "user", identity(is_logged_in=True))
     app.run(timeout=20)
 
     assert not app.exception

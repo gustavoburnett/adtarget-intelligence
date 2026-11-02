@@ -3,6 +3,8 @@
 Estas fontes são sintéticas e offline. Não substituem a reconciliação com a
 leitura real; teclado, toque e overflow são verificados no navegador.
 """
+from tests.oidc_helpers import identity
+
 
 import ast
 import datetime as dt
@@ -414,7 +416,7 @@ def test_shell_metas_preserva_titulo_unico_navegacao_atualizacao_e_chaves_nativa
     monkeypatch.setattr(loader, "load_all_sheets", ler_vendas)
     monkeypatch.setattr(metas_loader, "load_metas", ler_metas)
     atual = AppTest.from_file(str(APP))
-    atual.session_state["autenticado"] = True
+    monkeypatch.setattr(st, "user", identity(is_logged_in=True))
     atual.session_state["nav_pagina"] = "Metas e Resultados"
     atual.session_state["metas_ano"] = 2026
     atual.run(timeout=20)
@@ -488,10 +490,11 @@ def test_design_1f_preserva_fontes_protegidas_do_design_1e(caminho):
             anterior = anterior.replace(original, aprovado, 1)
         assert atual == anterior
     elif caminho == "src/auth/gate.py":
-        # Checkpoint 2A: libera somente apresentação e containers visuais;
-        # comparação, erros, estado, form_login, rerun e stop seguem congelados.
-        from tests.test_login_presentation import _contrato_autenticacao
-        assert _contrato_autenticacao(atual) == _contrato_autenticacao(anterior)
+        # Google OIDC explicitly replaces the frozen shared-password contract.
+        # Behavioral authorization tests live in test_auth_login.py.
+        assert 'st.user.is_logged_in' in atual
+        assert 'identidade_autorizada(st.user' in atual
+        assert 'st.secrets["app_password"]' not in atual
     elif caminho == "requirements.txt":
         # PR #11: reproduzido body antes de headers no middleware ASGI com
         # Starlette 1.9.0. Libera só o pin comprovado pelo teste de protocolo;
@@ -501,7 +504,7 @@ def test_design_1f_preserva_fontes_protegidas_do_design_1e(caminho):
             "# changes response-start forwarding (ASGI body before headers). See PR #11.\n"
             "starlette==1.3.1\n"
         )
-        assert atual == anterior + acrescimo
+        assert atual == (anterior + acrescimo).replace("streamlit==1.59.1", "streamlit[auth]==1.59.1")
     elif caminho not in autorizadas:
         assert atual == anterior
     else:

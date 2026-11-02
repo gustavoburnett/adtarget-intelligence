@@ -1,4 +1,6 @@
 """Entrada completa: roteamento e diagnóstico, sem fonte ou secrets reais."""
+from tests.oidc_helpers import identity
+
 
 from pathlib import Path
 
@@ -35,7 +37,7 @@ def run_app(monkeypatch, page):
     monkeypatch.setattr(loader, "load_all_sheets", lambda *args: df)
     monkeypatch.setattr(cleaning, "limpar_dataframe", lambda value: value)
     app = AppTest.from_file(str(APP))
-    app.session_state["autenticado"] = True
+    monkeypatch.setattr(st, "user", identity(is_logged_in=True))
     app.session_state["nav_pagina"] = page
     return app.run(timeout=20), df
 

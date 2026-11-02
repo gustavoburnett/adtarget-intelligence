@@ -1,4 +1,6 @@
 """Meta na Performance: integração offline, estado e regressão das visões atuais."""
+from tests.oidc_helpers import identity
+
 
 import datetime as dt
 import json
@@ -164,7 +166,7 @@ def _entrada(monkeypatch, *, aba="Vendas", erro=None, pagina="Performance Comerc
     monkeypatch.setattr(loader, "load_all_sheets", ler_vendas)
     monkeypatch.setattr(metas_loader, "load_metas", ler_metas)
     app = AppTest.from_file(str(APP))
-    app.session_state["autenticado"] = True
+    monkeypatch.setattr(st, "user", identity(is_logged_in=True))
     app.session_state["nav_pagina"] = pagina
     app.session_state["perf_ano"] = 2026
     app.session_state["performance_evolucao_tab"] = aba
@@ -400,7 +402,7 @@ def test_gate_de_autenticacao_permanece_anterior_as_fontes(monkeypatch):
     app, _, _, leituras = _entrada(monkeypatch)
     leituras.update(vendas=0, metas=0)
     st.cache_data.clear()
-    app.session_state["autenticado"] = False
+    monkeypatch.setattr(st, "user", identity(is_logged_in=False))
     app.session_state["performance_evolucao_tab"] = "Meta"
     app.run(timeout=20)
     assert not app.exception

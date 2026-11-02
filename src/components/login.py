@@ -18,7 +18,7 @@ def header() -> str:
         f'<img src="data:image/svg+xml;base64,{logo}" '
         'alt="AdTarget Intelligence" width="220" height="99">'
         '<h1>Bem-vindo ao Intelligence</h1>'
-        '<p>Informe sua senha para continuar.</p></div>'
+        '<p>Entre com sua conta Google AdTarget.</p></div>'
     )
 
 
@@ -73,13 +73,13 @@ CSS_LOGIN = "<style>" + css_variables() + """
   min-width:44px;min-height:50px;color:var(--atg-text-secondary);}
 .st-key-design_login_card [data-testid="stTextInputRootElement"] button:focus-visible {
   outline:2px solid var(--atg-focus-ring);outline-offset:-4px;}
-.st-key-design_login_card [data-testid="stFormSubmitButton"] button {
+.st-key-design_login_card [data-testid="stButton"] button {
   width:100%;min-height:48px;border-radius:var(--atg-radius-control);
   background:var(--atg-brand);border:1px solid var(--atg-brand);
   color:var(--atg-identity-white);font-weight:600;font-size:var(--atg-type-support-size);}
-.st-key-design_login_card [data-testid="stFormSubmitButton"] button:hover {
+.st-key-design_login_card [data-testid="stButton"] button:hover {
   background:var(--atg-side-bg);border-color:var(--atg-side-bg);}
-.st-key-design_login_card [data-testid="stFormSubmitButton"] button:focus-visible {
+.st-key-design_login_card [data-testid="stButton"] button:focus-visible {
   outline:2px solid var(--atg-focus-ring);outline-offset:3px;}
 .st-key-design_login_card [data-testid="stAlert"] {
   background:var(--atg-negative-surface);color:var(--atg-negative-label);

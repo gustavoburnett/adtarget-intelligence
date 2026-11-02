@@ -1,4 +1,6 @@
 """Deep links through the real entry point, with isolated offline sessions."""
+from tests.oidc_helpers import identity
+
 from urllib.parse import urlencode, parse_qs
 import pandas as pd
 import pytest
@@ -19,7 +21,7 @@ def session(monkeypatch):
         monkeypatch.setattr(module, "render", lambda *_, **kw: st.text(st.query_params.get("carteira", "")))
     def new(context=None, authenticated=True):
         app=AppTest.from_file(str(APP))
-        app.session_state["autenticado"]=authenticated
+        monkeypatch.setattr(st, "user", identity(is_logged_in=authenticated))
         if context is not None:
             app.query_params["carteira"]=context
         app.run(timeout=20)
@@ -73,10 +75,10 @@ def test_encoded_context_roundtrip(session):
     app=session(decoded)
     assert parse_qs(app.text[0].value)["partner"] == ["Água & O'Neill + 日本 / %"]
 
-def test_gate_still_precedes_routing(session):
+def test_gate_still_precedes_routing(session, monkeypatch):
     app=session(CONTEXT, authenticated=False)
     assert not app.radio
-    app.session_state["autenticado"]=True
+    monkeypatch.setattr(st, "user", identity(is_logged_in=True))
     app.run(timeout=20)
     assert app.radio(key="nav_pagina").value == "Carteira de Vendas"
 

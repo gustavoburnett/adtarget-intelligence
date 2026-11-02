@@ -1,4 +1,6 @@
 """Integração da entrada: navegação e carga independente de METAS, offline."""
+from tests.oidc_helpers import identity
+
 
 import datetime as dt
 from pathlib import Path
@@ -37,9 +39,10 @@ PAGINAS_EXISTENTES = {
 
 @pytest.fixture(autouse=True)
 def _cache_independente_por_teste():
-    st.cache_data.clear()
+    cache = st.cache_data
+    cache.clear()
     yield
-    st.cache_data.clear()
+    cache.clear()
 
 
 def _entrada(monkeypatch, pagina, *, auditoria=False, erro_metas=None):
@@ -91,7 +94,7 @@ def _entrada(monkeypatch, pagina, *, auditoria=False, erro_metas=None):
     monkeypatch.setattr(metas_resultados, "render", render_metas)
     monkeypatch.setattr(carteira_vendas, "render", lambda df, **kwargs: renders.append(("Carteira de Vendas", df, kwargs)))
     app = AppTest.from_file(str(APP))
-    app.session_state["autenticado"] = True
+    monkeypatch.setattr(st, "user", identity(is_logged_in=True))
     app.session_state["nav_pagina"] = pagina
     app.run(timeout=20)
     return app, vendas, metas, leituras, renders
@@ -225,13 +228,13 @@ def test_gate_de_autenticacao_impede_leitura_de_metas(monkeypatch):
     leituras.update(vendas=0, metas=0)
     renders.clear()
     st.cache_data.clear()
-    app.session_state["autenticado"] = False
+    monkeypatch.setattr(st, "user", identity(is_logged_in=False))
     app.session_state["nav_pagina"] = "Metas e Resultados"
     app.run(timeout=20)
     assert not app.exception
     assert leituras == {"vendas": 0, "metas": 0}
     assert not renders
-    assert "Senha do aplicativo não configurada" in app.error[0].value
+    assert app.button[0].label == "Entrar com Google"
 
 
 def test_pagina_real_integra_loader_schema_engine_e_estado_de_ano_sem_metas(monkeypatch):
