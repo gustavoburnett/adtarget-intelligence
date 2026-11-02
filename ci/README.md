@@ -28,3 +28,8 @@ use the real inline script with a minimal DOM; they do not certify Safari,
 keyboard navigation, screen-reader speech, or a physical iPhone.
 
 Branch protection was not changed. A green run is not a publication approval.
+
+Google Workspace branch: the lock also includes Streamlit's official `auth`
+extra. OIDC authorization tests use synthetic native identities and no OAuth
+credentials. Real consent, signed Google tokens and browser cookies require the
+separate homologation described in `docs/GOOGLE_WORKSPACE_LOGIN.md`.

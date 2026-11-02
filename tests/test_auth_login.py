@@ -1,269 +1,140 @@
-"""Login 2A: contratos de acesso preservados, sem secrets ou fontes reais.
-
-AppTest prova o gate, rerun e remoção da apresentação de login. Teclado,
-mostrar/ocultar senha e CSS efetivo são conferidos no navegador.
-"""
-
+"""OIDC authorization and real entry-point isolation, without real credentials."""
 from pathlib import Path
-import re
+import time
 
 import pandas as pd
 import pytest
 import streamlit as st
-from streamlit.proto.TextInput_pb2 import TextInput
 from streamlit.testing.v1 import AppTest
 
-from pages_content import (
-    analitico_comercial, analitico_veiculos, auditoria_vendas,
-    metas_resultados, performance_comercial,
-)
-from src.data import cleaning, loader, metas_loader
-
+from src.auth import gate
+from tests.oidc_helpers import CONFIG, Identity, identity
+from src.data import loader, metas_loader, representacoes
+from pages_content import (performance_comercial, metas_resultados, analitico_comercial,
+                           analitico_veiculos, carteira_vendas)
 
 APP = Path(__file__).resolve().parents[1] / "app.py"
-SENHA_TESTE = "Senha_Apenas_Teste_2A "
-MARCADOR_PROTEGIDO = "CONTEUDO_PROTEGIDO_OFFLINE_2A"
-PAGINAS = {
-    "Performance Comercial": performance_comercial,
-    "Metas e Resultados": metas_resultados,
-    "Analítico Comercial": analitico_comercial,
-    "Analítico Veículos": analitico_veiculos,
-    "🔧 Auditoria (dev)": auditoria_vendas,
-}
+PAGES = dict(zip(("Performance Comercial", "Metas e Resultados", "Analítico Comercial",
+                  "Analítico Veículos", "Carteira de Vendas"),
+                 (performance_comercial, metas_resultados, analitico_comercial,
+                  analitico_veiculos, carteira_vendas)))
+REAL_CONFIG = gate._config
 
 
-@pytest.fixture(autouse=True)
-def _cache_isolado():
-    st.cache_data.clear()
-    yield
-    st.cache_data.clear()
-
-
-def _pagina_gate():
+def gate_app():
     import streamlit as st
     from src.auth.gate import exigir_autenticacao
-
     exigir_autenticacao()
-    st.session_state["_login_execucoes_protegidas"] = (
-        st.session_state.get("_login_execucoes_protegidas", 0) + 1
-    )
-    st.write("CONTEUDO_PROTEGIDO_OFFLINE_2A")
+    st.text("PROTECTED")
 
 
-def _gate(monkeypatch, *, secrets=None, autenticado=None):
-    # Substitui o objeto inteiro antes de executar o app: nenhum arquivo
-    # secrets.toml é aberto, mesclado ou consultado pelos testes.
-    monkeypatch.setattr(st, "secrets", {"app_password": SENHA_TESTE}
-                        if secrets is None else secrets)
-    app = AppTest.from_function(_pagina_gate)
-    if autenticado is not None:
-        app.session_state["autenticado"] = autenticado
-    return app.run(timeout=20)
-
-
-def _enviar(app, senha):
-    app.text_input[0].set_value(senha)
-    return app.button[0].click().run(timeout=20)
-
-
-def _corpo(app):
-    return "\n".join(
-        elemento.proto.body for elemento in app
-        if elemento.type in {"markdown", "html"}
-    )
-
-
-def _cards_login(app):
-    return [elemento for elemento in app
-            if "design_login_card" in getattr(getattr(elemento, "proto", None), "id", "")]
-
-
-def _sem_login(app):
-    assert not app.exception
-    assert app.session_state["autenticado"] is True
-    assert not app.text_input
-    assert not app.get("form")
-    assert not _cards_login(app)
-    # AppTest pode conservar folhas st.html no bloco event durante o rerun
-    # interno. Elas ficam inativas sem os marcadores exclusivos do login.
-    markup = re.sub(r'<style\b[^>]*>.*?</style>', '', _corpo(app), flags=re.S | re.I)
-    assert "design_login" not in markup
-    assert "atg-login-" not in markup
-
-
-def _bloqueado(app):
-    assert not app.exception
-    assert app.session_state["autenticado"] is False
-    assert MARCADOR_PROTEGIDO not in _corpo(app)
-
-
-def test_sessao_nova_inicia_bloqueada_com_formulario_nativo():
-    # O monkeypatch é explícito para manter o isolamento também neste teste.
-    with pytest.MonkeyPatch.context() as monkeypatch:
-        app = _gate(monkeypatch)
-        _bloqueado(app)
-        assert app.text_input[0].label == "Senha"
-        assert app.text_input[0].proto.type == TextInput.PASSWORD
-        assert app.text_input[0].form_id == "form_login"
-        assert app.button[0].label == "Entrar"
-        assert app.button[0].proto.form_id == "form_login"
-        assert app.button[0].proto.is_form_submitter
-        assert _cards_login(app)
-        assert not app.error
-
-
-def test_senha_correta_libera_conteudo_por_rerun_e_remove_login(monkeypatch):
-    app = _gate(monkeypatch)
-    _enviar(app, SENHA_TESTE)
-    _sem_login(app)
-    assert MARCADOR_PROTEGIDO in _corpo(app)
-    assert app.session_state["_login_execucoes_protegidas"] == 1
-    assert not app.error
-    assert SENHA_TESTE not in _corpo(app)
-
-
-@pytest.mark.parametrize("senha", ["SENHA_INCORRETA_OFFLINE", ""], ids=["incorreta", "vazia"])
-def test_senha_incorreta_ou_vazia_nao_ultrapassa_stop(monkeypatch, senha):
-    app = _gate(monkeypatch)
-    _enviar(app, senha)
-    _bloqueado(app)
-    assert [erro.value for erro in app.error] == ["Senha incorreta."]
-    assert _cards_login(app)
-    assert "_login_execucoes_protegidas" not in app.session_state
-
-
-@pytest.mark.parametrize("senha", [
-    SENHA_TESTE.lower(), SENHA_TESTE.rstrip(), " " + SENHA_TESTE,
+@pytest.mark.parametrize("changes", [
+    {"hd": None}, {"hd": "gmail.com"}, {"hd": "adtarget.com.br.attacker.com"},
+    {"hd": "other.com", "email": "employee@adtarget.com.br"},
+    {"email_verified": False}, {"email_verified": "true"}, {"sub": ""},
+    {"iss": "https://evil.invalid"}, {"aud": "other-client"},
+    {"exp": 0}, {"exp": True}, {"exp": float("nan")}, {"exp": "999999999999"},
 ])
-def test_comparacao_permanece_exata_sem_normalizar_senha(monkeypatch, senha):
-    app = _gate(monkeypatch)
-    _enviar(app, senha)
-    _bloqueado(app)
-    assert [erro.value for erro in app.error] == ["Senha incorreta."]
+def test_reject_invalid_identity(changes):
+    assert not gate.identidade_autorizada(identity(**changes), "OFFLINE_CLIENT")
 
 
-def test_informar_senha_correta_sem_submit_nao_autentica(monkeypatch):
-    app = _gate(monkeypatch)
-    app.text_input[0].set_value(SENHA_TESTE).run(timeout=20)
-    _bloqueado(app)
-    assert not app.error
+def test_authorize_workspace_using_hd_not_email():
+    assert gate.identidade_autorizada(identity(email="alias@example.com"), "OFFLINE_CLIENT")
+    assert not gate.identidade_autorizada(identity(hd=None, email="employee@adtarget.com.br"), "OFFLINE_CLIENT")
 
 
-@pytest.mark.parametrize("secrets", [{}, {"spreadsheet_id": "FONTE_OFFLINE_2A"}])
-def test_app_password_ausente_preserva_erro_amigavel_e_bloqueio(monkeypatch, secrets):
-    app = _gate(monkeypatch, secrets=secrets)
-    _bloqueado(app)
-    assert len(app.error) == 1
-    assert app.error[0].value == (
-        "Senha do aplicativo não configurada. "
-        "Defina `app_password` no arquivo .streamlit/secrets.toml "
-        "(local) ou na interface de secrets do Streamlit Cloud."
-    )
-    assert not app.text_input
-    assert "_login_execucoes_protegidas" not in app.session_state
-
-
-class _SecretsNaoConsultaveis:
-    def __contains__(self, chave):
-        raise AssertionError("Sessão autenticada não deve consultar a senha")
-
-    def __getitem__(self, chave):
-        raise AssertionError("Sessão autenticada não deve ler a senha")
-
-
-def test_sessao_autenticada_retorna_sem_consultar_secrets(monkeypatch):
-    app = _gate(monkeypatch, secrets=_SecretsNaoConsultaveis(), autenticado=True)
-    _sem_login(app)
-    assert app.session_state["_login_execucoes_protegidas"] == 1
-    assert "design_login" not in _corpo(app)
-
-
-def test_rerun_preserva_sessao_e_estado_sem_recriar_login(monkeypatch):
-    app = _gate(monkeypatch)
-    app.session_state["perf_ano"] = 2025
-    app.session_state["perf_fc_GRUPO_aplicado"] = ["GRUPO_OFFLINE"]
-    _enviar(app, SENHA_TESTE)
-    monkeypatch.setattr(st, "secrets", _SecretsNaoConsultaveis())
-    app.run(timeout=20)
-    _sem_login(app)
-    assert app.session_state["_login_execucoes_protegidas"] == 2
-    assert "design_login" not in _corpo(app)
-    assert app.session_state["perf_ano"] == 2025
-    assert app.session_state["perf_fc_GRUPO_aplicado"] == ["GRUPO_OFFLINE"]
-
-
-def _entrada(monkeypatch, pagina):
-    chamadas = {"vendas": 0, "metas": 0, "renders": []}
-    secrets = {
-        "app_password": SENHA_TESTE,
-        "spreadsheet_id": "FONTE_OFFLINE_LOGIN_2A",
-        "gcp_service_account": {}, "dev_auditoria": True,
-    }
-
-    def ler_vendas(*_):
-        chamadas["vendas"] += 1
-        return pd.DataFrame({"REGISTRO_SINTETICO": [1]})
-
-    def ler_metas(*_):
-        chamadas["metas"] += 1
-        return pd.DataFrame()
-
-    def pagina_protegida(nome):
-        def render(*_, **__):
-            chamadas["renders"].append(nome)
-            st.write(MARCADOR_PROTEGIDO)
-        return render
-
-    monkeypatch.setattr(st, "secrets", secrets)
-    monkeypatch.setattr(loader, "load_all_sheets", ler_vendas)
-    monkeypatch.setattr(metas_loader, "load_metas", ler_metas)
-    monkeypatch.setattr(cleaning, "limpar_dataframe", lambda df: df)
-    for nome, modulo in PAGINAS.items():
-        monkeypatch.setattr(modulo, "render", pagina_protegida(nome))
+@pytest.mark.parametrize("page", PAGES)
+@pytest.mark.parametrize("user", [Identity(), identity(hd="gmail.com"), identity(exp=0)])
+def test_all_direct_pages_block_before_any_loader(monkeypatch, page, user):
+    calls = []
+    def forbidden(*args, **kwargs):
+        calls.append(True)
+        raise AssertionError("Data accessed before authorization")
+    monkeypatch.setattr(st, "user", user)
+    monkeypatch.setattr(st, "secrets", {"spreadsheet_id": "OFFLINE", "gcp_service_account": {}})
+    for module, name in ((loader, "load_all_sheets"), (metas_loader, "load_metas"),
+                         (representacoes, "load_representacoes")):
+        monkeypatch.setattr(module, name, forbidden)
     app = AppTest.from_file(str(APP))
-    app.session_state["nav_pagina"] = pagina
-    return app.run(timeout=20), chamadas, secrets
-
-
-@pytest.mark.parametrize("pagina", PAGINAS)
-def test_gate_impede_fontes_e_render_em_todas_as_paginas(monkeypatch, pagina):
-    app, chamadas, _ = _entrada(monkeypatch, pagina)
-    _bloqueado(app)
-    assert chamadas == {"vendas": 0, "metas": 0, "renders": []}
-    assert not app.sidebar.radio
-    _enviar(app, "INCORRETA_OFFLINE")
+    app.session_state["nav_pagina"] = page
+    app.session_state["autenticado"] = True  # Legacy flag cannot bypass OIDC.
+    app.query_params["carteira"] = "year=2026"
     app.run(timeout=20)
-    _bloqueado(app)
-    assert chamadas == {"vendas": 0, "metas": 0, "renders": []}
+    assert not app.exception
+    assert not calls and not app.radio
+    app.run(timeout=20)
+    assert not calls and not app.exception
 
 
-def test_navegacao_e_reexecucao_nao_contornam_gate_sem_autenticacao(monkeypatch):
-    app, chamadas, _ = _entrada(monkeypatch, "Performance Comercial")
-    for pagina in PAGINAS:
-        app.session_state["nav_pagina"] = pagina
-        app.run(timeout=20)
-        _bloqueado(app)
-        assert chamadas == {"vendas": 0, "metas": 0, "renders": []}
-        assert not app.sidebar.radio
-
-
-def test_login_completo_preserva_navegacao_fontes_e_protecao_apos_reexecucao(monkeypatch):
-    app, chamadas, secrets = _entrada(monkeypatch, "Performance Comercial")
-    _enviar(app, SENHA_TESTE)
-    _sem_login(app)
-    assert chamadas == {"vendas": 1, "metas": 0, "renders": ["Performance Comercial"]}
-    secrets.pop("app_password")
-    for pagina in PAGINAS:
-        app.radio(key="nav_pagina").set_value(pagina).run(timeout=20)
-        _sem_login(app)
-        assert chamadas["renders"][-1] == pagina
-    assert chamadas["vendas"] == chamadas["metas"] == 1
-
-    # Reexecutar com o estado novamente bloqueado não usa nem dados em cache.
+@pytest.mark.parametrize("page", PAGES)
+def test_authorized_employee_has_equal_access(monkeypatch, page):
     st.cache_data.clear()
-    chamadas.update(vendas=0, metas=0, renders=[])
-    app.session_state["autenticado"] = False
+    monkeypatch.setattr(st, "secrets", {"spreadsheet_id": "OFFLINE", "gcp_service_account": {}})
+    monkeypatch.setattr(loader, "load_all_sheets", lambda *_: pd.DataFrame())
+    monkeypatch.setattr(metas_loader, "load_metas", lambda *_: pd.DataFrame())
+    renders = []
+    for name, module in PAGES.items():
+        monkeypatch.setattr(module, "render", lambda *_, _name=name, **__: renders.append(_name))
+    app = AppTest.from_file(str(APP))
+    app.session_state["nav_pagina"] = page
     app.run(timeout=20)
-    _bloqueado(app)
-    assert chamadas == {"vendas": 0, "metas": 0, "renders": []}
-    assert "Senha do aplicativo não configurada" in app.error[0].value
+    assert not app.exception
+    assert renders == [page]
+    assert len(app.radio(key="nav_pagina").options) == 5
+    assert all(any(option.endswith(name) for option in app.radio(key="nav_pagina").options) for name in PAGES)
+    assert app.button(key="logout_google").label == "Sair"
+    st.cache_data.clear()
+
+
+def test_reload_revalidates_native_identity_and_expiry(monkeypatch):
+    user = identity()
+    monkeypatch.setattr(st, "user", user)
+    for _ in range(2):  # New Streamlit sessions model browser reload.
+        app = AppTest.from_function(gate_app).run()
+        assert app.text[0].value == "PROTECTED"
+    user["exp"] = time.time() - 1
+    app.run()
+    assert not app.text and not app.exception
+    assert app.error
+
+
+def test_logout_clears_state_and_calls_native_logout(monkeypatch):
+    user = identity()
+    monkeypatch.setattr(st, "user", user)
+    calls = []
+    def logout():
+        calls.append(True)
+        user.clear()
+    monkeypatch.setattr(st, "logout", logout)
+    def screen():
+        import streamlit as st
+        from src.auth.gate import exigir_autenticacao, encerrar_sessao
+        exigir_autenticacao()
+        st.session_state["private_filter"] = "private"
+        st.button("Sair", on_click=encerrar_sessao)
+    app = AppTest.from_function(screen).run()
+    app.button[0].click().run()
+    assert calls == [True]
+    assert "private_filter" not in app.session_state
+    app.run()
+    assert app.button[0].label == "Entrar com Google"
+
+
+def test_anonymous_login_uses_named_google_provider(monkeypatch):
+    monkeypatch.setattr(st, "user", Identity())
+    calls = []
+    monkeypatch.setattr(st, "login", lambda provider: calls.append(provider))
+    app = AppTest.from_function(gate_app).run()
+    app.button[0].click().run()
+    assert calls == ["google"] and not app.text
+    assert not app.text_input
+
+
+@pytest.mark.parametrize("secrets", [{}, {"auth": {}}, {"auth": {**CONFIG, "google": {**CONFIG["google"], "server_metadata_url": "https://evil.invalid"}}}])
+def test_missing_or_wrong_provider_config_fails_closed(monkeypatch, secrets):
+    monkeypatch.setattr(gate, "_config", REAL_CONFIG)
+    monkeypatch.setattr(st, "secrets", secrets)
+    app = AppTest.from_function(gate_app).run()
+    assert not app.exception and not app.text and not app.button
+    assert "Login Google não configurado" in app.error[0].value

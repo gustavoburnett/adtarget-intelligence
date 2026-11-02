@@ -5,7 +5,7 @@ Metas e Resultados, Analítico Comercial, Analítico Veículos e,
 temporariamente, 🔧 Auditoria. A sidebar reúne marca, navegação e status
 dos dados (somente leitura); o masthead mantém o título da página ativa.
 
-Fluxo: gate de senha -> carga com cache (15 min) -> limpeza -> shell
+Fluxo: gate Google OIDC -> carga com cache (15 min) -> limpeza -> shell
 (sidebar + masthead) -> página ativa. Erros de configuração geram mensagem
 amigável, nunca stack trace.
 """
@@ -25,7 +25,7 @@ from pages_content import (
     performance_comercial,
     carteira_vendas,
 )
-from src.auth.gate import exigir_autenticacao
+from src.auth.gate import exigir_autenticacao, encerrar_sessao
 from src.components import (
     analitico_styles, cards, design_styles, evolution_styles, performance_styles, radar_styles,
     ranking_styles, shell, veiculos_styles,
@@ -164,6 +164,7 @@ with st.sidebar:
                 label_visibility="collapsed",
                 format_func=shell.navigation_label,
             )
+        st.button("Sair", key="logout_google", on_click=encerrar_sessao)
         with st.container(key="design_sidebar_footer"):
             st.markdown(
                 shell.sidebar_footer(sincronizado_em, minutos),

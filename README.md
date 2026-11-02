@@ -2,7 +2,9 @@
 
 Aplicação interna de inteligência comercial da AdTarget. Substitui o dashboard Power BI, lendo a "Planilha de Vendas AdTarget" (Google Sheets) diretamente e recalculando todas as métricas a partir das linhas brutas.
 
-**Status: Release 1.0 — em produção no Streamlit Community Cloud.** MVP completo (camada de dados + interface), conciliado com a planilha real via ferramenta de auditoria. Regras vigentes: indicadores Vendas/Faturado/Em Aberto (v0.3) e critério temporal oficial MÊS (VEICULAÇÃO) com YTD verdadeiro (v0.4). A ferramenta de Auditoria fica fora da navegação de produção; para validar indicadores em desenvolvimento, habilite `dev_auditoria = true` no secrets.toml. Design v0.6 congelado como baseline oficial (ver docs/10_RELEASE_NOTES_1.0.md).
+**Esta branch contém login Google Workspace ainda não homologado; a produção não foi alterada.** Consulte [OAuth e homologação](docs/GOOGLE_WORKSPACE_LOGIN.md).
+
+**Status da base: Release 1.0 — em produção no Streamlit Community Cloud.** MVP completo (camada de dados + interface), conciliado com a planilha real via ferramenta de auditoria. Regras vigentes: indicadores Vendas/Faturado/Em Aberto (v0.3) e critério temporal oficial MÊS (VEICULAÇÃO) com YTD verdadeiro (v0.4). A ferramenta de Auditoria fica fora da navegação de produção; para validar indicadores em desenvolvimento, habilite `dev_auditoria = true` no secrets.toml. Design v0.6 congelado como baseline oficial (ver docs/10_RELEASE_NOTES_1.0.md).
 
 ## Arquitetura
 
@@ -32,7 +34,7 @@ Os módulos de dados não dependem de Streamlit, o que os mantém 100% testávei
 
 ```
 adtarget-intelligence/
-├── app.py                          # gate de senha + cache + 3 abas
+├── app.py                          # gate Google OIDC + cache + navegação
 ├── requirements.txt
 ├── .gitignore
 ├── .streamlit/
@@ -46,7 +48,7 @@ adtarget-intelligence/
 │   │   ├── quality_checks.py       # 4 alertas de qualidade
 │   │   ├── metrics.py              # KPIs, toggles e comparativos
 │   │   └── auditoria.py            # validação de indicadores (flag dev)
-│   ├── auth/gate.py                # senha única via st.secrets
+│   ├── auth/gate.py                # Google Workspace OIDC via Streamlit nativo
 │   └── components/                 # cards, charts, filters
 ├── pages_content/                  # 3 páginas + auditoria (flag dev)
 └── tests/                          # loader, cleaning, metrics, cards,
@@ -69,7 +71,7 @@ Configuração de acesso (necessária apenas para ler a planilha real):
 1. Criar projeto no Google Cloud Console e ativar a Google Sheets API
 2. Criar uma Service Account e gerar chave JSON
 3. Compartilhar a planilha com o e-mail da Service Account (permissão Leitor)
-4. Copiar `.streamlit/secrets.toml.example` para `.streamlit/secrets.toml` e preencher `app_password`, `spreadsheet_id` e o bloco `[gcp_service_account]`
+4. Copiar `.streamlit/secrets.toml.example` para `.streamlit/secrets.toml` e preencher `[auth]`, `[auth.google]`, `spreadsheet_id` e o bloco `[gcp_service_account]`, conforme [configuração OAuth](docs/GOOGLE_WORKSPACE_LOGIN.md)
 
 Rodar a aplicação: `streamlit run app.py` e abrir `localhost:8501`.
 
