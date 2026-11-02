@@ -27,6 +27,8 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22.14.0'
+      - name: Whitespace and conflict markers
+        run: git diff --check HEAD^ HEAD
       - name: Install locked dependencies
         run: python -m pip install --require-hashes -r requirements-ci.txt
       - name: Check dependency consistency
@@ -38,5 +40,3 @@ jobs:
       - name: JavaScript links and special characters
         run: |
           node --input-type=module -e "import {result} from './tests/carteira_deep_link.mjs'; import {specialNamesResult} from './tests/carteira_frontend.mjs'; console.log({links: result, specialNames: specialNamesResult});"
-      - name: Whitespace and conflict markers
-        run: git diff --check HEAD^ HEAD
