@@ -141,6 +141,12 @@ if st.secrets.get("dev_auditoria", False):
         "Conciliação do indicador Vendas com a planilha de origem",
     )
 
+# Deep links antigos e atuais usam a presença de `carteira` como destino.
+# Inicializar somente antes do primeiro widget: reruns/refresh não podem
+# sobrepor uma escolha posterior na sidebar. O template valida o contexto.
+if "nav_pagina" not in st.session_state and "carteira" in st.query_params:
+    st.session_state["nav_pagina"] = "Carteira de Vendas"
+
 # --------------------------------------------------------------- sidebar
 # Shell compartilhado; valores, chave de seleção e roteamento preservados.
 minutos = max(
