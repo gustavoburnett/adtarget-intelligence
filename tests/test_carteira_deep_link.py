@@ -39,7 +39,12 @@ def test_new_session_direct_link_selects_wallet(session):
 def test_present_legacy_or_invalid_context_routes_without_redirect_or_error(session, context):
     app=session(context)
     assert app.radio(key="nav_pagina").value == "Carteira de Vendas"
-    assert app.query_params["carteira"] == context
+    # AppTest serializes its result with parse_qs (lists, blank values omitted).
+    # Assert the in-app read separately: blank is present on entry and selects
+    # Carteira, and repeated keys follow Streamlit's last-value semantics.
+    expected = context[-1] if isinstance(context, list) else context
+    assert app.text[0].value == expected
+    assert app.query_params == parse_qs(urlencode({"carteira": context}, doseq=True))
 
 @pytest.mark.parametrize("page", PAGINAS_PRINCIPAIS)
 def test_navigation_and_return_do_not_get_overridden_on_rerun(session, page):
@@ -74,3 +79,22 @@ def test_gate_still_precedes_routing(session):
     app.session_state["autenticado"]=True
     app.run(timeout=20)
     assert app.radio(key="nav_pagina").value == "Carteira de Vendas"
+
+@pytest.mark.parametrize("context", ["", "%", "status=undefined", CONTEXT])
+def test_raw_query_values_survive_rerun_and_refresh(session, context):
+    app = session(context)
+    for refresh in (False, True):
+        if refresh:
+            app.button(key="masthead_refresh").click()
+        app.run(timeout=20)
+        assert not app.exception
+        assert app.radio(key="nav_pagina").value == "Carteira de Vendas"
+        assert app.text[0].value == context
+
+
+def test_other_query_keys_are_preserved(session):
+    app = session(CONTEXT)
+    app.query_params["tracking"] = ["A&B", "日本 + %"]
+    app.run(timeout=20)
+    assert app.query_params["tracking"] == ["A&B", "日本 + %"]
+    assert app.text[0].value == CONTEXT
