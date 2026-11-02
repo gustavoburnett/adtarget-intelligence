@@ -1,0 +1,4 @@
+# CI-only lock input; production requirements remain unchanged.
+-r ../requirements.txt
+# Preservation tests assert the pandas 3.0 frozen-checkpoint diagnostics.
+pandas==3.0.3

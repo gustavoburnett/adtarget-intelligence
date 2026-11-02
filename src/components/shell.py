@@ -48,6 +48,7 @@ def sidebar_footer(sincronizado_em: datetime, minutos: int) -> str:
 
 
 _NAV_PATHS = {
+    "Carteira de Vendas": '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
     "Performance Comercial": '<path d="M5 19V12M12 19V5M19 19V9"/>',
     "Metas e Resultados": '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
     "Analítico Comercial": '<path d="m4 17 6-6 4 3 6-8M15 6h5v5"/>',

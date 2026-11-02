@@ -156,7 +156,7 @@ def test_grupo_sem_meta_nao_inventa_atingimento_gap_ou_meta_individual():
     app.selectbox(key="_group_monthly_grupo").set_value("SISTEMA VERDES MARES").run(timeout=20)
     assert not app.exception
     resumo = _summary(app)
-    assert "Sem meta cadastrada" in resumo and "Atingimento YTD não se aplica" in resumo
+    assert "Sem meta cadastrada" in resumo and "Atingimento da meta acumulada não se aplica" in resumo
     assert "Gap comercial e percentual da meta anual não se aplicam" in resumo
     assert 'title="R$ 20,00"' in resumo
     assert "sem metas individuais" in _html(app)

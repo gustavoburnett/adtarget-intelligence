@@ -107,7 +107,7 @@ def test_hero_preserva_sinal_percentual_referencia_e_estados_existentes(
     raiz = _indicadores(monkeypatch, ytd=ytd, vazio=vazio, **valores)
     hero = _unico(raiz, "atg-kpi-hero")
     assert f"atg-hero-{estado}" in hero.get("class").split()
-    assert _texto(_unico(hero, "atg-eyebrow")) == "KPI Principal · YTD vs Ano Anterior"
+    assert _texto(_unico(hero, "atg-eyebrow")) == "Comparação com o mesmo período do ano anterior"
     assert _texto(_unico(hero, "atg-hero-number")) == numero
     assert _texto(_unico(hero, "atg-hero-caption")) == contexto
     sinais = _elementos(hero, "atg-hero-arrow")
