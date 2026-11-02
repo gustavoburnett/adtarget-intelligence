@@ -204,7 +204,7 @@ def test_acumulada_mes_em_andamento_identificado_e_hover_futuro_sem_resultado():
     assert "Meta acumulada: R$ 1.000,00" in hover
     assert "Realizado acumulado:" not in hover
     assert "Atingimento:" not in hover
-    assert "YoY:" not in hover
+    assert "Comparação com o ano anterior:" not in hover
 
 
 def test_acumulada_hover_fechado_informa_comparativos_e_saldo():
@@ -214,7 +214,7 @@ def test_acumulada_hover_fechado_informa_comparativos_e_saldo():
     for texto in (
         "SETEMBRO 2026", "Mês encerrado", "Realizado acumulado: R$ 90,00",
         "Meta acumulada: R$ 900,00", "Atingimento: 10,0%",
-        "Déficit: R$ 810,00", "2025, mesmo perímetro: R$ 45,00", "YoY: +100,0%",
+        "Déficit: R$ 810,00", "2025, mesmo perímetro: R$ 45,00", "Comparação com o ano anterior: +100,0%",
     ):
         assert texto in hover
 
@@ -254,7 +254,7 @@ def test_mensal_hover_fechado_usa_realizado_meta_atingimento_saldo_e_yoy():
     for texto in (
         "SETEMBRO 2026", "Realizado: R$ 10,00", "Meta: R$ 100,00",
         "Atingimento: 10,0%", "Déficit: R$ 90,00",
-        "Setembro/2025: R$ 5,00", "YoY: +100,0%",
+        "Setembro/2025: R$ 5,00", "Comparação com o ano anterior: +100,0%",
     ):
         assert texto in hover
     assert "Já vendido:" not in hover
@@ -274,7 +274,7 @@ def test_mensal_hover_aberto_usa_ja_vendido_sem_inventar_realizado(mes, estado, 
     assert f"Cobertura atual: {cobertura}" in hover
     assert "Realizado:" not in hover
     assert "Atingimento:" not in hover
-    assert "YoY:" not in hover
+    assert "Comparação com o ano anterior:" not in hover
     assert "Déficit:" not in hover
 
 
@@ -340,7 +340,7 @@ def test_mensal_hover_aprovado_preservado_integralmente_nos_12_meses():
             f"<b>{mes.upper()} 2026</b><br>Mês encerrado"
             "<br>Realizado: R$ 10,00<br>Meta: R$ 100,00"
             "<br>Atingimento: 10,0%<br>Déficit: R$ 90,00"
-            f"<br>{mes}/2025: R$ 5,00<br>YoY: +100,0%"
+            f"<br>{mes}/2025: R$ 5,00<br>Comparação com o ano anterior: +100,0%"
         )
         for mes in (
             "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -394,7 +394,7 @@ def test_mensal_base_yoy_ausente_nao_vira_comparativo_zero():
     figura = metas_charts.evolucao_mensal(resultado, pulso)
     hover = _serie(figura, "Realizado").customdata[0]
     assert "Janeiro/2025: sem base de comparação" in hover
-    assert "YoY: sem base de comparação" in hover
+    assert "Comparação com o ano anterior: sem base de comparação" in hover
     assert "+0,0%" not in hover
 
 

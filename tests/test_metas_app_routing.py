@@ -14,6 +14,7 @@ from pages_content import (
     auditoria_vendas,
     metas_resultados,
     performance_comercial,
+    carteira_vendas,
 )
 from src.data import cleaning, loader, metas as metas_engine, metas_loader
 from src.data.metas_schema import COLUNAS_METAS, ErroDeMetas
@@ -24,7 +25,7 @@ from tests.test_radar import recorde
 APP = Path(__file__).resolve().parents[1] / "app.py"
 PAGINAS_PRINCIPAIS = [
     "Performance Comercial", "Metas e Resultados", "Analítico Comercial",
-    "Analítico Veículos",
+    "Analítico Veículos", "Carteira de Vendas",
 ]
 PAGINAS_EXISTENTES = {
     "Performance Comercial": performance_comercial,
@@ -88,6 +89,7 @@ def _entrada(monkeypatch, pagina, *, auditoria=False, erro_metas=None):
             render_performance if nome == "Performance Comercial" else render_simples(nome),
         )
     monkeypatch.setattr(metas_resultados, "render", render_metas)
+    monkeypatch.setattr(carteira_vendas, "render", lambda df, **kwargs: renders.append(("Carteira de Vendas", df, kwargs)))
     app = AppTest.from_file(str(APP))
     app.session_state["autenticado"] = True
     app.session_state["nav_pagina"] = pagina
@@ -96,7 +98,7 @@ def _entrada(monkeypatch, pagina, *, auditoria=False, erro_metas=None):
 
 
 @pytest.mark.parametrize("auditoria", [False, True])
-def test_navegacao_tem_quarto_item_permanente_e_preserva_auditoria(monkeypatch, auditoria):
+def test_navegacao_tem_quinto_item_permanente_e_preserva_auditoria(monkeypatch, auditoria):
     app, _, _, _, _ = _entrada(
         monkeypatch, "Performance Comercial", auditoria=auditoria,
     )

@@ -70,7 +70,7 @@ def _resumo(modelo: GrupoMensal, ativo: bool, contexto: str | None) -> str:
     if pct is None:
         titulo = "Sem meta" if not modelo.tem_metas else "Sem base de comparação"
         principal = f'<div class="atg-group-ytd-number neutral">{titulo}</div>'
-        apoio = ('Atingimento YTD não se aplica' if not modelo.tem_metas else
+        apoio = ('Atingimento da meta acumulada não se aplica' if not modelo.tem_metas else
                  'Aguardando mês encerrado' if not resultado.meses_encerrados else
                  'Não há meta positiva nos meses encerrados.')
         regua = ""
@@ -81,9 +81,9 @@ def _resumo(modelo: GrupoMensal, ativo: bool, contexto: str | None) -> str:
                  f'{_periodo(meses_fechados, modelo.ano)}')
         largura = min(Decimal(100), max(Decimal(0), pct / Decimal(125) * 100))
         regua = (f'<div class="atg-group-ytd-track" aria-hidden="true"><span style="width:{largura:.2f}%"></span></div>'
-                 '<div class="atg-group-ruler">100% da meta YTD'
+                 '<div class="atg-group-ruler">100% da meta acumulada no ano'
                  + (' · Acima da escala de 125%' if pct > 125 else '') + '</div>')
-    esquerda = (f'<div class="atg-group-ytd">{identidade}<div class="atg-group-label">ATINGIMENTO YTD</div>'
+    esquerda = (f'<div class="atg-group-ytd">{identidade}<div class="atg-group-label">Atingimento da meta acumulada</div>'
                 f'{principal}<div class="atg-group-copy">{apoio}</div>{regua}</div>')
     if not modelo.tem_metas:
         direita = (f'<div><div class="atg-group-label">VENDAS EM {modelo.ano}</div>'
