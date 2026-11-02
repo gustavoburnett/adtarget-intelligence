@@ -13,6 +13,7 @@ amigável, nunca stack trace.
 from __future__ import annotations
 
 import datetime as _dt
+from html import escape
 
 import pandas as pd
 import streamlit as st
@@ -169,7 +170,12 @@ with st.sidebar:
                 shell.sidebar_footer(sincronizado_em, minutos),
                 unsafe_allow_html=True,
             )
-            st.caption(st.user.get("email", ""))
+            st.html(
+                '<p style="color:var(--atg-side-text-muted);'
+                'font-family:var(--atg-font);font-size:var(--atg-type-metadata-size);'
+                'line-height:1.5;overflow-wrap:anywhere;margin:0">'
+                + escape(str(st.user.get("email", ""))) + '</p>'
+            )
             st.button("Sair", key="logout_google", on_click=encerrar_sessao,
                       type="tertiary")
 
