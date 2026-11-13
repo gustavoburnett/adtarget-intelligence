@@ -7,6 +7,7 @@ Não substituem a conferência visual de fontes, responsividade e teclado.
 from functools import lru_cache
 import json
 from pathlib import Path
+import re
 import subprocess
 from types import ModuleType
 import xml.etree.ElementTree as ET
@@ -18,7 +19,7 @@ from streamlit.testing.v1 import AppTest
 
 from pages_content import analitico_comercial as pagina
 from src.components import cards
-from src.data import cleaning, quality_checks
+from src.data import cleaning, metrics, quality_checks
 from tests.test_performance_meta import _fonte_vendas
 
 
@@ -179,7 +180,16 @@ def test_quatro_verificadores_base_completa_e_quantidade_de_categorias_ativas():
         campos = {el.get("class"): "".join(el.itertext()) for el in elemento if el.tag == "span"}
         assert campos["atg-analytic-alert-title"] == esperado.titulo
         assert campos["atg-analytic-alert-count"] == str(esperado.quantidade)
-    assert [len(el.value) for el in atual.dataframe[:-1]] == [len(el.value) for el in anterior.dataframe[:-1]]
+    assert [len(el.value) for el in atual.dataframe[:-2]] == [len(el.value) for el in anterior.dataframe[:-1]]
+    assert list(_raw(atual.dataframe[-2]).columns[:-1]) == [
+        "EXECUTIVO", "Vendas", "% do total", "PIs", "Ticket médio", "Em aberto",
+    ]
+    coluna_variacao = _raw(atual.dataframe[-2]).columns[-1]
+    assert re.fullmatch(
+        r"Variação · Jan–(?:Jan|Fev|Mar|Abr|Mai|Jun|Jul|Ago|Set|Out|Nov|Dez)/2026 "
+        r"vs Jan–(?:Jan|Fev|Mar|Abr|Mai|Jun|Jul|Ago|Set|Out|Nov|Dez)/2025",
+        coluna_variacao,
+    )
     assert [exp.label for exp in atual.expander] == ["Filtros", "Alertas de Qualidade (4 ativos)"]
     assert atual.expander[0].proto.expanded
     assert not atual.expander[1].proto.expanded
@@ -270,7 +280,8 @@ def test_tabela_exibe_moeda_e_datas_ptbr_sem_alterar_registros_originais():
     antes = fonte.copy(deep=True)
     app = _pagina(fonte=fonte, ano=2024)
     assert [el.value for el in app.subheader] == [
-        "Carteira por status (valor e quantidade de PIs)", "Tabela analítica",
+        "Carteira por status (valor e quantidade de PIs)",
+        "Vendas por executivo", "Tabela analítica",
     ]
     raw, exibida = _raw(app.dataframe[-1]), _display(app.dataframe[-1])
     assert list(raw.columns) == list(exibida.columns) == COLUNAS
@@ -293,7 +304,7 @@ def test_alertas_inativos_continuam_visiveis_sem_ocorrencias_inventadas():
     cabecalhos = [ET.fromstring(el.value) for el in app.markdown if 'class="atg-analytic-alert ' in el.value]
     assert len(cabecalhos) == 4
     assert all("atg-analytic-alert-inactive" in el.get("class") for el in cabecalhos)
-    assert len(app.dataframe) == 1
+    assert len(app.dataframe) == 2
 
 
 def test_recorte_vazio_com_datas_preserva_tipos_e_exporta_apenas_16_cabecalhos(monkeypatch):
@@ -351,3 +362,30 @@ def test_defaults_mais_recente_liquido_veiculacao_e_dimensoes_completas_preserva
     assert _filtros(atual) == _filtros(anterior)
     assert len(_filtros(atual)) == 6
     assert _raw(atual.dataframe[-1])["GRUPO"].unique().tolist() == ["G", "H", "FORA"]
+
+
+def test_por_executivo_com_dados_soma_igual_ao_cartao_vendas():
+    app = _pagina()
+    tabela = _raw(app.dataframe[-2])
+    soma = float(tabela["Vendas"].sum())
+    cartao = next(elemento.value for elemento in app.metric if elemento.label == "Vendas")
+    assert cards.formatar_moeda_executiva(soma) == cartao
+    assert not tabela.empty
+
+
+def test_por_executivo_sem_dados_mostra_estado_vazio():
+    app = _pagina(grupos=[])
+    assert any(elemento.value == cards.SEM_DADOS for elemento in app.info)
+
+
+def test_por_executivo_mantem_pis_sem_responsavel_em_linha_propria():
+    fonte = _fonte()
+    elegiveis = fonte.index[(fonte["ANO_ABA"] == 2026) & fonte["STATUS"].isin(metrics.STATUS_VENDAS)]
+    fonte.loc[elegiveis[0], "EXECUTIVO"] = ""
+    app = _pagina(fonte=fonte)
+    tabela = _raw(app.dataframe[-2])
+    exibida = _display(app.dataframe[-2])
+    assert "(Sem executivo)" in exibida["EXECUTIVO"].tolist()
+    soma = float(tabela["Vendas"].sum())
+    cartao = next(elemento.value for elemento in app.metric if elemento.label == "Vendas")
+    assert cards.formatar_moeda_executiva(soma) == cartao

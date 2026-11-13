@@ -34,7 +34,20 @@ _AGUARDANDO = "Aguardando o primeiro mês encerrado"
 _SEM_BASE = "Sem base de comparação"
 
 # Estilos desta página, com tokens compartilhados e logos locais.
-_CSS = metas_styles.CSS_METAS.replace("</style>", CSS_PARTNER_LOGOS + "</style>")
+_CSS_COMPARACAO = """
+.st-key-design_metas_content .atg-metas-comparison{margin:16px 0 22px;padding:18px 20px;border:1px solid #EDEFF2;
+  border-radius:12px;background:#fff;}
+.st-key-design_metas_content .atg-metas-comparison h2{font-size:15px;font-weight:650;margin:0 0 4px;color:#14171C;}
+.st-key-design_metas_content .atg-metas-comparison-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:14px;}
+.st-key-design_metas_content .atg-metas-comparison-item{min-width:0;}
+.st-key-design_metas_content .atg-metas-comparison-label{font-size:11px;font-weight:600;color:#687180;line-height:1.4;}
+.st-key-design_metas_content .atg-metas-comparison-value{font-size:20px;font-weight:700;color:#14171C;margin-top:4px;}
+.st-key-design_metas_content .atg-metas-comparison-note{font-size:11px;color:#8B93A1;margin-top:10px;}
+@media(max-width:700px){.st-key-design_metas_content .atg-metas-comparison-grid{grid-template-columns:1fr;gap:10px;}}
+"""
+_CSS = metas_styles.CSS_METAS.replace(
+    "</style>", CSS_PARTNER_LOGOS + _CSS_COMPARACAO + "</style>"
+)
 
 
 def _pct(valor: Decimal, *, sinal: bool = False) -> str:
@@ -116,6 +129,34 @@ def _hero(resultado: ResultadoMetas) -> str:
         f'<div class="atg-metas-label">{"RESULTADO FINAL" if resultado.meses_encerrados == 12 else "RITMO FECHADO"}</div>'
         f'{destaque}<div class="atg-metas-context">Atingimento da meta acumulada</div>'
         f'</div><div class="atg-metas-support">{apoio}</div></div></section>'
+    )
+
+
+def _comparacao_perimetro(resultado: ResultadoMetas) -> str:
+    """Confronta no engine o total da Performance e o recorte dentro das metas."""
+    periodo = (
+        _periodo(resultado.meses_encerrados, resultado.ano)
+        if resultado.meses_encerrados else "Nenhum mês encerrado"
+    )
+    itens = (
+        ("Dentro do perímetro de metas", resultado.realizado_ytd),
+        ("Total de vendas da Performance", resultado.vendas_total_ytd),
+        ("Diferença fora do perímetro", resultado.vendas_fora_perimetro_ytd),
+    )
+    celulas = "".join(
+        '<div class="atg-metas-comparison-item">'
+        f'<div class="atg-metas-comparison-label">{escape(rotulo)}</div>'
+        f'<div class="atg-metas-comparison-value">{_moeda(valor)}</div></div>'
+        for rotulo, valor in itens
+    )
+    return (
+        '<section class="atg-metas-comparison" aria-label="Comparação dos recortes de vendas">'
+        '<h2>Por que os totais diferem?</h2>'
+        '<div class="atg-metas-context">Mesmo período, valor líquido e mês de veiculação.</div>'
+        f'<div class="atg-metas-comparison-grid">{celulas}</div>'
+        f'<div class="atg-metas-comparison-note">Meses encerrados: {escape(periodo)}. '
+        'A diferença corresponde às vendas que não pertencem ao perímetro de metas no mês.</div>'
+        '</section>'
     )
 
 
@@ -496,12 +537,12 @@ def _render_conteudo(
             f'<div class="atg-metas">{_hero(resultado)}{_meta_anual(pulso)}{_projecao(resultado, pulso)}</div>',
             unsafe_allow_html=True,
         )
+        st.markdown(_comparacao_perimetro(resultado), unsafe_allow_html=True)
+        st.markdown(_parceiros(parceiros, pulso, resultado, metas_vigentes), unsafe_allow_html=True)
         _mostrar_graficos(resultado, pulso)
     monthly_groups.render(
         df, base_metas, ano, data_referencia=data_referencia,
         atividade=lambda grupo: _atividade_parceiro(grupo, resultado, metas_vigentes),
     )
-    if resultado.estado != "sem_metas":
-        st.markdown(_parceiros(parceiros, pulso, resultado, metas_vigentes), unsafe_allow_html=True)
     _mostrar_alertas(alertas)
     _rodape()

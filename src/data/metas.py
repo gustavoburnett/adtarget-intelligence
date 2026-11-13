@@ -20,7 +20,7 @@ from typing import Literal
 import pandas as pd
 
 from src.data import metrics
-from src.data.cleaning import COL_GRUPO, COL_VEICULO
+from src.data.cleaning import COL_GRUPO, COL_MES_VEICULACAO_DATA, COL_VEICULO
 from src.data.metas_schema import (
     COL_VALOR_META_CENTAVOS,
     data_local,
@@ -117,6 +117,8 @@ class ResultadoMetas:
     meta_ytd_centavos: int
     plano_futuro_centavos: int
     realizado_ytd: Decimal
+    vendas_total_ytd: Decimal
+    vendas_fora_perimetro_ytd: Decimal
     realizado_anterior_ytd: Decimal | None
     atingimento_ytd_pct: Decimal | None
     saldo_ytd: Decimal
@@ -314,6 +316,15 @@ def avaliar_metas(
     futuro_centavos = sum(m.meta_centavos for m in meses[encerrados:])
     meta_ytd = Decimal(meta_ytd_centavos) / _CEM
     meta_anual = Decimal(meta_anual_centavos) / _CEM
+    vendas_total_ytd_df = vendas.loc[
+        metrics.mascara_vendas(vendas)
+        & vendas[COL_MES_VEICULACAO_DATA].dt.year.eq(ano)
+        & vendas[COL_MES_VEICULACAO_DATA].dt.month.le(encerrados)
+    ]
+    vendas_total_ytd = Decimal(str(metrics.vendas(vendas_total_ytd_df, "liquido")))
+    vendas_fora_perimetro_ytd = diferenca_monetaria(
+        vendas_total_ytd, realizado_acumulado,
+    )
     anterior_ytd = meses[encerrados - 1].realizado_anterior_acumulado if encerrados else None
     gap = diferenca_monetaria(meta_anual, realizado_acumulado)
     forecast = realizado_acumulado / Decimal(encerrados) * 12 if 2 <= encerrados < 12 else None
@@ -336,6 +347,8 @@ def avaliar_metas(
         meta_ytd_centavos=meta_ytd_centavos,
         plano_futuro_centavos=futuro_centavos,
         realizado_ytd=realizado_acumulado,
+        vendas_total_ytd=vendas_total_ytd,
+        vendas_fora_perimetro_ytd=vendas_fora_perimetro_ytd,
         realizado_anterior_ytd=anterior_ytd,
         atingimento_ytd_pct=(
             _percentual(realizado_acumulado, meta_ytd) if percentuais_disponiveis else None

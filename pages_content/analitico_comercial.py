@@ -21,7 +21,7 @@ import streamlit as st
 from src.components import cards, charts, filters
 from src.components.analitico_tables import configuracao_colunas, preparar_tabela
 from src.components.kpi_icons import ICONES_KPI
-from src.data import metrics, quality_checks
+from src.data import metas, metrics, quality_checks
 from src.data.csv_export import gerar_csv_seguro
 from src.data.cleaning import (
     COL_AGENCIA,
@@ -32,6 +32,7 @@ from src.data.cleaning import (
 )
 
 _CHAVE = "anfat"
+_MESES_ABREV = ("Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez")
 
 #: Colunas da tabela de auditoria, na ordem do wireframe (documento 04)
 _COLUNAS_TABELA = [
@@ -167,43 +168,95 @@ def render(df: pd.DataFrame) -> None:
             estilo_analitico=True,
         )
 
-    # ------------------------------------------------- tabela de auditoria
-    bloco_tabela = st.container(key="design_comercial_table")
-    with bloco_tabela:
-        st.subheader("Tabela analítica")
-        pesquisa = st.text_input(
-            "Pesquisar (grupo, veículo, PI, agência, cliente, campanha, status, NF, executivo)",
-            key=f"{_CHAVE}_pesquisa",
+    # --------------------------------------------- leituras por executivo
+    tab_executivos, tab_pis = st.tabs(["Por executivo", "Tabela analítica"])
+    with tab_executivos:
+        st.subheader("Vendas por executivo")
+        st.caption(
+            "O recorte considera período, valor, mês, grupo, veículo, agência, "
+            "cliente, status e Executivo. O filtro de Executivo também afeta "
+            "os cartões, o gráfico de status e a tabela. Não há metas por executivo na fonte."
         )
-    tabela = df_ano.copy()
-    if pesquisa:
-        termo = pesquisa.strip().upper()
-        mascara = pd.Series(False, index=tabela.index)
-        for coluna in _COLUNAS_PESQUISA:
-            mascara |= tabela[coluna].astype(str).str.upper().str.contains(
-                termo, regex=False
+        agregado_exec = metrics.agregado_por_dimensao(df_ano, COL_EXECUTIVO, valor)
+        if agregado_exec.empty:
+            st.info(cards.SEM_DADOS)
+        else:
+            total_exec = float(agregado_exec["valor"].sum())
+            tendencias_exec = metrics.tendencia_por_dimensao(
+                df_dim, COL_EXECUTIVO, ano, valor, criterio_mes,
+                meses_fechados=metas.meses_encerrados(ano),
             )
-        tabela = tabela[mascara]
+            meses_fechados = metas.meses_encerrados(ano)
+            coluna_variacao = (
+                f"Variação · Jan–{_MESES_ABREV[meses_fechados - 1]}/{ano} "
+                f"vs Jan–{_MESES_ABREV[meses_fechados - 1]}/{ano - 1}"
+                if meses_fechados else "Variação · sem mês fechado"
+            )
+            linhas_exec = []
+            for _, linha in agregado_exec.iterrows():
+                executivo = linha[COL_EXECUTIVO]
+                base_exec = df_ano[df_ano[COL_EXECUTIVO] == executivo]
+                linhas_exec.append({
+                    "EXECUTIVO": executivo or "(Sem executivo)",
+                    "Vendas": float(linha["valor"]),
+                    "% do total": float(linha["valor"]) / total_exec * 100 if total_exec else None,
+                    "PIs": int(linha["qtd_pis"]),
+                    "Ticket médio": metrics.ticket_medio(base_exec, valor),
+                    "Em aberto": metrics.em_aberto(base_exec, valor),
+                    coluna_variacao: tendencias_exec.get(executivo),
+                })
+            tabela_exec = pd.DataFrame(linhas_exec)
+            tabela_exec_visual = preparar_tabela(tabela_exec)
+            tabela_exec_visual.format({
+                "Vendas": cards.formatar_moeda,
+                "Ticket médio": cards.formatar_moeda,
+                "Em aberto": cards.formatar_moeda,
+                "% do total": cards.formatar_pct,
+                coluna_variacao: cards.formatar_pct,
+            }, escape="html", na_rep="—")
+            st.dataframe(
+                tabela_exec_visual, width="stretch", hide_index=True, row_height=40,
+                column_config={
+                    "EXECUTIVO": st.column_config.TextColumn(width="medium"),
+                    "PIs": st.column_config.NumberColumn(format="%d", alignment="right"),
+                },
+            )
 
-    colunas_presentes = [c for c in _COLUNAS_TABELA if c in tabela.columns]
-    with bloco_tabela:
-        st.dataframe(
-            preparar_tabela(tabela, colunas=colunas_presentes),
-            width="stretch", hide_index=True, row_height=40,
-            column_config=configuracao_colunas(tabela, colunas=colunas_presentes),
-        )
-        with st.container(key="design_comercial_table_footer", horizontal=True, vertical_alignment="center"):
-            with st.container(width="stretch"):
-                st.caption(f"{len(tabela)} linha(s) no recorte")
-            with st.container(width="content"):
-                # Sem registros, o CSV contém somente os mesmos cabeçalhos.
-                # A cópia object evita a redução de uma série datetime vazia
-                # no exportador existente, sem alterar seus contratos/dados.
-                exportacao = tabela[colunas_presentes]
-                if exportacao.empty:
-                    exportacao = exportacao.astype(object)
-                st.download_button(
-                    "Exportar CSV", gerar_csv_seguro(exportacao),
-                    file_name=f"analitico_comercial_{ano}.csv", mime="text/csv",
-                    key=f"{_CHAVE}_csv", icon=":material/download:",
+    # ------------------------------------------------- tabela de auditoria
+    with tab_pis:
+        bloco_tabela = st.container(key="design_comercial_table")
+        with bloco_tabela:
+            st.subheader("Tabela analítica")
+            pesquisa = st.text_input(
+                "Pesquisar (grupo, veículo, PI, agência, cliente, campanha, status, NF, executivo)",
+                key=f"{_CHAVE}_pesquisa",
+            )
+        tabela = df_ano.copy()
+        if pesquisa:
+            termo = pesquisa.strip().upper()
+            mascara = pd.Series(False, index=tabela.index)
+            for coluna in _COLUNAS_PESQUISA:
+                mascara |= tabela[coluna].astype(str).str.upper().str.contains(
+                    termo, regex=False
                 )
+            tabela = tabela[mascara]
+
+        colunas_presentes = [c for c in _COLUNAS_TABELA if c in tabela.columns]
+        with bloco_tabela:
+            st.dataframe(
+                preparar_tabela(tabela, colunas=colunas_presentes),
+                width="stretch", hide_index=True, row_height=40,
+                column_config=configuracao_colunas(tabela, colunas=colunas_presentes),
+            )
+            with st.container(key="design_comercial_table_footer", horizontal=True, vertical_alignment="center"):
+                with st.container(width="stretch"):
+                    st.caption(f"{len(tabela)} linha(s) no recorte")
+                with st.container(width="content"):
+                    exportacao = tabela[colunas_presentes]
+                    if exportacao.empty:
+                        exportacao = exportacao.astype(object)
+                    st.download_button(
+                        "Exportar CSV", gerar_csv_seguro(exportacao),
+                        file_name=f"analitico_comercial_{ano}.csv", mime="text/csv",
+                        key=f"{_CHAVE}_csv", icon=":material/download:",
+                    )

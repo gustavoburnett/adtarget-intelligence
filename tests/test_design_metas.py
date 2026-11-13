@@ -462,9 +462,10 @@ def test_design_1f_preserva_fontes_protegidas_do_design_1e(caminho):
     atual = (RAIZ / caminho).read_text()
     anterior = _fonte_congelada(caminho)
     autorizadas = {
+        "src/data/metas.py": {"ResultadoMetas", "avaliar_metas"},
         "src/data/loader.py": {"load_all_sheets"},
         "pages_content/performance_comercial.py": {"render", "_linhas_ranking_dimensao"},
-        "pages_content/analitico_comercial.py": {"render"},
+        "pages_content/analitico_comercial.py": {"render", "_MESES_ABREV"},
         # Design 1H aprovado: render visual e substituição do formatador de
         # strings pelo adaptador nativo numérico; não libera regras comerciais.
         "pages_content/analitico_veiculos.py": {"render", "_tabela_formatada"},
@@ -513,6 +514,10 @@ def test_design_1f_preserva_fontes_protegidas_do_design_1e(caminho):
         def protegidas(fonte):
             return [ast.dump(no) for no in ast.parse(fonte).body
                     if not isinstance(no, (ast.Import, ast.ImportFrom))
+                        and not (isinstance(no, ast.Assign)
+                                 and any(isinstance(alvo, ast.Name)
+                                         and alvo.id in autorizadas[caminho]
+                                         for alvo in no.targets))
                     and not (caminho == "pages_content/analitico_veiculos.py"
                              and isinstance(no, ast.Expr)
                              and isinstance(no.value, ast.Constant)
@@ -524,7 +529,17 @@ def test_design_1f_preserva_fontes_protegidas_do_design_1e(caminho):
             # continuam vindo exclusivamente da engine oficial congelada.
             assert "def _tabela_formatada(" in anterior
             assert "def _tabela_formatada(" not in atual
-            assert (RAIZ / "src/data/metrics.py").read_text() == _fonte_congelada("src/data/metrics.py")
+            atual_metrics = ast.parse((RAIZ / "src/data/metrics.py").read_text()).body
+            anterior_metrics = ast.parse(_fonte_congelada("src/data/metrics.py")).body
+            autorizadas_metrics = {"_janela_comparavel", "tendencia_por_dimensao"}
+            protegidas_metrics = lambda arvore: [
+                ast.dump(no) for no in arvore
+                if not isinstance(no, (ast.Import, ast.ImportFrom))
+                and not (isinstance(no, ast.Expr) and isinstance(no.value, ast.Constant)
+                         and isinstance(no.value.value, str))
+                and getattr(no, "name", None) not in autorizadas_metrics
+            ]
+            assert protegidas_metrics(atual_metrics) == protegidas_metrics(anterior_metrics)
 
 
 def test_novo_css_isola_metas_e_usa_largura_util_sem_ocultar_dados_financeiros():

@@ -442,13 +442,18 @@ def resumo_por_status(df: pd.DataFrame, valor: Valor = "liquido") -> pd.DataFram
 # ---------------------------------------------------------------------------
 
 def _janela_comparavel(
-    df: pd.DataFrame, ano: int, criterio_mes: CriterioMes, hoje: Optional[_dt.date]
+    df: pd.DataFrame, ano: int, criterio_mes: CriterioMes, hoje: Optional[_dt.date],
+    mes_limite: int | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, int]:
     """Base Vendas de (ano) e (ano−1) no MESMO intervalo comparável do YTD
     (regra v0.4): até o mês atual no ano corrente; Jan–Dez em ano encerrado.
     """
     hoje = hoje or _dt.date.today()
-    mes_limite = hoje.month if ano == hoje.year else 12
+    mes_limite = mes_limite if mes_limite is not None else (
+        hoje.month if ano == hoje.year else 12
+    )
+    if not 0 <= mes_limite <= 12:
+        raise ValueError("O mês limite da comparação deve estar entre 0 e 12.")
     col_mes = coluna_mes(criterio_mes)
     base = df[mascara_vendas(df)]
     atual = base[
@@ -468,16 +473,21 @@ def tendencia_por_dimensao(
     valor: Valor = "liquido",
     criterio_mes: CriterioMes = CRITERIO_MES_OFICIAL,
     hoje: Optional[_dt.date] = None,
+    meses_fechados: int | None = None,
 ) -> dict[str, Optional[float]]:
     """Variação % de cada entidade da dimensão vs o mesmo intervalo
     comparável do ano anterior (badge de tendência dos rankings — 2B.8).
 
     Retorna {entidade: variação % ou None quando não há base do ano
-    anterior}. NÃO altera nenhum número exibido: os valores dos rankings
-    continuam vindo de agregado_por_dimensao; isto apenas ADICIONA a
-    leitura de tendência.
+    anterior}. O resultado está em pontos percentuais (por exemplo, 12.5
+    significa +12,5%). Por padrão usa a janela YTD existente; quando
+    ``meses_fechados`` é informado, limita o comparativo a esses meses
+    encerrados. NÃO altera nenhum número exibido: os valores dos rankings
+    continuam vindo de agregado_por_dimensao; isto apenas ADICIONA a leitura.
     """
-    atual, anterior, _ = _janela_comparavel(df, ano, criterio_mes, hoje)
+    atual, anterior, _ = _janela_comparavel(
+        df, ano, criterio_mes, hoje, mes_limite=meses_fechados,
+    )
     col = coluna_valor(valor)
     soma_atual = atual.groupby(coluna)[col].sum()
     soma_anterior = anterior.groupby(coluna)[col].sum()

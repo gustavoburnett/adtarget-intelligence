@@ -69,10 +69,10 @@ def _figuras(app):
     return [json.loads(element.proto.spec) for element in app.get("plotly_chart")]
 
 
-def test_nova_secao_posicionada_apos_graficos_antes_parceiros_com_seletor_completo():
+def test_metas_por_parceiro_aparece_antes_dos_graficos_com_seletor_completo():
     app = _pagina()
     html = _html(app)
-    titulos = ("Evolução Mensal", "Evolução Acumulada", "Desempenho Mensal por Grupo", "Metas por parceiro")
+    titulos = ("Metas por parceiro", "Evolução Mensal", "Evolução Acumulada", "Desempenho Mensal por Grupo")
     assert [html.index(titulo) for titulo in titulos] == sorted(html.index(titulo) for titulo in titulos)
     assert app.selectbox(key="_group_monthly_grupo").options == [
         "BRASIL 247", "DISNEY", "FORBES", "SISTEMA VERDES MARES", "TEADS",
