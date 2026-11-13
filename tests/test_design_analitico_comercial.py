@@ -79,7 +79,7 @@ def _render_congelada(df):
 
 
 def _pagina(executar=_render_atual, *, fonte=None, ano=2026, valor="Valor Líquido",
-            criterio="Mês (Veiculação)", grupos=None, pares=None, pesquisa="",
+            criterio="Mês (Veiculação)", grupos=None, pares=None, executivos=None, pesquisa="",
             permitir_falha=False):
     df = _fonte() if fonte is None else fonte
     app = AppTest.from_function(executar, args=(df,))
@@ -91,6 +91,8 @@ def _pagina(executar=_render_atual, *, fonte=None, ano=2026, valor="Valor Líqui
         app.session_state["anfat_fc_GRUPO_aplicado"] = grupos
     if pares is not None:
         app.session_state["anfat_fc_VEICULO_PAR_aplicado"] = pares
+    if executivos is not None:
+        app.session_state["anfat_fc_EXECUTIVO_aplicado"] = executivos
     app.run(timeout=20)
     if not permitir_falha:
         assert not app.exception
@@ -375,6 +377,42 @@ def test_por_executivo_com_dados_soma_igual_ao_cartao_vendas():
     assert abs(soma - valor_cartao) < Decimal("0.01")
     assert all(not str(valor).startswith("+") for valor in tabela_exibida["% do total"])
     assert not tabela.empty
+
+
+def test_filtro_executivo_nao_reduz_tabela_destaca_linha_e_reconcilia_recorte():
+    fonte = _fonte()
+    elegiveis = fonte.index[
+        (fonte["ANO_ABA"] == 2026)
+        & fonte["STATUS"].isin(metrics.STATUS_VENDAS)
+    ]
+    fonte.loc[elegiveis[0], "EXECUTIVO"] = "EXECUTIVO A"
+    fonte.loc[elegiveis[1], "EXECUTIVO"] = "EXECUTIVO B"
+
+    app = _pagina(fonte=fonte, executivos=["EXECUTIVO A"])
+    tabela = _raw(app.dataframe[-2])
+    exibida = _display(app.dataframe[-2])
+
+    assert {"EXECUTIVO A", "EXECUTIVO B", "TESTE"}.issubset(set(tabela["EXECUTIVO"]))
+    soma_tabela = Decimal(str(tabela["Vendas"].sum()))
+    recorte_sem_executivo = filters.recorte_do_ano(
+        fonte, 2026, metrics.CRITERIO_MES_OFICIAL
+    )
+    total_recorte = Decimal(str(metrics.vendas(recorte_sem_executivo, "liquido")))
+    assert abs(soma_tabela - total_recorte) < Decimal("0.01")
+    assert abs(float(tabela["% do total"].sum()) - 100.0) < 1e-8
+
+    styler = app.dataframe[-2].proto.arrow_data.styler
+    indice_selecionado = exibida.index[
+        exibida["EXECUTIVO"] == "EXECUTIVO A"
+    ][0]
+    assert f"#T_{styler.uuid}_row{indice_selecionado}_col0" in styler.styles
+    assert any(
+        elemento.value == (
+            "Esta comparação mostra todos os executivos. O filtro de Executivo vale para "
+            "os cartões, o gráfico de status e a Tabela analítica."
+        )
+        for elemento in app.caption
+    )
 
 
 def test_por_executivo_sem_dados_mostra_estado_vazio():

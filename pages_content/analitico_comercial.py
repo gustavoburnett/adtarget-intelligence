@@ -83,6 +83,7 @@ def render(df: pd.DataFrame) -> None:
             df_dim = filters.filtro_compacto(
                 df_dim, COL_STATUS, "Status", _CHAVE, "status"
             )
+        df_dim_sem_exec = df_dim.copy()
         with f6:
             df_dim = filters.filtro_compacto(
                 df_dim, COL_EXECUTIVO, "Executivo", _CHAVE, "executivos"
@@ -173,17 +174,20 @@ def render(df: pd.DataFrame) -> None:
     with tab_executivos:
         st.subheader("Vendas por executivo")
         st.caption(
-            "O recorte considera período, valor, mês, grupo, veículo, agência, "
-            "cliente, status e Executivo. O filtro de Executivo também afeta "
-            "os cartões, o gráfico de status e a tabela. Não há metas por executivo na fonte."
+            "Esta comparação mostra todos os executivos. O filtro de Executivo vale para "
+            "os cartões, o gráfico de status e a Tabela analítica."
         )
-        agregado_exec = metrics.agregado_por_dimensao(df_ano, COL_EXECUTIVO, valor)
+        # A comparação mantém todos os executivos, aplicando os demais filtros.
+        # A seleção de Executivo continua filtrando cartões, status e a tabela analítica.
+        df_dim_exec = df_dim_sem_exec
+        df_ano_exec = filters.recorte_do_ano(df_dim_exec, ano, criterio_mes)
+        agregado_exec = metrics.agregado_por_dimensao(df_ano_exec, COL_EXECUTIVO, valor)
         if agregado_exec.empty:
             st.info(cards.SEM_DADOS)
         else:
             total_exec = float(agregado_exec["valor"].sum())
             tendencias_exec = metrics.tendencia_por_dimensao(
-                df_dim, COL_EXECUTIVO, ano, valor, criterio_mes,
+                df_dim_exec, COL_EXECUTIVO, ano, valor, criterio_mes,
                 meses_fechados=metas.meses_encerrados(ano),
             )
             meses_fechados = metas.meses_encerrados(ano)
@@ -207,6 +211,22 @@ def render(df: pd.DataFrame) -> None:
                 })
             tabela_exec = pd.DataFrame(linhas_exec)
             tabela_exec_visual = preparar_tabela(tabela_exec)
+            opcoes_nomes_exec = {
+                nome for nome in df_dim_exec[COL_EXECUTIVO].unique() if nome
+            }
+            aplicados_exec = st.session_state.get(f"{_CHAVE}_fc_{COL_EXECUTIVO}_aplicado")
+            selecionados_exec = set(aplicados_exec or []) & opcoes_nomes_exec
+            if aplicados_exec is not None and selecionados_exec:
+                nomes_selecionados = selecionados_exec
+
+                def _estilo_executivo(linha):
+                    if linha["EXECUTIVO"] in nomes_selecionados:
+                        return [
+                            "background-color: #E2F0EA; color: #0D5C4B; font-weight: 600;"
+                        ] * len(linha)
+                    return [""] * len(linha)
+
+                tabela_exec_visual = tabela_exec_visual.apply(_estilo_executivo, axis=1)
             tabela_exec_visual.format({
                 "Vendas": cards.formatar_moeda,
                 "Ticket médio": cards.formatar_moeda,
