@@ -27,12 +27,7 @@ _TEXTOS = {
     "GRUPO", "VEICULO", "PI", "AGENCIA", "CLIENTE", "CAMPANHA",
     "MÊS (GANHO)", "MÊS (VEICULAÇÃO)", "STATUS", "NOTA FISCAL", "EXECUTIVO",
 }
-_LARGURAS = {
-    "GRUPO": 250, "VEICULO": 300, "PI": 220, "AGENCIA": 210,
-    "CLIENTE": 300, "CAMPANHA": 400, "MÊS (GANHO)": 180,
-    "MÊS (VEICULAÇÃO)": 200, "VENCIMENTO PI": 240, "STATUS": 210,
-    "NOTA FISCAL": 180, "EXECUTIVO": 180,
-}
+_LARGURA_MINIMA_TEXTO = 140
 _ROTULOS = {
     "GRUPO": "Grupo", "VEICULO": "Veículo", "PI": "PI",
     "AGENCIA": "Agência", "CLIENTE": "Cliente", "CAMPANHA": "Campanha",
@@ -181,8 +176,25 @@ def configuracao_colunas(
                 label=_ROTULOS.get(coluna, coluna), help=_AJUDAS.get(coluna), width=largura,
             )
         else:
+            rotulo = _ROTULOS.get(coluna, coluna)
+            if coluna == "VENCIMENTO PI":
+                datas = (
+                    df[COL_VENCIMENTO_DATA]
+                    if COL_VENCIMENTO_DATA in df
+                    else pd.Series(pd.NaT, index=df.index)
+                )
+                valores = [
+                    _vencimento_textual(valor, data)
+                    for valor, data in zip(df[coluna], datas)
+                    if not _ausente(valor)
+                ]
+            else:
+                valores = [str(valor) for valor in df[coluna] if not _ausente(valor)]
+            maior_comprimento = max(
+                [len(rotulo), *(len(valor) for valor in valores)], default=len(rotulo),
+            )
+            largura = max(_LARGURA_MINIMA_TEXTO, maior_comprimento * 8 + 40)
             configuracao[coluna] = st.column_config.TextColumn(
-                label=_ROTULOS.get(coluna, coluna), help=_AJUDAS.get(coluna),
-                width=_LARGURAS.get(coluna, 170),
+                label=rotulo, help=_AJUDAS.get(coluna), width=largura,
             )
     return configuracao
