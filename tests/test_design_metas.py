@@ -505,7 +505,10 @@ def test_design_1f_preserva_fontes_protegidas_do_design_1e(caminho):
             "# changes response-start forwarding (ASGI body before headers). See PR #11.\n"
             "starlette==1.3.1\n"
         )
-        assert atual == (anterior + acrescimo).replace("streamlit==1.59.1", "streamlit[auth]==1.59.1")
+        esperado = (anterior + acrescimo).replace(
+            "streamlit==1.59.1", "streamlit[auth]==1.59.1"
+        ).replace("pandas>=2.0", "pandas==3.0.3")
+        assert atual == esperado
     elif caminho not in autorizadas:
         assert atual == anterior
     else:

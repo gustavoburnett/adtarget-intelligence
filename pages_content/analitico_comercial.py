@@ -211,7 +211,7 @@ def render(df: pd.DataFrame) -> None:
                 "Vendas": cards.formatar_moeda,
                 "Ticket médio": cards.formatar_moeda,
                 "Em aberto": cards.formatar_moeda,
-                "% do total": cards.formatar_pct,
+                "% do total": lambda percentual: cards.formatar_pct(percentual, com_sinal=False),
                 coluna_variacao: cards.formatar_pct,
             }, escape="html", na_rep="—")
             st.dataframe(

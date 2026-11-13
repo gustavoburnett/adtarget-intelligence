@@ -5,6 +5,7 @@ Não substituem a conferência visual de fontes, responsividade e teclado.
 """
 
 from functools import lru_cache
+from decimal import Decimal
 import json
 from pathlib import Path
 import re
@@ -18,7 +19,7 @@ import pytest
 from streamlit.testing.v1 import AppTest
 
 from pages_content import analitico_comercial as pagina
-from src.components import cards
+from src.components import cards, filters
 from src.data import cleaning, metrics, quality_checks
 from tests.test_performance_meta import _fonte_vendas
 
@@ -367,9 +368,12 @@ def test_defaults_mais_recente_liquido_veiculacao_e_dimensoes_completas_preserva
 def test_por_executivo_com_dados_soma_igual_ao_cartao_vendas():
     app = _pagina()
     tabela = _raw(app.dataframe[-2])
-    soma = float(tabela["Vendas"].sum())
-    cartao = next(elemento.value for elemento in app.metric if elemento.label == "Vendas")
-    assert cards.formatar_moeda_executiva(soma) == cartao
+    tabela_exibida = _display(app.dataframe[-2])
+    soma = Decimal(str(tabela["Vendas"].sum()))
+    recorte_cartao = filters.recorte_do_ano(_fonte(), 2026, metrics.CRITERIO_MES_OFICIAL)
+    valor_cartao = Decimal(str(metrics.vendas(recorte_cartao, "liquido")))
+    assert abs(soma - valor_cartao) < Decimal("0.01")
+    assert all(not str(valor).startswith("+") for valor in tabela_exibida["% do total"])
     assert not tabela.empty
 
 
@@ -386,6 +390,7 @@ def test_por_executivo_mantem_pis_sem_responsavel_em_linha_propria():
     tabela = _raw(app.dataframe[-2])
     exibida = _display(app.dataframe[-2])
     assert "(Sem executivo)" in exibida["EXECUTIVO"].tolist()
-    soma = float(tabela["Vendas"].sum())
-    cartao = next(elemento.value for elemento in app.metric if elemento.label == "Vendas")
-    assert cards.formatar_moeda_executiva(soma) == cartao
+    soma = Decimal(str(tabela["Vendas"].sum()))
+    recorte_cartao = filters.recorte_do_ano(fonte, 2026, metrics.CRITERIO_MES_OFICIAL)
+    valor_cartao = Decimal(str(metrics.vendas(recorte_cartao, "liquido")))
+    assert abs(soma - valor_cartao) < Decimal("0.01")

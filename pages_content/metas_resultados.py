@@ -140,7 +140,7 @@ def _comparacao_perimetro(resultado: ResultadoMetas) -> str:
     )
     itens = (
         ("Dentro do perímetro de metas", resultado.realizado_ytd),
-        ("Total de vendas da Performance", resultado.vendas_total_ytd),
+        ("Vendas totais nos meses encerrados (todos os parceiros)", resultado.vendas_total_ytd),
         ("Diferença fora do perímetro", resultado.vendas_fora_perimetro_ytd),
     )
     celulas = "".join(

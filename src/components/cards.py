@@ -220,11 +220,12 @@ def formatar_moeda_executiva(valor: Optional[float]) -> str:
     return f"{sinal}R$ {_numero_ptbr(_quantizar(v))}"
 
 
-def formatar_pct(valor: Optional[float]) -> str:
-    """Percentual com sinal e uma casa decimal (+12,3% / -4,5%)."""
+def formatar_pct(valor: Optional[float], *, com_sinal: bool = True) -> str:
+    """Percentual com uma casa decimal, com sinal opcional."""
     if valor is None:
         return SEM_COMPARATIVO
-    texto = f"{valor:+.1f}".replace(".", ",")
+    texto = f"{valor:+.1f}" if com_sinal else f"{valor:.1f}"
+    texto = texto.replace(".", ",")
     return f"{texto}%"
 
 

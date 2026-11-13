@@ -383,6 +383,8 @@ def test_comparacao_mostra_total_da_performance_perimetro_e_diferenca_do_engine(
     )
     html = _html(_pagina(vendas=vendas))
     assert 'aria-label="Comparação dos recortes de vendas"' in html
+    assert "Vendas totais nos meses encerrados (todos os parceiros)" in html
+    assert "Total de vendas da Performance" not in html
     assert 'class="atg-metas-comparison-value"><span class="num" title="R$ 90,00">' in html
     assert 'class="atg-metas-comparison-value"><span class="num" title="R$ 135,00">' in html
     assert 'class="atg-metas-comparison-value"><span class="num" title="R$ 45,00">' in html
