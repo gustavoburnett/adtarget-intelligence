@@ -4,6 +4,7 @@ from tests.oidc_helpers import identity
 
 import datetime as dt
 import json
+import re
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -12,7 +13,7 @@ import pytest
 import streamlit as st
 from streamlit.testing.v1 import AppTest
 
-from pages_content import performance_comercial
+from pages_content import metas_resultados, performance_comercial
 from src.data import cleaning, loader, metas, metas_loader
 from src.data.loader import COL_ANO_ABA
 from src.data.metas_schema import COLUNAS_METAS, ErroDeMetas
@@ -188,7 +189,7 @@ def test_indicadores_de_metas_na_primeira_dobra_nao_abrem_grafico_meta(aba):
     assert not app.exception
     assert len(_figuras(app)) == 2
     assert "Meta anual AdTarget" in _conteudo(app)
-    assert "Saldo após meses encerrados" in _conteudo(app)
+    assert "Falta vender até dezembro" in _conteudo(app)
 
 
 def test_meta_preserva_kpis_radar_rankings_e_graficos_das_visoes_originais():
@@ -342,8 +343,22 @@ def test_performance_compara_meses_fechados_separa_mes_aberto_e_exibe_meta_e_sal
     assert "Outubro/2026 · Mês (Veiculação)" in html
     assert "R$ 330,00" in html
     assert "Meta anual AdTarget" in html and "R$ 3,60 mil" in html
-    assert "Saldo após meses encerrados" in html and "R$ 1,90 mil" in html
+    assert "Falta vender até dezembro" in html and "R$ 580,00" in html
     assert "O mês em andamento entra no fechamento seguinte." in html
+
+
+def test_gap_na_performance_bate_com_gap_comercial_de_metas():
+    vendas = cleaning.limpar_dataframe(_fonte_vendas())
+    plano = _plano()
+    pulso = metas.avaliar_pulso(vendas, plano, 2026, data_referencia=REF.date())
+    performance, _ = _pagina()
+    html_performance = re.sub(r"<[^>]+>", "", _conteudo(performance))
+    html_metas = re.sub(r"<[^>]+>", "", metas_resultados._meta_anual(pulso))
+    valor_gap = re.sub(r"<[^>]+>", "", metas_resultados._moeda(pulso.gap_comercial))
+
+    assert pulso.gap_comercial == 580
+    assert f"Falta vender até dezembro{valor_gap}" in html_performance
+    assert f"GAP COMERCIAL{valor_gap}" in html_metas
 
 
 def test_meta_na_primeira_dobra_permanece_consolidada_com_filtro_de_grupo():
@@ -352,8 +367,8 @@ def test_meta_na_primeira_dobra_permanece_consolidada_com_filtro_de_grupo():
     geral_html = _conteudo(geral)
     grupo_html = _conteudo(grupo)
 
-    assert "R$ 3,60 mil" in geral_html and "R$ 1,90 mil" in geral_html
-    assert "R$ 3,60 mil" in grupo_html and "R$ 1,90 mil" in grupo_html
+    assert "R$ 3,60 mil" in geral_html and "R$ 580,00" in geral_html
+    assert "R$ 3,60 mil" in grupo_html and "R$ 580,00" in grupo_html
     assert "R$ 1,70 mil este ano" in geral_html
     assert "R$ 800,00 este ano" in grupo_html
 

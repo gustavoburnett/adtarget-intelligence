@@ -445,7 +445,7 @@ def linha_kpis(
             '<div class="atg-hero-meta">'
             '<div><span>Meta anual AdTarget</span>'
             f'<strong class="num">{formatar_moeda_executiva(meta_anual)}</strong></div>'
-            '<div><span>Saldo após meses encerrados</span>'
+            '<div><span>Falta vender até dezembro</span>'
             f'<strong class="num">{formatar_moeda_executiva(saldo_meta)}</strong></div>'
             '<p>Saldo calculado sobre vendas dentro do perímetro oficial de metas. '
             'O mês em andamento entra no fechamento seguinte.</p>'
@@ -456,7 +456,7 @@ def linha_kpis(
             '<div class="atg-hero-meta atg-hero-meta-indisponivel">'
             '<div><span>Meta anual AdTarget</span>'
             f'<strong>{meta_indisponivel}</strong></div>'
-            '<div><span>Saldo após meses encerrados</span><strong>—</strong></div>'
+            '<div><span>Falta vender até dezembro</span><strong>—</strong></div>'
             '<p>Consulte a fonte METAS para validar o plano anual.</p></div>'
         )
     hero = (

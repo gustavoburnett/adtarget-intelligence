@@ -205,6 +205,7 @@ def render(
     )
     plano_metas = None
     resultado_metas = None
+    pulso_metas = None
     meta_resumo = None
     erro_metas = None
     meta_indisponivel = None
@@ -212,6 +213,9 @@ def render(
         try:
             plano_metas = carregar_metas()
             resultado_metas = metas.avaliar_metas(
+                df, plano_metas, ano, data_referencia=hoje_local,
+            )
+            pulso_metas = metas.avaliar_pulso(
                 df, plano_metas, ano, data_referencia=hoje_local,
             )
             if resultado_metas.estado == "sem_metas":
@@ -234,7 +238,7 @@ def render(
         vendas_mes_em_andamento=vendas_mes,
         rotulo_mes_em_andamento=rotulo_mes,
         meta_anual=float(meta_resumo.meta_anual) if meta_resumo else None,
-        saldo_meta=float(meta_resumo.gap_anual) if meta_resumo else None,
+        saldo_meta=float(pulso_metas.gap_comercial) if meta_resumo and pulso_metas else None,
         meta_indisponivel=meta_indisponivel,
     )
 
