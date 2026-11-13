@@ -417,6 +417,7 @@ def linha_kpis(
     rotulo_mes_em_andamento: str | None = None,
     meta_anual: Optional[float] = None,
     saldo_meta: Optional[float] = None,
+    meta_percentual: Optional[float] = None,
     meta_indisponivel: str | None = None,
 ) -> None:
     """Hero e quatro cards individuais, com os mesmos dados, textos e ordem."""
@@ -447,6 +448,8 @@ def linha_kpis(
             f'<strong class="num">{formatar_moeda_executiva(meta_anual)}</strong></div>'
             '<div><span>Falta vender até dezembro</span>'
             f'<strong class="num">{formatar_moeda_executiva(saldo_meta)}</strong></div>'
+            '<div><span>Meta anual já vendida</span>'
+            f'<strong class="num">{formatar_pct(meta_percentual, com_sinal=False)}</strong></div>'
             '<p>Saldo calculado sobre vendas dentro do perímetro oficial de metas. '
             'O mês em andamento entra no fechamento seguinte.</p>'
             '</div>'
@@ -457,6 +460,7 @@ def linha_kpis(
             '<div><span>Meta anual AdTarget</span>'
             f'<strong>{meta_indisponivel}</strong></div>'
             '<div><span>Falta vender até dezembro</span><strong>—</strong></div>'
+            '<div><span>Meta anual já vendida</span><strong>—</strong></div>'
             '<p>Consulte a fonte METAS para validar o plano anual.</p></div>'
         )
     hero = (

@@ -103,7 +103,7 @@ CSS_PERFORMANCE = "<style>" + """
   color:var(--atg-text-secondary);font-size:var(--atg-type-context-size);
   font-weight:400;line-height:1.5;margin:0;}
 .atg-performance-indicators .atg-hero-meta {
-  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--atg-space-12);
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--atg-space-12);
   margin-top:var(--atg-space-8);padding:var(--atg-space-12);
   border:1px solid var(--atg-line-card);border-radius:var(--atg-radius-tile);
   background:var(--atg-surface-muted);}

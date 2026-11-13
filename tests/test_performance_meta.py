@@ -359,6 +359,9 @@ def test_gap_na_performance_bate_com_gap_comercial_de_metas():
     assert pulso.gap_comercial == 580
     assert f"Falta vender até dezembro{valor_gap}" in html_performance
     assert f"GAP COMERCIAL{valor_gap}" in html_metas
+    percentual = metas_resultados._pct(pulso.percentual_meta_ja_vendida)
+    assert f"Meta anual já vendida{percentual}" in html_performance
+    assert f"Meta anual já vendida{percentual}" in html_metas
 
 
 def test_meta_na_primeira_dobra_permanece_consolidada_com_filtro_de_grupo():

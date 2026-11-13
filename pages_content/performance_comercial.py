@@ -239,6 +239,9 @@ def render(
         rotulo_mes_em_andamento=rotulo_mes,
         meta_anual=float(meta_resumo.meta_anual) if meta_resumo else None,
         saldo_meta=float(pulso_metas.gap_comercial) if meta_resumo and pulso_metas else None,
+        meta_percentual=float(pulso_metas.percentual_meta_ja_vendida)
+        if meta_resumo and pulso_metas and pulso_metas.percentual_meta_ja_vendida is not None
+        else None,
         meta_indisponivel=meta_indisponivel,
     )
 
