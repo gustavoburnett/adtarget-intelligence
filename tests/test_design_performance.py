@@ -46,20 +46,23 @@ def _indicadores(monkeypatch, *, ytd=None, vazio=False, total=7_654_321.25,
 
 @pytest.mark.parametrize("valores,esperados", [
     ({}, [
-        ("Vendas", "R$ 7,65 Mi", "R$ 7.654.321,25", "R$ 5,43 Mi já faturado"),
+        ("Vendas", "R$ 7,65 Mi", "R$ 7.654.321,25",
+         "Ano selecionado, todos os meses registrados · R$ 5,43 Mi já faturado"),
         ("Em Aberto", "R$ 2,22 Mi", "R$ 2.222.197,78", "vendido, ainda não faturado"),
         ("Ticket Médio", "R$ 76,54 mil", "R$ 76.543,21", "Vendas ÷ PIs da base"),
         ("Campanhas", "1.234", None, "Cliente + Campanha"),
     ]),
     ({"total": 123.45, "faturado": 0, "aberto": 0, "ticket": 12.34, "campanhas": 3}, [
-        ("Vendas", "R$ 123,45", "R$ 123,45", "R$ 0,00 já faturado"),
+        ("Vendas", "R$ 123,45", "R$ 123,45",
+         "Ano selecionado, todos os meses registrados · R$ 0,00 já faturado"),
         ("Em Aberto", "R$ 0,00", "R$ 0,00", "vendido, ainda não faturado"),
         ("Ticket Médio", "R$ 12,34", "R$ 12,34", "Vendas ÷ PIs da base"),
         ("Campanhas", "3", None, "Cliente + Campanha"),
     ]),
     ({"total": -1_500_000, "faturado": -1_234.56, "aberto": 0.25,
       "ticket": None, "campanhas": 0}, [
-        ("Vendas", "-R$ 1,50 Mi", "R$ -1.500.000,00", "-R$ 1,23 mil já faturado"),
+        ("Vendas", "-R$ 1,50 Mi", "R$ -1.500.000,00",
+         "Ano selecionado, todos os meses registrados · -R$ 1,23 mil já faturado"),
         ("Em Aberto", "R$ 0,25", "R$ 0,25", "vendido, ainda não faturado"),
         ("Ticket Médio", "Sem dados no recorte selecionado", "", "Vendas ÷ PIs da base"),
         ("Campanhas", "0", None, "Cliente + Campanha"),
@@ -107,7 +110,9 @@ def test_hero_preserva_sinal_percentual_referencia_e_estados_existentes(
     raiz = _indicadores(monkeypatch, ytd=ytd, vazio=vazio, **valores)
     hero = _unico(raiz, "atg-kpi-hero")
     assert f"atg-hero-{estado}" in hero.get("class").split()
-    assert _texto(_unico(hero, "atg-eyebrow")) == "Comparação com o mesmo período do ano anterior"
+    assert _texto(_unico(hero, "atg-eyebrow")) == (
+        "Variação em meses encerrados vs mesmo período do ano anterior"
+    )
     assert _texto(_unico(hero, "atg-hero-number")) == numero
     assert _texto(_unico(hero, "atg-hero-caption")) == contexto
     sinais = _elementos(hero, "atg-hero-arrow")

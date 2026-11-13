@@ -102,8 +102,22 @@ CSS_PERFORMANCE = "<style>" + """
 .atg-performance-indicators .atg-hero-caption {
   color:var(--atg-text-secondary);font-size:var(--atg-type-context-size);
   font-weight:400;line-height:1.5;margin:0;}
+.atg-performance-indicators .atg-hero-meta {
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--atg-space-12);
+  margin-top:var(--atg-space-8);padding:var(--atg-space-12);
+  border:1px solid var(--atg-line-card);border-radius:var(--atg-radius-tile);
+  background:var(--atg-surface-muted);}
+.atg-performance-indicators .atg-hero-meta div {display:flex;flex-direction:column;gap:4px;}
+.atg-performance-indicators .atg-hero-meta span {
+  color:var(--atg-text-meta);font-size:var(--atg-type-label-size);font-weight:600;}
+.atg-performance-indicators .atg-hero-meta strong {
+  color:var(--atg-brand);font-size:var(--atg-type-ranking-size);font-weight:700;}
+.atg-performance-indicators .atg-hero-meta p {
+  grid-column:1/-1;margin:0;color:var(--atg-text-muted);
+  font-size:var(--atg-type-label-size);line-height:1.4;}
+.atg-performance-indicators .atg-hero-meta-indisponivel strong {color:var(--atg-text-muted);}
 .atg-performance-indicators .atg-kpi-grid {
-  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--atg-space-16);
+  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--atg-space-16);
   border:0;background:transparent;border-radius:0;}
 .atg-performance-indicators .atg-kpi-card {
   padding:var(--atg-space-24) var(--atg-space-20);
@@ -135,10 +149,10 @@ CSS_PERFORMANCE = "<style>" + """
 .atg-performance-indicators .atg-sr-only {position:absolute;width:1px;height:1px;padding:0;margin:-1px;
   overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;}
 @media(min-width:1440px) {
-  /* 5 colunas apenas quando cabe na largura efetiva (incluindo a sidebar). */
+  /* A comparação e cinco indicadores cabem lado a lado em telas largas. */
   @container(min-width:1224px) {
     .atg-performance-indicators .atg-kpi-row {
-      grid-template-columns:minmax(0,1.5fr) repeat(4,minmax(0,1fr));}
+      grid-template-columns:minmax(0,1.6fr) repeat(5,minmax(0,1fr));}
     .atg-performance-indicators .atg-kpi-grid {display:contents;}
   }
 }
@@ -147,6 +161,10 @@ CSS_PERFORMANCE = "<style>" + """
 }
 @media(max-width:1000px) {
   .atg-performance-indicators .atg-kpi-grid {grid-template-columns:minmax(0,1fr);}
+}
+@media(max-width:480px) {
+  .atg-performance-indicators .atg-hero-meta {grid-template-columns:minmax(0,1fr);}
+  .atg-performance-indicators .atg-hero-meta p {grid-column:auto;}
 }
 /* Três rankings exigem ~1183 px úteis; 1200 px mantém um pequeno respiro.
    O container mede o espaço após sidebar e margens, sem alterar os cards. */

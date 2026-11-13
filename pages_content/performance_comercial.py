@@ -78,18 +78,27 @@ def _linhas_ranking_dimensao(
 
 def _render_meta(
     df: pd.DataFrame, ano: int, carregar_metas: Callable[[], pd.DataFrame] | None,
+    *, metas_df: pd.DataFrame | None = None,
+    erro_metas: ErroDeMetas | None = None,
+    resultado_fechado: metas.ResultadoMetas | None = None,
 ) -> None:
     st.caption(
         "Meta · Valor Líquido · Mês de Veiculação · Consolidado AdTarget"
     )
-    if carregar_metas is None:
+    if erro_metas is not None:
+        st.error(
+            "Não foi possível carregar ou validar a aba METAS. "
+            "Verifique a estrutura e o acesso à fonte. "
+            "Vendas, Ticket Médio e os demais indicadores continuam disponíveis."
+        )
+    elif metas_df is None and carregar_metas is None:
         st.info("A fonte METAS não está disponível nesta visualização.")
     else:
         try:
-            metas_df = carregar_metas()
-            resultado = metas.avaliar_metas(df, metas_df, ano)
+            plano = metas_df if metas_df is not None else carregar_metas()
+            resultado = resultado_fechado or metas.avaliar_metas(df, plano, ano)
             pulso = metas.avaliar_pulso(
-                df, metas_df, ano, data_referencia=resultado.data_referencia,
+                df, plano, ano, data_referencia=resultado.data_referencia,
             )
         except ErroDeMetas:
             st.error(
@@ -116,6 +125,9 @@ def _abas_evolucao(
     df: pd.DataFrame, df_dim: pd.DataFrame, ano: int, valor: str,
     criterio_mes: str, mes_limite: int | None,
     carregar_metas: Callable[[], pd.DataFrame] | None,
+    metas_df: pd.DataFrame | None = None,
+    erro_metas: ErroDeMetas | None = None,
+    resultado_fechado: metas.ResultadoMetas | None = None,
 ) -> None:
     # A troca de aba reexecuta somente os gráficos, preservando o restante
     # da Performance. Os controles permanecem fora deste fragmento.
@@ -139,15 +151,19 @@ def _abas_evolucao(
         )
     if aba_meta.open:
         with aba_meta:
-            _render_meta(df, ano, carregar_metas)
+            _render_meta(
+                df, ano, carregar_metas, metas_df=metas_df,
+                erro_metas=erro_metas, resultado_fechado=resultado_fechado,
+            )
 
 
 def render(
     df: pd.DataFrame, sincronizado_em: _dt.datetime | None = None, *,
+    agora: _dt.datetime | None = None,
     carregar_metas: Callable[[], pd.DataFrame] | None = None,
     carregar_representacoes: Callable[[], CadastroRepresentacoes] | None = None,
 ) -> None:
-    agora = _dt.datetime.now()
+    agora = agora or _dt.datetime.now()
     hoje = agora.date()
     st.html(_CONTROLES_META_CSS)
 
@@ -173,16 +189,53 @@ def render(
     # Estado global dos toggles (widgets renderizados no Gráfico Hero)
     valor, criterio_mes = filters.toggles_do_estado(_CHAVE)
     df_ano = filters.recorte_do_ano(df_dim, ano, criterio_mes)
+    hoje_local = metas.data_local(agora)
+    meses_fechados = metas.meses_encerrados(ano, data_referencia=hoje_local)
+    resumo_ytd = metrics.ytd(
+        df_dim, ano, valor, criterio_mes,
+        hoje=hoje_local, meses_fechados=meses_fechados,
+    )
+    vendas_mes = metrics.evolucao_mensal(
+        df_dim, ano, valor, criterio_mes,
+    ).get(hoje_local.month, 0.0) if ano == hoje_local.year else None
+    rotulo_mes = (
+        f"{cards.MESES_NOMES[hoje_local.month - 1]}/{ano} · "
+        f"{metrics.ROTULOS_CRITERIO_MES[criterio_mes]}"
+        if ano == hoje_local.year else None
+    )
+    plano_metas = None
+    resultado_metas = None
+    meta_resumo = None
+    erro_metas = None
+    meta_indisponivel = None
+    if carregar_metas is not None:
+        try:
+            plano_metas = carregar_metas()
+            resultado_metas = metas.avaliar_metas(
+                df, plano_metas, ano, data_referencia=hoje_local,
+            )
+            if resultado_metas.estado == "sem_metas":
+                meta_indisponivel = "Sem meta cadastrada"
+            else:
+                meta_resumo = resultado_metas
+        except ErroDeMetas as erro:
+            erro_metas = erro
+            meta_indisponivel = "Indisponível"
 
     # ------------------------------------------------------- KPIs (2B.5)
     cards.linha_kpis(
-        metrics.ytd(df_dim, ano, valor, criterio_mes),
+        resumo_ytd,
         ano,
         df_ano.empty,
         metrics.vendas_detalhado(df_ano, valor),
         metrics.em_aberto(df_ano, valor),
         metrics.ticket_medio(df_ano, valor),
         metrics.quantidade_campanhas(df_ano),
+        vendas_mes_em_andamento=vendas_mes,
+        rotulo_mes_em_andamento=rotulo_mes,
+        meta_anual=float(meta_resumo.meta_anual) if meta_resumo else None,
+        saldo_meta=float(meta_resumo.gap_anual) if meta_resumo else None,
+        meta_indisponivel=meta_indisponivel,
     )
 
     # --------------------------------------------------- Radar Executivo
@@ -238,7 +291,11 @@ def render(
                     )
 
         mes_limite = hoje.month if ano == hoje.year else None
-        _abas_evolucao(df, df_dim, ano, valor, criterio_mes, mes_limite, carregar_metas)
+        _abas_evolucao(
+            df, df_dim, ano, valor, criterio_mes, mes_limite, carregar_metas,
+            metas_df=plano_metas, erro_metas=erro_metas,
+            resultado_fechado=resultado_metas,
+        )
 
     # -------------------------------------------------- Rankings (Design 1E)
     linhas_grupos = ranking_data.linhas_ranking_grupos(

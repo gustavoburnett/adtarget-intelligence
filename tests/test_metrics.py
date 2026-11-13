@@ -331,6 +331,22 @@ class TestYTD:
         assert resultado["atual"] == 0.0
         assert resultado["variacao_pct"] is None
 
+    def test_ytd_pode_comparar_somente_meses_fechados(self, df):
+        resultado = metrics.ytd(
+            df, 2026, criterio_mes="veiculacao", meses_fechados=2,
+        )
+        assert resultado["mes_limite"] == 2
+        assert resultado["atual"] == pytest.approx(16000.0)
+        assert resultado["anterior"] == pytest.approx(8000.0)
+        assert resultado["variacao_pct"] == pytest.approx(100.0)
+
+    def test_ytd_sem_mes_fechado_nao_inventa_comparativo(self, df):
+        resultado = metrics.ytd(df, 2026, meses_fechados=0)
+        assert resultado == {
+            "atual": 0.0, "anterior": None,
+            "variacao_pct": None, "mes_limite": 0,
+        }
+
 
 class TestYTDAnoCorrenteVsEncerrado:
     """Regra do YTD verdadeiro: ano corrente corta no mês atual;

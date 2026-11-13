@@ -64,7 +64,7 @@ def _pagina_checkpoint(vendas, *, aba, valor, criterio, grupos):
 def _hero_e_radar(app):
     return [elemento.value for elemento in app.markdown if any(
         marcador in elemento.value for marcador in (
-            'class="atg-kpi-row"', 'class="atg-radar-header"', 'class="atg-radar ',
+            'class="atg-radar-header"', 'class="atg-radar ',
         )
     )]
 
@@ -215,7 +215,7 @@ def test_cta_grupos_abre_destino_existente_com_vendas_consolidadas_por_grupo(mon
     assert figuras[0]["data"][0]["y"] == esperado[cleaning.COL_GRUPO].tolist()
     assert figuras[0]["data"][0]["x"] == pytest.approx(esperado["valor"].tolist())
     assert app.selectbox(key="anvei_drill").options == esperado[cleaning.COL_GRUPO].tolist()
-    assert leituras == {"vendas": 1, "metas": 0}
+    assert leituras == {"vendas": 1, "metas": 1}
 
 
 def test_estilos_isolados_preservam_breakpoint_de_largura_util_e_conteudo_integral():

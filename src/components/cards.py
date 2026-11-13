@@ -298,11 +298,24 @@ def montar_ytd(
     Estados: "ok" | "sem_comparativo" | "sem_dados". Nenhuma frase
     interpretativa — apenas fatos.
     """
-    mes_limite = ytd_resultado.get("mes_limite") or 12
+    mes_limite = ytd_resultado.get("mes_limite")
+    mes_limite = 12 if mes_limite is None else mes_limite
     periodo = (
+        "Sem meses encerrados para comparar"
+        if mes_limite == 0 else
         f"Acumulado {rotulo_periodo(mes_limite, ano)} "
         f"vs {rotulo_periodo(mes_limite, ano - 1)}"
     )
+
+    if mes_limite == 0:
+        return {
+            "estado": "sem_meses_encerrados",
+            "periodo": periodo,
+            "seta": "",
+            "percentual": "—",
+            "cor": COR_NEUTRO,
+            "suporte": "O mês em andamento aparece em indicador separado.",
+        }
 
     if sem_dados:
         return {
@@ -376,7 +389,8 @@ def _celula_stat(
         exibido = formatar_moeda_executiva(valor)
         completo = formatar_moeda(valor)
     tipo = {
-        "Vendas": "vendas", "Em Aberto": "em-aberto", "Ticket Médio": "ticket",
+        "Vendas": "vendas", "Mês em andamento": "vendas",
+        "Em Aberto": "em-aberto", "Ticket Médio": "ticket",
     }.get(rotulo, "neutro")
     return (
         f'<article class="atg-card atg-stat atg-kpi-card atg-kpi-{tipo}">'
@@ -398,6 +412,12 @@ def linha_kpis(
     valor_em_aberto: float,
     valor_ticket: Optional[float],
     qtd_campanhas: int,
+    *,
+    vendas_mes_em_andamento: Optional[float] = None,
+    rotulo_mes_em_andamento: str | None = None,
+    meta_anual: Optional[float] = None,
+    saldo_meta: Optional[float] = None,
+    meta_indisponivel: str | None = None,
 ) -> None:
     """Hero e quatro cards individuais, com os mesmos dados, textos e ordem."""
     pecas = montar_ytd(ytd_resultado, ano, sem_dados)
@@ -410,16 +430,44 @@ def linha_kpis(
         f'<span class="atg-sr-only">{pecas["seta"]}</span></span>'
     ) if pecas["seta"] else ""
     import datetime as _datetime
-    contexto_temporal = ("Inclui o mês atual inteiro" if ano == _datetime.date.today().year
-                         else "Total do ano selecionado · janeiro a dezembro")
+    contexto_temporal = (
+        "Meses encerrados · mês em andamento apresentado à parte"
+        if rotulo_mes_em_andamento else
+        "Ano encerrado · janeiro a dezembro"
+        if ytd_resultado.get("mes_limite") == 12 else
+        "Meses encerrados no ano selecionado"
+        if ytd_resultado.get("mes_limite", 12) else
+        "Sem mês encerrado no ano selecionado"
+    )
+    resumo_meta = ""
+    if meta_anual is not None and saldo_meta is not None:
+        resumo_meta = (
+            '<div class="atg-hero-meta">'
+            '<div><span>Meta anual AdTarget</span>'
+            f'<strong class="num">{formatar_moeda_executiva(meta_anual)}</strong></div>'
+            '<div><span>Saldo após meses encerrados</span>'
+            f'<strong class="num">{formatar_moeda_executiva(saldo_meta)}</strong></div>'
+            '<p>Saldo calculado sobre vendas dentro do perímetro oficial de metas. '
+            'O mês em andamento entra no fechamento seguinte.</p>'
+            '</div>'
+        )
+    elif meta_indisponivel:
+        resumo_meta = (
+            '<div class="atg-hero-meta atg-hero-meta-indisponivel">'
+            '<div><span>Meta anual AdTarget</span>'
+            f'<strong>{meta_indisponivel}</strong></div>'
+            '<div><span>Saldo após meses encerrados</span><strong>—</strong></div>'
+            '<p>Consulte a fonte METAS para validar o plano anual.</p></div>'
+        )
     hero = (
         f'<article class="atg-card atg-kpi-hero atg-hero-{estado_visual}">'
-        '<div class="atg-eyebrow">Comparação com o mesmo período do ano anterior</div>'
+        '<div class="atg-eyebrow">Variação em meses encerrados vs mesmo período do ano anterior</div>'
         f'<div class="atg-hero-value">{seta}'
         '<span class="atg-hero-number num">'
         f'{pecas["percentual"]}</span></div>'
         f'<div class="atg-hero-caption num">{pecas["suporte"]}</div>'
-        f'<div class="atg-hero-context">Vendas acumuladas no ano · {pecas["periodo"]} · {contexto_temporal}</div>'
+        f'<div class="atg-hero-context">Vendas totais · {pecas["periodo"]} · {contexto_temporal}</div>'
+        f'{resumo_meta}'
         "</article>"
     )
     faturado_fmt = formatar_moeda_executiva(vendas_detalhado["faturado"])
@@ -427,7 +475,14 @@ def linha_kpis(
         '<div class="atg-statstrip atg-kpi-grid">'
         + _celula_stat(
             "Vendas", vendas_detalhado["total"],
-            f"{faturado_fmt} já faturado", classe="positivo",
+            f"Ano selecionado, todos os meses registrados · {faturado_fmt} já faturado",
+            classe="positivo",
+        )
+        + (
+            _celula_stat(
+                "Mês em andamento", vendas_mes_em_andamento,
+                rotulo_mes_em_andamento,
+            ) if rotulo_mes_em_andamento else ""
         )
         + _celula_stat(
             "Em Aberto", valor_em_aberto,

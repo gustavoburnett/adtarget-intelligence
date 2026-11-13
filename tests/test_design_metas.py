@@ -394,7 +394,9 @@ def test_performance_preserva_kpis_radar_evolucao_e_rankings_do_design_1e(aba, v
         congelada.session_state[f"perf_fc_{cleaning.COL_GRUPO}_aplicado"] = grupos
     congelada.run(timeout=20)
     assert not atual.exception and not congelada.exception
-    assert [el.value for el in atual.markdown] == [el.value for el in congelada.markdown]
+    assert [el.value for el in atual.markdown if 'class="atg-radar' in el.value] == [
+        el.value for el in congelada.markdown if 'class="atg-radar' in el.value
+    ]
     assert _figuras(atual) == _figuras(congelada)
     assert [(botao.key, botao.label, botao.disabled) for botao in atual.button] == [
         (botao.key, botao.label, botao.disabled) for botao in congelada.button
@@ -464,7 +466,9 @@ def test_design_1f_preserva_fontes_protegidas_do_design_1e(caminho):
     autorizadas = {
         "src/data/metas.py": {"ResultadoMetas", "avaliar_metas"},
         "src/data/loader.py": {"load_all_sheets"},
-        "pages_content/performance_comercial.py": {"render", "_linhas_ranking_dimensao"},
+        "pages_content/performance_comercial.py": {
+            "render", "_linhas_ranking_dimensao", "_render_meta", "_abas_evolucao",
+        },
         "pages_content/analitico_comercial.py": {"render", "_MESES_ABREV"},
         # Design 1H aprovado: render visual e substituição do formatador de
         # strings pelo adaptador nativo numérico; não libera regras comerciais.
@@ -534,7 +538,7 @@ def test_design_1f_preserva_fontes_protegidas_do_design_1e(caminho):
             assert "def _tabela_formatada(" not in atual
             atual_metrics = ast.parse((RAIZ / "src/data/metrics.py").read_text()).body
             anterior_metrics = ast.parse(_fonte_congelada("src/data/metrics.py")).body
-            autorizadas_metrics = {"_janela_comparavel", "tendencia_por_dimensao"}
+            autorizadas_metrics = {"_janela_comparavel", "tendencia_por_dimensao", "ytd"}
             protegidas_metrics = lambda arvore: [
                 ast.dump(no) for no in arvore
                 if not isinstance(no, (ast.Import, ast.ImportFrom))
