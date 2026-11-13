@@ -280,3 +280,14 @@ def render(df: pd.DataFrame) -> None:
                         file_name=f"analitico_comercial_{ano}.csv", mime="text/csv",
                         key=f"{_CHAVE}_csv", icon=":material/download:",
                     )
+            st.caption(
+                "Filtros que afetam esta tabela: Ano, Valor, Mês, Grupo, Veículo, Agência, "
+                "Cliente, Status e Executivo. Nenhum desses filtros é ignorado. A pesquisa "
+                "também filtra a tabela e o CSV, sem alterar os cartões ou o gráfico de status."
+            )
+            st.caption(
+                "PI significa Pedido de Inserção. Mês (ganho) é a competência comercial; "
+                "Mês (veiculação) é a competência da campanha. Não há ranking Top N nem "
+                "destaque por cor; clique no cabeçalho para ordenar. A tabela não abre ficha "
+                "detalhada do PI: cliente, campanha, período e status aparecem nas colunas."
+            )

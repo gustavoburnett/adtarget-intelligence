@@ -196,6 +196,19 @@ def test_larguras_monetarias_nao_truncam_valores_extensos():
     assert config["width"] >= len("R$ 1.234.567.890.123,45") * 8 + 40
 
 
+def test_cabecalhos_da_tabela_de_pi_explicitam_rotulo_e_significado():
+    original = _fonte()
+    config = configuracao_colunas(original, colunas=COLUNAS)
+    assert list(config) == COLUNAS
+    for coluna in COLUNAS:
+        assert config[coluna]["label"]
+        assert config[coluna]["help"]
+    assert config["PI"]["label"] == "PI"
+    assert "Pedido de Inserção" in config["PI"]["help"]
+    assert config["VALOR PI BRUTO"]["label"] == "Valor bruto (PI)"
+    assert config["VALOR PI LIQUIDO"]["label"] == "Valor líquido (PI)"
+
+
 def test_colunas_selecionadas_respeitam_ordem_do_chamador():
     original = _fonte()
     selecionadas = ["VALOR PI LIQUIDO", "GRUPO", "INÍCIO"]

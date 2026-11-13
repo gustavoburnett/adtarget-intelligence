@@ -299,6 +299,30 @@ def test_tabela_exibe_moeda_e_datas_ptbr_sem_alterar_registros_originais():
     pd.testing.assert_frame_equal(fonte, antes)
 
 
+def test_tabela_analitica_explica_filtros_ordenacao_e_limite_do_detalhe_pi():
+    app = _pagina()
+    legendas = [elemento.value for elemento in app.caption]
+    assert any(
+        texto == (
+            "Filtros que afetam esta tabela: Ano, Valor, Mês, Grupo, Veículo, Agência, "
+            "Cliente, Status e Executivo. Nenhum desses filtros é ignorado. A pesquisa "
+            "também filtra a tabela e o CSV, sem alterar os cartões ou o gráfico de status."
+        )
+        for texto in legendas
+    )
+    assert any(
+        texto == (
+            "PI significa Pedido de Inserção. Mês (ganho) é a competência comercial; "
+            "Mês (veiculação) é a competência da campanha. Não há ranking Top N nem "
+            "destaque por cor; clique no cabeçalho para ordenar. A tabela não abre ficha "
+            "detalhada do PI: cliente, campanha, período e status aparecem nas colunas."
+        )
+        for texto in legendas
+    )
+    assert "Variação" not in _raw(app.dataframe[-1]).columns
+    assert not any("%" in coluna for coluna in _raw(app.dataframe[-1]).columns)
+
+
 def test_alertas_inativos_continuam_visiveis_sem_ocorrencias_inventadas():
     fonte = cleaning.limpar_dataframe(_fonte_vendas())
     fonte = fonte[(fonte["STATUS"] == "FATURADO") & (fonte["GRUPO"] != "FORA")]
