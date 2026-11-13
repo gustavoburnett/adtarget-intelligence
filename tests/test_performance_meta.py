@@ -374,6 +374,8 @@ def test_meta_na_primeira_dobra_permanece_consolidada_com_filtro_de_grupo():
     assert "R$ 3,60 mil" in grupo_html and "R$ 580,00" in grupo_html
     assert "R$ 1,70 mil este ano" in geral_html
     assert "R$ 800,00 este ano" in grupo_html
+    assert "Meta consolidada AdTarget, não muda com o filtro de Grupo." not in geral_html
+    assert "Meta consolidada AdTarget, não muda com o filtro de Grupo." in grupo_html
 
 
 @pytest.mark.parametrize("categoria", ["fonte", "estrutura", "validacao"])

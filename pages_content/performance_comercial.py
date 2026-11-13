@@ -189,6 +189,12 @@ def render(
     # Estado global dos toggles (widgets renderizados no Gráfico Hero)
     valor, criterio_mes = filters.toggles_do_estado(_CHAVE)
     df_ano = filters.recorte_do_ano(df_dim, ano, criterio_mes)
+    grupos_disponiveis = {grupo for grupo in df[COL_GRUPO].unique() if grupo}
+    grupos_aplicados = st.session_state.get(f"{_CHAVE}_fc_{COL_GRUPO}_aplicado")
+    filtro_grupo_ativo = (
+        grupos_aplicados is not None
+        and len(set(grupos_aplicados).intersection(grupos_disponiveis)) < len(grupos_disponiveis)
+    )
     hoje_local = metas.data_local(agora)
     meses_fechados = metas.meses_encerrados(ano, data_referencia=hoje_local)
     resumo_ytd = metrics.ytd(
@@ -243,6 +249,7 @@ def render(
         if meta_resumo and pulso_metas and pulso_metas.percentual_meta_ja_vendida is not None
         else None,
         meta_indisponivel=meta_indisponivel,
+        meta_consolidada_filtro_grupo=filtro_grupo_ativo,
     )
 
     # --------------------------------------------------- Radar Executivo

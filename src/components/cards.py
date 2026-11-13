@@ -419,6 +419,7 @@ def linha_kpis(
     saldo_meta: Optional[float] = None,
     meta_percentual: Optional[float] = None,
     meta_indisponivel: str | None = None,
+    meta_consolidada_filtro_grupo: bool = False,
 ) -> None:
     """Hero e quatro cards individuais, com os mesmos dados, textos e ordem."""
     pecas = montar_ytd(ytd_resultado, ano, sem_dados)
@@ -442,6 +443,10 @@ def linha_kpis(
     )
     resumo_meta = ""
     if meta_anual is not None and saldo_meta is not None:
+        nota_grupo = (
+            '<p>Meta consolidada AdTarget, não muda com o filtro de Grupo.</p>'
+            if meta_consolidada_filtro_grupo else ""
+        )
         resumo_meta = (
             '<div class="atg-hero-meta">'
             '<div><span>Meta anual AdTarget</span>'
@@ -450,8 +455,9 @@ def linha_kpis(
             f'<strong class="num">{formatar_moeda_executiva(saldo_meta)}</strong></div>'
             '<div><span>Meta anual já vendida</span>'
             f'<strong class="num">{formatar_pct(meta_percentual, com_sinal=False)}</strong></div>'
-            '<p>Saldo calculado sobre vendas dentro do perímetro oficial de metas. '
-            'O mês em andamento entra no fechamento seguinte.</p>'
+            '<p>Falta vender calculado sobre o Gap comercial oficial. '
+            'O mês em andamento entra no cálculo de vendas já contratadas.</p>'
+            f'{nota_grupo}'
             '</div>'
         )
     elif meta_indisponivel:
