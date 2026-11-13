@@ -152,6 +152,45 @@ def test_quatro_icones_sao_vetoriais_lineares_distintos_e_decorativos(monkeypatc
     assert list(_unico(kpis[2], "atg-kpi-icon"))[0].find("circle") is not None
 
 
+def test_meta_anual_e_card_proprio_antes_da_variacao(monkeypatch):
+    html = []
+    monkeypatch.setattr(cards.st, "markdown", lambda texto, **_: html.append(texto))
+    cards.linha_kpis(
+        {"atual": 6_500_000, "anterior": 5_000_000, "variacao_pct": 30.0, "mes_limite": 9},
+        2026, False, {"total": 7_000_000, "faturado": 4_000_000},
+        2_000_000, 70_000, 100, meta_anual=10_000_000,
+        saldo_meta=3_000_000, meta_percentual=70.0,
+    )
+    raiz = ET.fromstring(html[0])
+    linha = _unico(raiz, "atg-kpi-row")
+    assert [elemento.get("class") for elemento in list(linha)] == [
+        "atg-card atg-meta-card", "atg-card atg-kpi-hero atg-hero-alta",
+    ]
+    meta = list(linha)[0]
+    assert _texto(_unico(meta, "atg-meta-percent")) == "70,0%"
+    assert "R$ 10,00 Mi" in _texto(meta)
+    assert "R$ 3,00 Mi" in _texto(meta)
+    assert _texto(_unico(meta, "atg-meta-note")) == (
+        "Inclui o que já está vendido para os meses restantes."
+    )
+
+
+def test_meta_superada_mostra_valor_absoluto_com_mensagem_clara(monkeypatch):
+    html = []
+    monkeypatch.setattr(cards.st, "markdown", lambda texto, **_: html.append(texto))
+    cards.linha_kpis(
+        {"atual": 1_234_567, "anterior": 1_000_000, "variacao_pct": 23.5, "mes_limite": 9},
+        2026, False, {"total": 1_234_567, "faturado": 1_000_000},
+        234_567, 10_000, 30, meta_anual=1_000_000,
+        saldo_meta=-23_456.78, meta_percentual=123.5,
+    )
+    raiz = ET.fromstring(html[0])
+    meta = _unico(raiz, "atg-meta-card")
+    sobre = _unico(meta, "atg-meta-over")
+    assert _texto(sobre) == "Meta superada em R$ 23,46 mil"
+    assert _texto(_unico(meta, "atg-meta-percent")) == "123,5%"
+
+
 def test_cabecalho_tem_titulo_unico_e_preserva_controles_e_atualizacao(monkeypatch):
     app, _, _, leituras, _ = _entrada(monkeypatch, "Performance Comercial")
     assert not app.exception

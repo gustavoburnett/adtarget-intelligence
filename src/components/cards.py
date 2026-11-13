@@ -443,31 +443,39 @@ def linha_kpis(
     )
     resumo_meta = ""
     if meta_anual is not None and saldo_meta is not None:
+        valor_saldo = formatar_moeda_executiva(abs(saldo_meta))
+        saldo_html = (
+            f'<div class="atg-meta-over">Meta superada em <strong class="num">{valor_saldo}</strong></div>'
+            if saldo_meta < 0 else
+            '<div><span>Falta vender até dezembro</span>'
+            f'<strong class="num">{valor_saldo}</strong></div>'
+        )
+        percentual_meta = formatar_pct(meta_percentual, com_sinal=False)
         nota_grupo = (
             '<p>Meta consolidada AdTarget, não muda com o filtro de Grupo.</p>'
             if meta_consolidada_filtro_grupo else ""
         )
         resumo_meta = (
-            '<div class="atg-hero-meta">'
-            '<div><span>Meta anual AdTarget</span>'
-            f'<strong class="num">{formatar_moeda_executiva(meta_anual)}</strong></div>'
-            '<div><span>Falta vender até dezembro</span>'
-            f'<strong class="num">{formatar_moeda_executiva(saldo_meta)}</strong></div>'
-            '<div><span>Meta anual já vendida</span>'
-            f'<strong class="num">{formatar_pct(meta_percentual, com_sinal=False)}</strong></div>'
-            '<p>Falta vender calculado sobre o Gap comercial oficial. '
-            'O mês em andamento entra no cálculo de vendas já contratadas.</p>'
-            f'{nota_grupo}'
+            '<article class="atg-card atg-meta-card">'
+            '<div class="atg-eyebrow">Meta anual AdTarget</div>'
+            '<span class="atg-meta-percent-label">Meta anual já vendida</span>'
+            f'<div class="atg-meta-percent num">{percentual_meta}</div>'
+            '<div class="atg-meta-breakdown">'
+            f'<div><span>Meta anual</span><strong class="num">{formatar_moeda_executiva(meta_anual)}</strong></div>'
+            f'{saldo_html}'
             '</div>'
+            '<p class="atg-meta-note">Inclui o que já está vendido para os meses restantes.</p>'
+            f'{nota_grupo}'
+            '</article>'
         )
     elif meta_indisponivel:
         resumo_meta = (
-            '<div class="atg-hero-meta atg-hero-meta-indisponivel">'
-            '<div><span>Meta anual AdTarget</span>'
-            f'<strong>{meta_indisponivel}</strong></div>'
-            '<div><span>Falta vender até dezembro</span><strong>—</strong></div>'
-            '<div><span>Meta anual já vendida</span><strong>—</strong></div>'
-            '<p>Consulte a fonte METAS para validar o plano anual.</p></div>'
+            '<article class="atg-card atg-meta-card atg-meta-card-unavailable">'
+            '<div class="atg-eyebrow">Meta anual AdTarget</div>'
+            '<span class="atg-meta-percent-label">Meta anual já vendida</span>'
+            '<div class="atg-meta-percent">—</div>'
+            f'<div class="atg-meta-breakdown"><div><span>Disponibilidade</span><strong>{meta_indisponivel}</strong></div></div>'
+            '<p class="atg-meta-note">Consulte a fonte METAS para validar o plano anual.</p></article>'
         )
     hero = (
         f'<article class="atg-card atg-kpi-hero atg-hero-{estado_visual}">'
@@ -477,7 +485,6 @@ def linha_kpis(
         f'{pecas["percentual"]}</span></div>'
         f'<div class="atg-hero-caption num">{pecas["suporte"]}</div>'
         f'<div class="atg-hero-context">Vendas totais · {pecas["periodo"]} · {contexto_temporal}</div>'
-        f'{resumo_meta}'
         "</article>"
     )
     faturado_fmt = formatar_moeda_executiva(vendas_detalhado["faturado"])
@@ -514,7 +521,7 @@ def linha_kpis(
     )
     st.markdown(
         '<div class="atg-performance-indicators">'
-        f'<div class="atg-kpi-row">{hero}{strip}</div></div>',
+        f'<div class="atg-kpi-row">{resumo_meta}{hero}</div>{strip}</div>',
         unsafe_allow_html=True,
     )
 
@@ -573,10 +580,12 @@ def _render_radar_conteudo(estado: RadarState) -> None:
         )
     else:
         periodo = "Sem meses encerrados para crescimento/queda ou destaque mensal"
-    metadados = f"{metadados} · {periodo}"
+    tooltip_periodo = escape(periodo, quote=True)
     st.markdown(
         '<div class="atg-radar-header"><h3 class="atg-radar-title">Radar Executivo</h3>'
-        f'<div class="atg-radar-meta">{escape(metadados)}</div></div>',
+        f'<div class="atg-radar-meta" title="{tooltip_periodo}" '
+        f'aria-label="{escape(metadados + ". " + periodo)}">'
+        f'{escape(metadados)}</div></div>',
         unsafe_allow_html=True,
     )
     if estado.status == "ativo":

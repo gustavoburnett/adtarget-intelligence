@@ -279,7 +279,10 @@ def test_radar_dinamico_preserva_quantidade_ordem_copy_e_sincronizacao(monkeypat
         assert copy_atual[classe] == copy_antiga[classe]
     assert len(copy_atual["atg-radar-meta"]) == len(copy_antiga["atg-radar-meta"]) == 1
     assert copy_atual["atg-radar-meta"][0][0].startswith(copy_antiga["atg-radar-meta"][0][0])
-    assert "Crescimento/queda: Jan–Set/2026 vs Jan–Set/2025" in copy_atual["atg-radar-meta"][0][0]
+    assert copy_atual["atg-radar-meta"][0][0] == "Valor Líquido · Mês (Veiculação)"
+    meta_elemento = _com_classe(atuais, "atg-radar-meta")[0]
+    assert "Crescimento/queda: Jan–Set/2026 vs Jan–Set/2025" in meta_elemento.get("title")
+    assert "Crescimento/queda: Jan–Set/2026 vs Jan–Set/2025" in meta_elemento.get("aria-label")
     assert captions_atuais == captions_antigas
     assert [titulo for _, titulo in copy_atual["atg-radar-context"]] == [
         titulo for _, titulo in copy_antiga["atg-radar-context"]
