@@ -565,6 +565,15 @@ def _render_radar_conteudo(estado: RadarState) -> None:
         f"{'Valor Líquido' if estado.valor == 'liquido' else 'Valor Bruto'} · "
         f"{ROTULOS_CRITERIO_MES[estado.criterio_mes]}"
     )
+    if estado.meses_comparados:
+        periodo = (
+            f"Crescimento/queda: {rotulo_periodo(estado.meses_comparados, estado.ano)} "
+            f"vs {rotulo_periodo(estado.meses_comparados, estado.ano - 1)} · meses encerrados; "
+            "destaque mensal: último mês fechado vs 12 meses anteriores"
+        )
+    else:
+        periodo = "Sem meses encerrados para crescimento/queda ou destaque mensal"
+    metadados = f"{metadados} · {periodo}"
     st.markdown(
         '<div class="atg-radar-header"><h3 class="atg-radar-title">Radar Executivo</h3>'
         f'<div class="atg-radar-meta">{escape(metadados)}</div></div>',

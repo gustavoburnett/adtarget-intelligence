@@ -17,20 +17,21 @@ def linhas_ranking_grupos(
     valor: metrics.Valor = "liquido",
     criterio_mes: metrics.CriterioMes = metrics.CRITERIO_MES_OFICIAL,
     hoje: _dt.date | None = None,
+    meses_fechados: int | None = None,
 ) -> list[dict]:
     """Consolida o recorte anual já filtrado por GRUPO, sem joins ou deduplicação.
 
     Empates são resolvidos pelo nome oficial do grupo em ordem crescente.
     A participação usa todos os grupos elegíveis do recorte, antes do Top 5.
-    O YoY mantém a janela e os estados de ausência da comparação oficial:
-    o valor do ranking é anual, enquanto a tendência é comparável/YTD.
+    O YoY compara somente meses encerrados quando ``meses_fechados`` é
+    informado. O valor do ranking segue anual, incluindo meses em andamento.
     """
     agregado = metrics.agregado_por_dimensao(df_ano, COL_GRUPO, valor)
     if agregado.empty:
         return []
     total = float(agregado["valor"].sum())
     tendencias = metrics.tendencia_por_dimensao(
-        df_dim, COL_GRUPO, ano, valor, criterio_mes, hoje,
+        df_dim, COL_GRUPO, ano, valor, criterio_mes, hoje, meses_fechados,
     )
     ordenado = agregado.sort_values(
         ["valor", COL_GRUPO], ascending=[False, True], kind="stable",

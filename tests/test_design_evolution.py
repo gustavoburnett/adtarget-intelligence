@@ -274,10 +274,12 @@ def test_radar_dinamico_preserva_quantidade_ordem_copy_e_sincronizacao(monkeypat
     atuais, captions_atuais = _radar_html(monkeypatch, cards, estado)
     copy_atual, _ = _copy_radar(atuais, captions_atuais)
     copy_antiga, _ = _copy_radar(antigas, captions_antigas)
-    # Hardening autoriza nome integral e períodos explícitos; título, metadados,
-    # CTA, sincronização e referência técnica continuam protegidos.
-    for classe in ("atg-radar-title", "atg-radar-meta", "atg-radar-cta"):
+    # O metadata agora informa o recorte fechado; os demais elementos seguem estáveis.
+    for classe in ("atg-radar-title", "atg-radar-cta"):
         assert copy_atual[classe] == copy_antiga[classe]
+    assert len(copy_atual["atg-radar-meta"]) == len(copy_antiga["atg-radar-meta"]) == 1
+    assert copy_atual["atg-radar-meta"][0][0].startswith(copy_antiga["atg-radar-meta"][0][0])
+    assert "Crescimento/queda: Jan–Set/2026 vs Jan–Set/2025" in copy_atual["atg-radar-meta"][0][0]
     assert captions_atuais == captions_antigas
     assert [titulo for _, titulo in copy_atual["atg-radar-context"]] == [
         titulo for _, titulo in copy_antiga["atg-radar-context"]

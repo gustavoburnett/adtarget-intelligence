@@ -64,6 +64,7 @@ class RadarState:
     criterio_mes: metrics.CriterioMes
     regras_avaliadas: tuple[str, ...]
     regras_sem_comparacao: tuple[str, ...]
+    meses_comparados: int
 
 
 def _periodo(ano: int, mes: int) -> Periodo:
@@ -92,16 +93,18 @@ def avaliar_radar(
     sincronizado_em: dt.datetime | None = None,
     ctas: Mapping[str, CTA] | None = None,
     representacoes: CadastroRepresentacoes | None = None,
+    meses_fechados: int | None = None,
 ) -> RadarState:
     """Avalia o recorte dimensional completo, antes do filtro de ano.
 
-    Seleciona o maior crescimento e a maior queda de Grupo, mais um
-    recorde consolidado. Empates usam nome do Grupo. Ano futuro não tem
-    comparação confiável. Silêncio exige ao menos uma regra avaliável;
-    regras sem comparação permanecem explicitadas no resultado.
+    Seleciona o maior crescimento e a maior queda de Grupo no período
+    comparável recebido (meses fechados, quando informado), mais um recorde
+    consolidado no último mês fechado dentro do recorte. Empates usam nome
+    do Grupo. Ano futuro não tem comparação confiável. Silêncio exige ao
+    menos uma regra avaliável; regras sem comparação ficam explicitadas.
 
-    Destaque: último mês COM dado no ano selecionado, anterior ao mês
-    corrente, contra os 12 meses consecutivos anteriores COM dado.
+    Destaque: último mês COM dado, anterior ao mês corrente e dentro do
+    limite informado, contra os 12 meses consecutivos anteriores COM dado.
     A idade da sincronização nunca decide a atualidade do conteúdo.
     ENCERRADA impede apenas recomendações de recuperação (queda).
     Cadastro ausente/não validado permanece NÃO INFORMADO, sem exclusão.
@@ -116,7 +119,11 @@ def avaliar_radar(
     avaliadas: list[str] = []
     sem_comparacao: list[str] = []
     ctas = CTAS if ctas is None else ctas
-    limite = agora.month if ano == agora.year else 12
+    limite = meses_fechados if meses_fechados is not None else (
+        agora.month if ano == agora.year else 12
+    )
+    if not 0 <= limite <= 12:
+        raise ValueError("O mês limite da comparação deve estar entre 0 e 12.")
     atual = base.loc[
         (base[col_mes].dt.year == ano) & (base[col_mes].dt.month <= limite)
     ]
@@ -171,7 +178,11 @@ def avaliar_radar(
         for mes, total in metrics.evolucao_mensal(base, int(a), valor, criterio_mes).items():
             series[pd.Period(year=int(a), month=mes, freq="M")] = total
     mes_corrente = pd.Period(agora.date(), freq="M")
-    completos = [p for p in series if p.year == ano and p < mes_corrente]
+    limite_recorde = min(limite, agora.month - 1) if ano == agora.year else limite
+    completos = [
+        p for p in series
+        if p.year == ano and p.month <= limite_recorde and p < mes_corrente
+    ]
     destaque_avaliavel = False
     if completos:
         ultimo = max(completos)
@@ -201,5 +212,7 @@ def avaliar_radar(
     prioridade = {"queda": 0, "destaque": 1, "crescimento": 2}
     ordenados = tuple(sorted(insights, key=lambda i: (prioridade[i.tipo], -i.magnitude, i.id))[:5])
     status = "ativo" if ordenados else "silencio" if avaliadas else "dados_insuficientes"
-    return RadarState(status, ordenados, agora, sincronizado_em, ano, valor, criterio_mes,
-                      tuple(avaliadas), tuple(sem_comparacao))
+    return RadarState(
+        status, ordenados, agora, sincronizado_em, ano, valor, criterio_mes,
+        tuple(avaliadas), tuple(sem_comparacao), limite,
+    )

@@ -394,9 +394,10 @@ def test_performance_preserva_kpis_radar_evolucao_e_rankings_do_design_1e(aba, v
         congelada.session_state[f"perf_fc_{cleaning.COL_GRUPO}_aplicado"] = grupos
     congelada.run(timeout=20)
     assert not atual.exception and not congelada.exception
-    assert [el.value for el in atual.markdown if 'class="atg-radar' in el.value] == [
-        el.value for el in congelada.markdown if 'class="atg-radar' in el.value
-    ]
+    radar_atual = [el.value for el in atual.markdown if 'class="atg-radar' in el.value]
+    assert any('class="atg-radar-title">Radar Executivo' in html for html in radar_atual)
+    assert any('Crescimento/queda: Jan–Set/2026 vs Jan–Set/2025' in html
+               for html in radar_atual)
     assert _figuras(atual) == _figuras(congelada)
     assert [(botao.key, botao.label, botao.disabled) for botao in atual.button] == [
         (botao.key, botao.label, botao.disabled) for botao in congelada.button

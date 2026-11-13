@@ -344,7 +344,10 @@ def test_performance_compara_meses_fechados_separa_mes_aberto_e_exibe_meta_e_sal
     assert "R$ 330,00" in html
     assert "Meta anual AdTarget" in html and "R$ 3,60 mil" in html
     assert "Falta vender até dezembro" in html and "R$ 580,00" in html
-    assert "O mês em andamento entra no fechamento seguinte." in html
+    assert "O mês em andamento entra no cálculo de vendas já contratadas." in html
+    assert "Crescimento/queda: Jan–Set/2026 vs Jan–Set/2025" in html
+    assert "Variações: Jan–Set/2026 vs Jan–Set/2025 · meses encerrados" in html
+    assert "destaque mensal: último mês fechado vs 12 meses anteriores" in html
 
 
 def test_gap_na_performance_bate_com_gap_comercial_de_metas():

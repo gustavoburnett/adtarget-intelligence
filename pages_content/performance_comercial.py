@@ -23,7 +23,7 @@ from src.components import cards, charts, filters, metas_charts, ranking_data
 from src.data import metas, metrics, radar
 from src.data.representacoes import CadastroRepresentacoes, ErroRepresentacoes
 from src.data.cleaning import COL_AGENCIA, COL_CLIENTE, COL_GRUPO
-from src.data.metas_schema import ErroDeMetas
+from src.data.metas_schema import ErroDeMetas, FUSO_METAS
 
 _CHAVE = "perf"
 
@@ -163,8 +163,8 @@ def render(
     carregar_metas: Callable[[], pd.DataFrame] | None = None,
     carregar_representacoes: Callable[[], CadastroRepresentacoes] | None = None,
 ) -> None:
-    agora = agora or _dt.datetime.now()
-    hoje = agora.date()
+    agora = agora or _dt.datetime.now(FUSO_METAS)
+    hoje = metas.data_local(agora)
     st.html(_CONTROLES_META_CSS)
 
     # ---------------------------------------------------- barra de filtros
@@ -195,7 +195,7 @@ def render(
         grupos_aplicados is not None
         and len(set(grupos_aplicados).intersection(grupos_disponiveis)) < len(grupos_disponiveis)
     )
-    hoje_local = metas.data_local(agora)
+    hoje_local = hoje
     meses_fechados = metas.meses_encerrados(ano, data_referencia=hoje_local)
     resumo_ytd = metrics.ytd(
         df_dim, ano, valor, criterio_mes,
@@ -269,7 +269,8 @@ def render(
             radar.recorte_por_grupos(df, df_dim[COL_GRUPO].unique()),
             ano, agora=agora, valor=valor, criterio_mes=criterio_mes,
             sincronizado_em=sincronizado_em, representacoes=cadastro,
-        )
+            meses_fechados=meses_fechados,
+        ),
     )
 
     # ----------------------------------------------- Gráfico Hero (2B.7)
@@ -314,15 +315,25 @@ def render(
     # -------------------------------------------------- Rankings (Design 1E)
     linhas_grupos = ranking_data.linhas_ranking_grupos(
         df_ano, df_dim, ano, valor, criterio_mes, hoje=hoje,
+        meses_fechados=meses_fechados,
     )
     tend_agencia = metrics.tendencia_por_dimensao(
-        df_dim, COL_AGENCIA, ano, valor, criterio_mes
+        df_dim, COL_AGENCIA, ano, valor, criterio_mes,
+        hoje=hoje, meses_fechados=meses_fechados,
     )
     tend_cliente = metrics.tendencia_por_dimensao(
-        df_dim, COL_CLIENTE, ano, valor, criterio_mes
+        df_dim, COL_CLIENTE, ano, valor, criterio_mes,
+        hoje=hoje, meses_fechados=meses_fechados,
     )
 
     with st.container(key="design_performance_rankings", border=False, gap=None):
+        periodo_variacoes = (
+            f"Variações: {cards.rotulo_periodo(meses_fechados, ano)} vs "
+            f"{cards.rotulo_periodo(meses_fechados, ano - 1)} · meses encerrados"
+            if meses_fechados else
+            "Variações: sem meses encerrados para comparar"
+        )
+        st.caption(periodo_variacoes)
         r1, r2, r3 = st.columns(3)
     with r1:
         with st.container(key="design_performance_ranking_groups", border=False, gap=None):

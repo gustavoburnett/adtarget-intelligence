@@ -89,6 +89,25 @@ def test_ytd_inclui_mes_corrente_e_exclui_futuro():
     assert "01/2025–09/2025" in insight.referencia_comparacao
 
 
+def test_ytd_radar_usa_apenas_meses_fechados_quando_informados():
+    dados = frame(
+        linha("2025-01-01", 100), linha("2025-10-01", 100),
+        linha("2025-11-01", 100), linha("2026-01-01", 100),
+        linha("2026-10-01", 150), linha("2026-11-01", 500),
+    )
+    estado = radar.avaliar_radar(
+        dados, 2026,
+        agora=dt.datetime(2026, 11, 13, 12, tzinfo=dt.timezone(dt.timedelta(hours=-3))),
+        meses_fechados=10,
+    )
+    crescimento = next(insight for insight in estado.insights if insight.tipo == "crescimento")
+
+    assert crescimento.valor_atual == 250
+    assert crescimento.valor_anterior == 200
+    assert crescimento.variacao_pct == pytest.approx(25)
+    assert crescimento.periodo_atual[1] == dt.date(2026, 10, 31)
+
+
 def test_ano_encerrado_compara_ano_inteiro():
     estado = avaliar(frame(linha("2024-12-01", 100), linha("2025-12-01", 120)), 2025)
     assert estado.insights[0].periodo_atual[1] == dt.date(2025, 12, 31)
