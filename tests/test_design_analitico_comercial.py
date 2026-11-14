@@ -304,7 +304,8 @@ def test_tabela_analitica_explica_filtros_ordenacao_e_limite_do_detalhe_pi():
     legendas = [elemento.value for elemento in app.caption]
     assert any(
         texto == (
-            "Filtros que afetam esta tabela: Ano, Valor, Mês, Grupo, Veículo, Agência, "
+            "Filtros que afetam esta tabela: Ano, Métrica de valor, Critério de mês "
+            "(Mês (Ganho) ou Mês (Veiculação)), Grupo, Veículo, Agência, "
             "Cliente, Status e Executivo. Nenhum desses filtros é ignorado. A pesquisa "
             "também filtra a tabela e o CSV, sem alterar os cartões ou o gráfico de status."
         )
@@ -312,8 +313,8 @@ def test_tabela_analitica_explica_filtros_ordenacao_e_limite_do_detalhe_pi():
     )
     assert any(
         texto == (
-            "PI significa Pedido de Inserção. Mês (ganho) é a competência comercial; "
-            "Mês (veiculação) é a competência da campanha. Não há ranking Top N nem "
+            "PI significa Pedido de Inserção. Mês (Ganho) é a competência comercial; "
+            "Mês (Veiculação) é a competência da campanha. Não há ranking Top N nem "
             "destaque por cor; clique no cabeçalho para ordenar. A tabela não abre ficha "
             "detalhada do PI: cliente, campanha, período e status aparecem nas colunas."
         )

@@ -183,6 +183,19 @@ def test_terceira_tab_preserva_nomes_ordem_e_duas_visoes_originais():
     assert not app.error
 
 
+def test_legenda_de_filtros_distingue_recorte_comercial_da_meta_consolidada():
+    app, _ = _pagina()
+    textos = [item.value for item in app.caption]
+    assert any(
+        texto == (
+            "Filtros que afetam esta página: Ano define o recorte anual. Métrica de valor e "
+            "Critério de mês (Mês (Ganho) ou Mês (Veiculação)) afetam KPIs, Radar, gráficos "
+            "de Vendas e Ticket Médio e rankings. Grupo restringe as vendas analisadas; "
+            "a aba Meta permanece consolidada AdTarget."
+        ) for texto in textos
+    )
+
+
 @pytest.mark.parametrize("aba", ["Vendas", "Ticket Médio"])
 def test_indicadores_de_metas_na_primeira_dobra_nao_abrem_grafico_meta(aba):
     app, _ = _pagina(aba=aba)

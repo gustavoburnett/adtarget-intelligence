@@ -20,6 +20,7 @@ import streamlit as st
 
 from src.components import cards, charts, filters
 from src.components.analitico_tables import configuracao_colunas, preparar_tabela
+from src.components.design_tokens import COLOR
 from src.components.kpi_icons import ICONES_KPI
 from src.data import metas, metrics, quality_checks
 from src.data.csv_export import gerar_csv_seguro
@@ -222,7 +223,7 @@ def render(df: pd.DataFrame) -> None:
                 def _estilo_executivo(linha):
                     if linha["EXECUTIVO"] in nomes_selecionados:
                         return [
-                            "background-color: #E2F0EA; color: #0D5C4B; font-weight: 600;"
+                            f"background-color: {COLOR['brand-tint']}; color: {COLOR['brand']}; font-weight: 600;"
                         ] * len(linha)
                     return [""] * len(linha)
 
@@ -281,13 +282,14 @@ def render(df: pd.DataFrame) -> None:
                         key=f"{_CHAVE}_csv", icon=":material/download:",
                     )
             st.caption(
-                "Filtros que afetam esta tabela: Ano, Valor, Mês, Grupo, Veículo, Agência, "
+                "Filtros que afetam esta tabela: Ano, Métrica de valor, Critério de mês "
+                "(Mês (Ganho) ou Mês (Veiculação)), Grupo, Veículo, Agência, "
                 "Cliente, Status e Executivo. Nenhum desses filtros é ignorado. A pesquisa "
                 "também filtra a tabela e o CSV, sem alterar os cartões ou o gráfico de status."
             )
             st.caption(
-                "PI significa Pedido de Inserção. Mês (ganho) é a competência comercial; "
-                "Mês (veiculação) é a competência da campanha. Não há ranking Top N nem "
+                "PI significa Pedido de Inserção. Mês (Ganho) é a competência comercial; "
+                "Mês (Veiculação) é a competência da campanha. Não há ranking Top N nem "
                 "destaque por cor; clique no cabeçalho para ordenar. A tabela não abre ficha "
                 "detalhada do PI: cliente, campanha, período e status aparecem nas colunas."
             )

@@ -74,7 +74,7 @@ def test_cv10_dados_html_nao_executam_script():
 
 def test_cv11_legenda_explica_filtros_pi_e_status():
  html=documento(build(_vendas(_venda()),_metas(_meta())))
- assert 'Ano, período de veiculação, granularidade e parceiro definem o recorte' in html
+ assert 'Filtros que afetam esta página: Ano, período de veiculação, granularidade e Grupo definem o recorte' in html
  assert 'filtram somente a lista de PIs aberta' in html
  assert 'PI significa Pedido de Inserção' in html
  assert 'Status é a situação registrada na planilha de vendas' in html

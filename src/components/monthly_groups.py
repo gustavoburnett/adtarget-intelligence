@@ -282,5 +282,5 @@ def render(
                         orientacao = ('Use o controle Mês para ver a contribuição naquele mês.' if comparacao_indisponivel else
                                       'Selecione um mês no gráfico para ver a contribuição naquele mês.')
                         st.markdown(f'<p class="atg-group-copy">{orientacao}</p>', unsafe_allow_html=True)
-        st.markdown('<p class="atg-group-footnote">Valor Líquido · Mês de Veiculação · Metas mensais vigentes. '
+        st.markdown('<p class="atg-group-footnote">Valor Líquido · Mês (Veiculação) · Metas mensais vigentes. '
                     'Meses sem registros não comprovam ausência de vendas.</p>', unsafe_allow_html=True)

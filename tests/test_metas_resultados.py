@@ -96,6 +96,12 @@ def _conteudo(app):
 def test_hero_atingimento_monetarios_periodo_e_like_for_like():
     app = _pagina()
     html = _html(app)
+    assert any(
+        item.value == (
+            "Filtro que afeta esta página: Ano. Indicadores, gráficos e metas são "
+            "apresentados para o ano selecionado, no perímetro oficial de metas."
+        ) for item in app.caption
+    )
     assert "RITMO FECHADO" in html
     assert "FECHADO ATÉ FEV/2026" in html
     assert "100,0%" in html

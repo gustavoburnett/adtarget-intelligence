@@ -168,4 +168,7 @@ def test_wrapper_da_tabela_nao_recorta_toolbar_nativa():
         for propriedade, valor in re.findall(r'([\w-]+)\s*:\s*([^;]+)', declaracoes):
             if propriedade in {"overflow", "overflow-x", "overflow-y"}:
                 assert valor.strip() == "visible"
-    assert 'border:1px solid #F0F2F4;border-radius:12px;' in cards.CSS_GLOBAL
+    assert 'border:1px solid var(--atg-line-card);border-radius:12px;' in cards.CSS_GLOBAL
+    assert cards.COR_MARCA == COLOR["brand"]
+    assert cards.COR_POSITIVO == COLOR["positive"]
+    assert cards.COR_NEGATIVO == COLOR["negative"]

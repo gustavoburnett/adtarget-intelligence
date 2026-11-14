@@ -31,7 +31,7 @@ _LARGURA_MINIMA_TEXTO = 140
 _ROTULOS = {
     "GRUPO": "Grupo", "VEICULO": "Veículo", "PI": "PI",
     "AGENCIA": "Agência", "CLIENTE": "Cliente", "CAMPANHA": "Campanha",
-    "MÊS (GANHO)": "Mês (ganho)", "MÊS (VEICULAÇÃO)": "Mês (veiculação)",
+    "MÊS (GANHO)": "Mês (Ganho)", "MÊS (VEICULAÇÃO)": "Mês (Veiculação)",
     "INÍCIO": "Início", "FIM": "Fim", "VALOR PI BRUTO": "Valor bruto (PI)",
     "VALOR PI LIQUIDO": "Valor líquido (PI)", "VENCIMENTO PI": "Vencimento PI",
     "STATUS": "Status", "NOTA FISCAL": "Nota fiscal", "EXECUTIVO": "Executivo",

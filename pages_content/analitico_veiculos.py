@@ -58,7 +58,8 @@ def render(df: pd.DataFrame) -> None:
     agregado = metrics.agregado_por_grupo_veiculo(df_ano, valor)
     coluna_ref = "vendas_liquido" if valor == "liquido" else "vendas_bruto"
     st.caption(
-        "Filtros que afetam esta página: Ano, Valor, Mês, Grupo, Agência e Cliente. "
+        "Filtros que afetam esta página: Ano, Métrica de valor, Critério de mês "
+        "(Mês (Ganho) ou Mês (Veiculação)), Grupo, Agência e Cliente. "
         "Grupo, Agência e Cliente também limitam os cards, gráficos e rankings."
     )
     st.caption(

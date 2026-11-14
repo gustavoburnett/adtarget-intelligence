@@ -25,6 +25,7 @@ from typing import Optional
 
 import streamlit as st
 
+from src.components.design_tokens import COLOR
 from src.components.kpi_icons import ICONES_KPI, TRIANGULOS_HERO
 from src.components.radar_icons import ICONES_RADAR
 from src.data.metrics import ROTULOS_CRITERIO_MES
@@ -36,16 +37,16 @@ SEM_COMPARATIVO = "Sem comparativo disponível"
 # ---------------------------------------------------------------------------
 # Design Tokens (DS §5.4 — semântica permanente)
 # ---------------------------------------------------------------------------
-COR_MARCA = "#0B7A66"
-COR_MARCA_SUAVE = "#E7F3F0"
-COR_POSITIVO = "#1E9E52"
-COR_POSITIVO_SUAVE = "#E9F8EE"
-COR_NEGATIVO = "#DC4545"
-COR_AMBAR = "#C97F12"
-COR_NEUTRO = "#8B93A1"
-COR_TEXTO = "#14171C"
-COR_TEXTO_SECUNDARIO = "#5B6472"
-COR_BORDA_SUAVE = "#EDEFF2"
+COR_MARCA = COLOR["brand"]
+COR_MARCA_SUAVE = COLOR["brand-tint"]
+COR_POSITIVO = COLOR["positive"]
+COR_POSITIVO_SUAVE = COLOR["positive-bg"]
+COR_NEGATIVO = COLOR["negative"]
+COR_AMBAR = COLOR["warning"]
+COR_NEUTRO = COLOR["text-meta"]
+COR_TEXTO = COLOR["ink"]
+COR_TEXTO_SECUNDARIO = COLOR["text-secondary"]
+COR_BORDA_SUAVE = COLOR["line-card"]
 
 #: CSS global — Sprint 3B: folha única, grid 8pt, injetada pelo app.py
 CSS_GLOBAL = """
@@ -64,60 +65,60 @@ header[data-testid="stHeader"] [data-testid="stExpandSidebarButton"]{
 /* ---- P1/P4: faixa de contexto — título com presença, sem subtítulo fixo */
 .atg-product-brand{margin:0 0 16px;}
 .atg-product-brand img{display:block;width:160px;max-width:100%;height:auto;}
-.atg-h1{font-size:22px;font-weight:700;letter-spacing:-.01em;color:#14171C;
+.atg-h1{font-size:22px;font-weight:700;letter-spacing:-.01em;color:var(--atg-ink);
   line-height:1.2;margin:0;}
-.atg-updated{font-size:12px;color:#8B93A1;text-align:right;}
+.atg-updated{font-size:12px;color:var(--atg-text-meta);text-align:right;}
 /* ---- P2: toolbar executiva — filtros ghost, formulário zero ---- */
 div[data-testid="stPopover"]>div>button{
   width:100%;justify-content:space-between;background:transparent;
   border:1px solid transparent;border-radius:8px;min-height:40px;
-  font-size:13px;font-weight:500;color:#14171C;box-shadow:none;
+  font-size:13px;font-weight:500;color:var(--atg-ink);box-shadow:none;
   padding:8px 8px;}
 div[data-testid="stPopover"]>div>button:hover{
-  background:#FFFFFF;border-color:#E3E6EA;color:#0B7A66;}
+  background:var(--atg-surface-card);border-color:var(--atg-line-control);color:var(--atg-brand);}
 div[data-testid="stPopoverBody"]{min-width:328px;}
 div[data-testid="stPopoverBody"] .stCheckbox{margin-bottom:-8px;}
 div[data-testid="stPopoverBody"] .stCheckbox p{font-size:13px;}
-.atg-filtro-contador{font-size:12px;color:#5B6472;text-align:right;
+.atg-filtro-contador{font-size:12px;color:var(--atg-text-secondary);text-align:right;
   font-variant-numeric:tabular-nums;}
-.atg-filtro-pendente{font-size:12px;color:#C97F12;font-weight:600;
+.atg-filtro-pendente{font-size:12px;color:var(--atg-warning);font-weight:600;
   margin:0 0 8px;}
 /* ---- P3: KPI band — hero + stat strip (superfície única) ---- */
-.atg-card{background:#FFFFFF;border:1px solid #F0F2F4;border-radius:12px;
+.atg-card{background:var(--atg-surface-card);border:1px solid var(--atg-line-card);border-radius:12px;
   box-shadow:none;transition:box-shadow .15s ease;}
-.atg-card:hover{box-shadow:0 2px 8px rgba(20,23,28,.06);}
+.atg-card:hover{box-shadow:var(--atg-shadow-card);}
 .atg-kpi-row{display:flex;gap:16px;align-items:stretch;margin:8px 0 24px;}
 .atg-kpi-hero{flex:1.35;padding:24px;display:flex;flex-direction:column;
   justify-content:center;}
 .atg-eyebrow{font-size:11px;font-weight:700;letter-spacing:.08em;
-  color:#0B7A66;text-transform:uppercase;margin-bottom:8px;}
+  color:var(--atg-brand);text-transform:uppercase;margin-bottom:8px;}
 .atg-hero-value{display:flex;align-items:baseline;gap:8px;}
 .atg-hero-arrow{font-size:24px;}
 .atg-hero-number{font-size:38px;font-weight:700;letter-spacing:-.02em;
   line-height:1.1;}
-.atg-hero-caption{font-size:12px;color:#5B6472;margin-top:8px;}
-.atg-statstrip{flex:3.2;display:flex;align-items:stretch;background:#FFFFFF;
-  border:1px solid #F0F2F4;border-radius:12px;}
+.atg-hero-caption{font-size:12px;color:var(--atg-text-secondary);margin-top:8px;}
+.atg-statstrip{flex:3.2;display:flex;align-items:stretch;background:var(--atg-surface-card);
+  border:1px solid var(--atg-line-card);border-radius:12px;}
 .atg-stat{flex:1;padding:24px 24px 16px;min-width:0;}
-.atg-stat+.atg-stat{border-left:1px solid #F0F2F4;}
-.atg-kpi-label{font-size:11px;font-weight:600;color:#8B93A1;
+.atg-stat+.atg-stat{border-left:1px solid var(--atg-line-card);}
+.atg-kpi-label{font-size:11px;font-weight:600;color:var(--atg-text-meta);
   letter-spacing:.02em;}
 .atg-kpi-value{font-size:24px;font-weight:600;letter-spacing:-.01em;
-  color:#14171C;white-space:nowrap;margin-top:8px;}
-.atg-kpi-value.positivo{color:#1E9E52;}
-.atg-kpi-value.ambar{color:#C97F12;}
-.atg-kpi-caption{font-size:11px;color:#8B93A1;margin-top:8px;
+  color:var(--atg-ink);white-space:nowrap;margin-top:8px;}
+.atg-kpi-value.positivo{color:var(--atg-positive);}
+.atg-kpi-value.ambar{color:var(--atg-warning);}
+.atg-kpi-caption{font-size:11px;color:var(--atg-text-meta);margin-top:8px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 /* ---- P5: insights — linha ambiente, sem caixa ---- */
 .atg-insights{display:flex;gap:24px;margin:0 0 24px;padding:0 4px;}
 .atg-insight{flex:1;display:flex;align-items:center;gap:8px;
-  font-size:12.5px;color:#5B6472;line-height:1.45;background:transparent;
+  font-size:12.5px;color:var(--atg-text-secondary);line-height:1.45;background:transparent;
   border:none;padding:0;}
 .atg-insight .ic{display:flex;flex-shrink:0;}
 .atg-radar-header{margin:0 0 16px;}
-.atg-radar-header h3.atg-radar-title{font-size:17px;font-weight:600;color:#14171C;
+.atg-radar-header h3.atg-radar-title{font-size:17px;font-weight:600;color:var(--atg-ink);
   line-height:1.3;letter-spacing:-.01em;margin:0 0 4px;padding:0;}
-.atg-radar-meta{display:block;font-size:11px;color:#8B93A1;line-height:1.4;}
+.atg-radar-meta{display:block;font-size:11px;color:var(--atg-text-meta);line-height:1.4;}
 .atg-radar{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));
   gap:24px 32px;margin:0 0 16px;}
 .atg-radar-two{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:24px;}
@@ -125,53 +126,53 @@ div[data-testid="stPopoverBody"] .stCheckbox p{font-size:13px;}
 .atg-radar-single{max-width:420px;}
 .atg-radar-item{min-width:0;line-height:1.45;overflow-wrap:anywhere;}
 .atg-radar-category{display:block;font-size:10px;font-weight:500;letter-spacing:.06em;
-  color:#8B93A1;margin-bottom:6px;}
+  color:var(--atg-text-meta);margin-bottom:6px;}
 .atg-radar-headline{display:block;font-size:20px;font-weight:700;letter-spacing:-.02em;
-  color:#14171C;margin-bottom:6px;}
+  color:var(--atg-ink);margin-bottom:6px;}
 .atg-radar-headline strong{font-size:inherit;font-weight:inherit;}
-.atg-radar-context{display:block;font-size:12px;color:#5B6472;margin-bottom:8px;}
-.atg-radar-cta{display:block;font-size:11px;font-style:italic;color:#8B93A1;}
+.atg-radar-context{display:block;font-size:12px;color:var(--atg-text-secondary);margin-bottom:8px;}
+.atg-radar-cta{display:block;font-size:11px;font-style:italic;color:var(--atg-text-meta);}
 @media(max-width:700px){
   .atg-radar-two,.atg-radar-three{grid-template-columns:1fr;}
 }
 /* ---- rankings ---- */
 .atg-rank{padding:24px 24px 16px;}
-.atg-rank-title{font-size:14px;font-weight:700;color:#14171C;
+.atg-rank-title{font-size:14px;font-weight:700;color:var(--atg-ink);
   margin-bottom:16px;}
 .atg-rank-row{display:flex;align-items:center;gap:8px;margin-bottom:16px;}
-.atg-rank-name{font-size:12px;color:#5B6472;width:27%;flex-shrink:0;
+.atg-rank-name{font-size:12px;color:var(--atg-text-secondary);width:27%;flex-shrink:0;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.atg-rank-barwrap{flex:1;min-width:56px;background:#F5F6F8;border-radius:6px;
+.atg-rank-barwrap{flex:1;min-width:56px;background:var(--atg-surface-muted);border-radius:6px;
   height:8px;}
-.atg-rank-bar{height:8px;border-radius:6px;background:#0B7A66;}
-.atg-rank-value{font-size:12px;font-weight:700;color:#14171C;flex-shrink:0;
+.atg-rank-bar{height:8px;border-radius:6px;background:var(--atg-brand);}
+.atg-rank-value{font-size:12px;font-weight:700;color:var(--atg-ink);flex-shrink:0;
   min-width:62px;text-align:right;}
-.atg-rank-pct{font-size:11px;color:#8B93A1;width:30px;flex-shrink:0;
+.atg-rank-pct{font-size:11px;color:var(--atg-text-meta);width:30px;flex-shrink:0;
   text-align:right;}
 .atg-trend{font-size:11px;font-weight:700;width:44px;flex-shrink:0;
   text-align:right;}
-.atg-trend.alta{color:#1E9E52;}
-.atg-trend.queda{color:#DC4545;}
-.atg-trend.neutro{color:#8B93A1;font-weight:600;}
+.atg-trend.alta{color:var(--atg-positive);}
+.atg-trend.queda{color:var(--atg-negative);}
+.atg-trend.neutro{color:var(--atg-text-meta);font-weight:600;}
 /* Status legado; a apresentação da sidebar está em design_styles.py. */
 .atg-status-line{display:flex;align-items:center;gap:8px;font-size:11.5px;
-  color:#5B6472;white-space:nowrap;}
-.atg-status-dot{width:6px;height:6px;border-radius:50%;background:#1E9E52;
-  box-shadow:0 0 0 3px #E9F8EE;display:inline-block;flex-shrink:0;}
+  color:var(--atg-text-secondary);white-space:nowrap;}
+.atg-status-dot{width:6px;height:6px;border-radius:50%;background:var(--atg-positive);
+  box-shadow:0 0 0 3px var(--atg-positive-bg);display:inline-block;flex-shrink:0;}
 /* ---- P6a/abas/tabelas ---- */
 [data-testid="stTabs"] button p{font-size:13px;font-weight:600;}
 /* A toolbar nativa fica acima da tabela e não pode ser recortada pelo wrapper. */
-[data-testid="stDataFrame"]{border:1px solid #F0F2F4;border-radius:12px;}
+[data-testid="stDataFrame"]{border:1px solid var(--atg-line-card);border-radius:12px;}
 </style>
 """
 
 #: Ícone das cápsulas de insight (sparkle em cor de marca — SVG inline)
 ICONE_INSIGHT = (
     '<svg class="ic" width="14" height="14" viewBox="0 0 24 24" '
-    'fill="#E7F3F0" stroke="#0B7A66" stroke-width="1.6" '
+    f'fill="{COLOR["brand-tint"]}" stroke="{COLOR["brand"]}" stroke-width="1.6" '
     'stroke-linejoin="round" aria-hidden="true">'
     '<path d="M12 2.5l2.3 6.4 6.4 2.3-6.4 2.3L12 19.9l-2.3-6.4-6.4-2.3 '
-    '6.4-2.3z"/><circle cx="19.5" cy="4.5" r="1.3" fill="#0B7A66" '
+    f'6.4-2.3z"/><circle cx="19.5" cy="4.5" r="1.3" fill="{COLOR["brand"]}" '
     'stroke="none"/></svg>'
 )
 

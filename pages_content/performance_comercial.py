@@ -46,7 +46,7 @@ _CONTROLES_META_CSS = """<style>
 }
 .st-key-performance_meta_grupo button:disabled,
 .st-key-performance_meta_grupo button:disabled:hover {
-    color: #8B93A1;
+    color: var(--atg-text-meta);
     background: transparent;
     cursor: not-allowed;
 }
@@ -83,7 +83,7 @@ def _render_meta(
     resultado_fechado: metas.ResultadoMetas | None = None,
 ) -> None:
     st.caption(
-        "Meta · Valor Líquido · Mês de Veiculação · Consolidado AdTarget"
+        "Meta · Valor Líquido · Mês (Veiculação) · Consolidado AdTarget"
     )
     if erro_metas is not None:
         st.error(
@@ -185,6 +185,12 @@ def render(
                     pass
         with st.container(key="design_performance_clear", width="content"):
             filters.botao_limpar_filtros(_CHAVE)
+    st.caption(
+        "Filtros que afetam esta página: Ano define o recorte anual. Métrica de valor e "
+        "Critério de mês (Mês (Ganho) ou Mês (Veiculação)) afetam KPIs, Radar, gráficos "
+        "de Vendas e Ticket Médio e rankings. Grupo restringe as vendas analisadas; "
+        "a aba Meta permanece consolidada AdTarget."
+    )
 
     # Estado global dos toggles (widgets renderizados no Gráfico Hero)
     valor, criterio_mes = filters.toggles_do_estado(_CHAVE)

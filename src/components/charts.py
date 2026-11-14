@@ -25,10 +25,10 @@ MESES_ROTULOS = [
 #: Cores de série (Sprint 2B, adendo C10): ano corrente na COR DE MARCA
 #: (identidade, sem carga de sentimento); ano anterior em cinza tracejado.
 #: A paleta padrão do Plotly nunca é usada (2º trace seria vermelho).
-COR_SERIE_PRINCIPAL = "#0B7A66"    # cor de marca AdTarget
-COR_SERIE_COMPARATIVA = "#9AA2AC"  # cinza (ano anterior, tracejado)
-_COR_GRID = "#EDEFF2"
-_COR_ZONA_FUTURA = "#F2F4F6"
+COR_SERIE_PRINCIPAL = COLOR["brand"]
+COR_SERIE_COMPARATIVA = COLOR["chart-previous"]
+_COR_GRID = COLOR["chart-grid"]
+_COR_ZONA_FUTURA = COLOR["surface-page"]
 
 _FORMATO_MOEDA_HOVER = "R$ %{y:,.2f}"
 
@@ -62,12 +62,12 @@ def grafico_barra_horizontal(
         )
     )
     fig.update_layout(
-        title=dict(text=titulo, font=dict(size=15, color="#14171C")),
+        title=dict(text=titulo, font=dict(size=15, color=COLOR["ink"])),
         yaxis=dict(autorange="reversed",
-                   tickfont=dict(size=12, color="#5B6472")),
+                   tickfont=dict(size=12, color=COLOR["text-secondary"])),
         xaxis=dict(gridcolor=_COR_GRID,
-                   tickfont=dict(size=11.5, color="#8B93A1")),
-        plot_bgcolor="#FFFFFF",
+                   tickfont=dict(size=11.5, color=COLOR["text-meta"])),
+        plot_bgcolor=COLOR["surface-card"],
         paper_bgcolor="rgba(0,0,0,0)",
         margin=dict(t=52, b=16, l=8, r=8),
         bargap=0.38,
@@ -147,14 +147,14 @@ def _aplicar_estilo_hero(
     Nenhum limite, unidade, hover ou lacuna é alterado pelo estilo.
     """
     fig.update_layout(
-        plot_bgcolor="#FFFFFF",
+        plot_bgcolor=COLOR["surface-card"],
         paper_bgcolor="rgba(0,0,0,0)",
         hovermode="x unified",
         hoverlabel=dict(
-            bgcolor="#FFFFFF", bordercolor="#E3E6EA",
-            font=dict(size=12, color="#14171C"),
+            bgcolor=COLOR["surface-card"], bordercolor=COLOR["line-card"],
+            font=dict(size=12, color=COLOR["ink"]),
         ),
-        legend=dict(orientation="h", y=-0.16, font=dict(size=12.5, color="#5B6472")),
+        legend=dict(orientation="h", y=-0.16, font=dict(size=12.5, color=COLOR["text-secondary"])),
         margin=dict(t=24, b=8, l=8, r=8),
         height=392,
         xaxis=dict(
@@ -164,11 +164,11 @@ def _aplicar_estilo_hero(
             showgrid=False,
             zeroline=False,
             range=[0.5, 12.5],
-            tickfont=dict(size=12.5, color="#5B6472"),
+            tickfont=dict(size=12.5, color=COLOR["text-secondary"]),
         ),
         yaxis=dict(
             gridcolor=_COR_GRID, zeroline=False,
-            tickfont=dict(size=12, color="#8B93A1"),
+            tickfont=dict(size=12, color=COLOR["text-meta"]),
         ),
     )
     if design_performance:
@@ -208,7 +208,7 @@ def _aplicar_estilo_hero(
             text=rotulo_futuro, showarrow=False,
             font=dict(
                 size=11 if design_performance else 12,
-                color=COLOR["text-muted"] if design_performance else "#8B93A1",
+                color=COLOR["text-muted"] if design_performance else COLOR["text-meta"],
             ),
         )
         if design_performance:
