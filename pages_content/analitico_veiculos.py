@@ -57,6 +57,15 @@ def render(df: pd.DataFrame) -> None:
     df_ano = filters.recorte_do_ano(df_dim, ano, criterio_mes)
     agregado = metrics.agregado_por_grupo_veiculo(df_ano, valor)
     coluna_ref = "vendas_liquido" if valor == "liquido" else "vendas_bruto"
+    st.caption(
+        "Filtros que afetam esta página: Ano, Valor, Mês, Grupo, Agência e Cliente. "
+        "Grupo, Agência e Cliente também limitam os cards, gráficos e rankings."
+    )
+    st.caption(
+        "Vendas usa o valor bruto ou líquido selecionado. Ticket médio é vendas divididas "
+        "pela quantidade de PIs; Veículos Ativos conta pares Grupo + Veículo com PI. "
+        "% do Total é a participação nas vendas do recorte. PI significa Pedido de Inserção."
+    )
 
     # --------------------------------------------------------------- cards
     with st.container(key="design_veiculos_kpis"):
@@ -87,6 +96,7 @@ def render(df: pd.DataFrame) -> None:
             por_grupo, COL_GRUPO, "valor", "Vendas por Grupo", estilo_veiculos=True,
             key=f"{_CHAVE}_vendas_grupo",
         )
+        st.caption("Barras mostram vendas por grupo; os valores seguem a métrica selecionada e são apresentados em reais.")
 
     # ------------------------------------------------ drill-down por veículo
     if not agregado.empty:
@@ -104,6 +114,7 @@ def render(df: pd.DataFrame) -> None:
                 f"Vendas por Veículo — {grupo_escolhido}", estilo_veiculos=True,
                 key=f"{_CHAVE}_vendas_veiculo",
             )
+            st.caption("Barras mostram vendas por veículo dentro do grupo selecionado; valores em reais.")
 
     # --------------------------------------------------- rankings completos
     with st.container(key="design_veiculos_rankings"):

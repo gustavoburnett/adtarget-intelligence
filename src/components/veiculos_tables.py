@@ -13,7 +13,7 @@ import streamlit as st
 from pandas.io.formats.style import Styler
 
 from src.components.analitico_tables import preparar_tabela
-from src.components.cards import formatar_moeda
+from src.components.cards import formatar_moeda, formatar_pct
 from src.components.filters import SEPARADOR_PAR
 from src.data.cleaning import COL_GRUPO, COL_VEICULO
 
@@ -43,7 +43,7 @@ def _moeda(valor: object) -> str:
 
 
 def _percentual(valor: object) -> str:
-    return "—" if pd.isna(valor) else f"{valor:.1f}".replace(".", ",") + "%"
+    return "—" if pd.isna(valor) else formatar_pct(valor, com_sinal=False)
 
 
 def _formatar(styler: Styler) -> Styler:
@@ -81,21 +81,23 @@ def preparar_ranking_dimensao(agregado: pd.DataFrame) -> Styler:
 
 
 def configuracao_colunas_ranking(tabela: pd.DataFrame) -> dict:
-    """Mantém alinhamento e larguras nativas sem converter números em texto."""
+    """Usa larguras pelo conteúdo, mantendo números para ordenação nativa."""
+    from src.components.analitico_tables import configuracao_colunas
+
     configuracao = {}
     for coluna in tabela:
         if coluna in _MOEDAS:
             valores = [_moeda(valor) for valor in tabela[coluna] if not pd.isna(valor)]
-            largura = max(190, max((len(valor) for valor in valores), default=0) * 8 + 40)
-            configuracao[coluna] = st.column_config.NumberColumn(
-                width=largura, alignment="right",
+            largura = max(190, max((len(v) for v in valores), default=0) * 8 + 40)
+            config = st.column_config.NumberColumn(
+                label=coluna, width=largura, alignment="right",
             )
         elif coluna in {"Qtd PIs", "% do Total"}:
-            configuracao[coluna] = st.column_config.NumberColumn(
-                width=130, alignment="right",
+            config = st.column_config.NumberColumn(
+                label=coluna, help=("Quantidade de Pedidos de Inserção." if coluna == "Qtd PIs" else "Participação percentual nas vendas do recorte."),
+                width=max(130, max([len(coluna), *(len(str(v)) for v in tabela[coluna] if not pd.isna(v))]) * 8 + 40), alignment="right",
             )
         else:
-            configuracao[coluna] = st.column_config.TextColumn(
-                width=280 if coluna == "Veículo" else 260,
-            )
+            config = configuracao_colunas(tabela, colunas=[coluna])[coluna]
+        configuracao[coluna] = config
     return configuracao
