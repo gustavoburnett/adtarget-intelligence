@@ -1,6 +1,7 @@
 """Novos cenários CV; não equivalem às definições não localizadas B1–B7."""
 import datetime as dt
 from copy import deepcopy
+from pathlib import Path
 import pandas as pd
 import pytest
 from tests.test_metas_engine import _meta,_metas,_venda,_vendas
@@ -70,3 +71,26 @@ def test_cv10_dados_html_nao_executam_script():
  html=documento(build(sales,_metas(_meta())))
  assert '</script><script>alert(1)' not in html
  assert '\\u003c/script\\u003e' in html
+
+def test_cv11_legenda_explica_filtros_pi_e_status():
+ html=documento(build(_vendas(_venda()),_metas(_meta())))
+ assert 'Ano, período de veiculação, granularidade e parceiro definem o recorte' in html
+ assert 'filtram somente a lista de PIs aberta' in html
+ assert 'PI significa Pedido de Inserção' in html
+ assert 'Status é a situação registrada na planilha de vendas' in html
+
+def test_cv12_formatacao_monetaria_e_percentual_usa_ptbr_no_frontend():
+ template=(Path(__file__).parents[1]/'src/components/carteira_b.html').read_text()
+ assert "new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(n/100)" in template
+ assert "new Intl.NumberFormat('pt-BR',{maximumFractionDigits:1,minimumFractionDigits:1}).format(n)+'%'" in template
+
+def test_cv13_tabela_de_pi_ajusta_largura_ao_conteudo_e_quebra_texto():
+ template=(Path(__file__).parents[1]/'src/components/carteira_b.html').read_text()
+ assert '#atg-carteira table{table-layout:auto;min-width:100%;width:max-content;max-width:none}' in template
+ assert '#atg-carteira th,#atg-carteira td{white-space:normal;overflow-wrap:anywhere}' in template
+
+def test_cv14_estilo_usa_tokens_de_cor_compartilhados():
+ template=(Path(__file__).parents[1]/'src/components/carteira_b.html').read_text()
+ assert '--proposal-sold:var(--atg-brand)' in template
+ assert '--proposal-balance:var(--atg-warning)' in template
+ assert '--proposal-red:var(--atg-negative)' in template

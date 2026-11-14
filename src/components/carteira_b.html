@@ -73,16 +73,31 @@
 <label>Período<div class="atg-navigator"><button id="atg-prev" aria-label="Período anterior">‹</button><select id="atg-period" aria-label="Período de veiculação"></select><button id="atg-next" aria-label="Próximo período">›</button></div></label>
 <label>Parceiro<select id="atg-partner"></select></label>
 </div>
+<p class="atg-filter-caption" id="atg-filter-caption">Ano, período de veiculação, granularidade e parceiro definem o recorte dos indicadores, gráficos, rankings e PIs. Cliente, agência, veículo, campanha, status e participação na meta filtram somente a lista de PIs aberta.</p>
 <a id="atg-context-link" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:8px;color:#0D5C4B;min-height:32px">Abrir link deste recorte</a>
 <div id="atg-result" aria-live="polite"></div>
 <section id="atg-attention" class="atg-section atg-panel"></section><div id="atg-reconciliation"></div><section class="atg-section" id="atg-all-partners"><div class="atg-section-head"><div><h2>Todos os parceiros</h2><p class="atg-muted" id="atg-count"></p></div><label>Ordenar por<select id="atg-sort"><option value="saldo">Maior saldo em reais</option><option value="total">Maior contratado</option><option value="nome">Nome do parceiro</option></select></label></div><div id="atg-partners"></div></section>
 <section class="atg-section" id="atg-quarter" hidden><div class="atg-section-head"><h2>Performance por trimestre</h2></div><p class="atg-legend">Qual trimestre está mais perto da meta? ■ Conta para a meta · ▧ Saldo · ▦ Fora da meta · │ Meta. Escala comum a partir de zero. Selecione para consultar.</p><div class="atg-quarter-list" id="atg-quarters"></div></section>
-<dialog id="atg-detail" class="atg-panel" aria-labelledby="atg-detail-title"><div class="atg-section-head"><h2 id="atg-detail-title">PIs no período</h2><button id="atg-close">Voltar aos parceiros</button></div><p id="atg-detail-context" class="atg-muted"></p><div id="atg-detail-chips" class="atg-chips"></div><details id="atg-filters"><summary>Filtros dos PIs</summary><p class="atg-muted">Refinam somente esta lista. Os indicadores e as metas acima mantêm o contexto de período e parceiro.</p><div class="atg-filter-grid"><label>Cliente<select id="atg-client"></select></label><label>Agência<select id="atg-agency"></select></label><label>Veículo<select id="atg-vehicle"></select></label><label>Status<select id="atg-status"></select></label><label>Campanha<input id="atg-campaign" placeholder="Buscar campanha"></label><label>Participação na meta<select id="atg-scope"><option value="all">Todos os PIs</option><option value="in">Conta para a meta</option><option value="out">Fora da meta</option></select></label></div><button id="atg-clear">Limpar filtros dos PIs</button></details><div id="atg-pis" aria-live="polite"></div></dialog>
+<dialog id="atg-detail" class="atg-panel" aria-labelledby="atg-detail-title"><div class="atg-section-head"><h2 id="atg-detail-title">PIs no período</h2><button id="atg-close">Voltar aos parceiros</button></div><p id="atg-detail-context" class="atg-muted"></p><div id="atg-detail-chips" class="atg-chips"></div><details id="atg-filters"><summary>Filtros dos PIs</summary><p class="atg-muted">Refinam somente esta lista. Os indicadores e as metas acima mantêm o contexto de período e parceiro.</p><div class="atg-filter-grid"><label>Cliente<select id="atg-client"></select></label><label>Agência<select id="atg-agency"></select></label><label>Veículo<select id="atg-vehicle"></select></label><label>Status<select id="atg-status"></select></label><label>Campanha<input id="atg-campaign" placeholder="Buscar campanha"></label><label>Participação na meta<select id="atg-scope"><option value="all">Todos os PIs</option><option value="in">Conta para a meta</option><option value="out">Fora da meta</option></select></label></div><button id="atg-clear">Limpar filtros dos PIs</button></details><p class="atg-caption">PI significa Pedido de Inserção. Status é a situação registrada na planilha de vendas. “Conta para a meta” e “Fora da meta” indicam o perímetro oficial do mês de veiculação.</p><div id="atg-pis" aria-live="polite"></div></dialog>
 <details class="atg-section atg-panel evolution-wrap"><summary>Ver distribuição no ano · evolução mensal</summary><section id="atg-evolution"></section></details><p class="atg-footer">Base temporal: Mês (Veiculação) · valores líquidos · apenas status oficiais de vendas. Snapshot de leitura. Sem rateio; PIs futuros confirmados incluídos. Referência: __REFERENCE__. Atualização: __SYNC__. PIs sem mês válido: __INVALID__.</p>
 </section>
 </main></div>
 
 </div>
+<style>
+/* Cores e superfícies finais nos tokens compartilhados do Intelligence. */
+#atg-carteira{--proposal-sold:var(--atg-brand);--proposal-balance:var(--atg-warning);--proposal-tint:var(--atg-warning-bg);--proposal-red:var(--atg-negative)}
+#atg-carteira .atg-metrics .sold,#atg-carteira .atg-metrics .gap{background:var(--atg-surface-card)}
+#atg-carteira .atg-out{background:repeating-linear-gradient(90deg,var(--atg-neutral-tile-fg) 0 2px,transparent 2px 5px)!important}
+#atg-carteira .atg-target{background:var(--atg-ink)!important}
+#atg-carteira .atg-bar-row b,#atg-carteira .quarter-percent{color:var(--atg-ink)}
+#atg-carteira .atg-bar-row:hover{background:var(--atg-chart-highlight)}
+#atg-carteira .atg-quarter-list button{border-top:3px solid var(--atg-brand)}
+#atg-carteira .balance-segment{border-color:var(--atg-warning);background:repeating-linear-gradient(135deg,var(--atg-warning-bg) 0 4px,var(--atg-warning) 4px 5px)}
+#atg-carteira .atg-filter-caption,#atg-carteira .atg-caption{color:var(--atg-text-muted);font-size:var(--atg-type-metadata-size);line-height:1.5;margin:8px 0}
+#atg-carteira table{table-layout:auto;min-width:100%;width:max-content;max-width:none}
+#atg-carteira th,#atg-carteira td{white-space:normal;overflow-wrap:anywhere}
+</style>
 <script>
 (()=>{
 const DATA=__CARTEIRA_DATA__;
