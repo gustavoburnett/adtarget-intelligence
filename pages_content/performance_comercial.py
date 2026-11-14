@@ -46,7 +46,7 @@ _CONTROLES_META_CSS = """<style>
 }
 .st-key-performance_meta_grupo button:disabled,
 .st-key-performance_meta_grupo button:disabled:hover {
-    color: var(--atg-text-meta);
+    color: #8B93A1;
     background: transparent;
     cursor: not-allowed;
 }

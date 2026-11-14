@@ -57,7 +57,7 @@ def grafico_barra_horizontal(
             x=list(recorte[coluna_valor]),
             y=list(recorte[coluna_rotulo]),
             orientation="h",
-            marker=dict(color=COR_SERIE_PRINCIPAL),  # 2B.1: cor de marca
+            marker=dict(color="#0B7A66"),  # 2B.1: cor de marca
             hovertemplate="R$ %{x:,.2f}<extra></extra>",
         )
     )

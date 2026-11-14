@@ -76,7 +76,7 @@ def test_estilo_optativo_preserva_exatamente_apresentacao_legada(monkeypatch):
     assert serie["marker"]["color"] == charts.COR_SERIE_PRINCIPAL
     assert serie["hovertemplate"] == "R$ %{x:,.2f}<extra></extra>"
     assert legado["layout"]["title"] == {
-        "text": "Vendas por Grupo", "font": {"size": 15, "color": COLOR["ink"]},
+        "text": "Vendas por Grupo", "font": {"size": 15, "color": "#14171C"},
     }
     assert legado["layout"]["margin"] == {"t": 52, "b": 16, "l": 8, "r": 8}
     assert legado["layout"]["bargap"] == 0.38
