@@ -13,7 +13,7 @@ import streamlit as st
 from pandas.io.formats.style import Styler
 
 from src.components.analitico_tables import preparar_tabela
-from src.components.cards import formatar_moeda, formatar_pct
+from src.components.cards import formatar_inteiro, formatar_moeda, formatar_pct
 from src.components.filters import SEPARADOR_PAR
 from src.data.cleaning import COL_GRUPO, COL_VEICULO
 
@@ -44,6 +44,10 @@ def _moeda(valor: object) -> str:
 
 def _percentual(valor: object) -> str:
     return "—" if pd.isna(valor) else formatar_pct(valor, com_sinal=False)
+
+
+def _inteiro(valor: object) -> str:
+    return "—" if pd.isna(valor) else formatar_inteiro(int(valor))
 
 
 def _formatar(styler: Styler) -> Styler:
@@ -93,9 +97,17 @@ def configuracao_colunas_ranking(tabela: pd.DataFrame) -> dict:
                 label=coluna, width=largura, alignment="right",
             )
         elif coluna in {"Qtd PIs", "% do Total"}:
+            formatador = _inteiro if coluna == "Qtd PIs" else _percentual
+            valores = [
+                formatador(valor) for valor in tabela[coluna] if not pd.isna(valor)
+            ]
+            largura = max(
+                130,
+                max((len(str(coluna)), *(len(valor) for valor in valores))) * 8 + 40,
+            )
             config = st.column_config.NumberColumn(
                 label=coluna, help=("Quantidade de Pedidos de Inserção." if coluna == "Qtd PIs" else "Participação percentual nas vendas do recorte."),
-                width=max(130, max([len(coluna), *(len(str(v)) for v in tabela[coluna] if not pd.isna(v))]) * 8 + 40), alignment="right",
+                width=largura, alignment="right",
             )
         else:
             config = configuracao_colunas(tabela, colunas=[coluna])[coluna]
