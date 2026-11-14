@@ -246,7 +246,7 @@ def test_meta_fixa_consolidado_liquido_veiculacao_independentemente_dos_controle
     assert meta["y"][-1] == 3600
     assert any(serie["y"][-1] == 3020 for serie in figura["data"] if serie["name"] != "Meta acumulada")
     texto = _conteudo(app)
-    assert "Meta · Valor Líquido · Mês de Veiculação · Consolidado AdTarget" in texto
+    assert "Meta · Valor Líquido · Mês (Veiculação) · Consolidado AdTarget" in texto
     assert "controles acima continuam aplicados" not in texto
     padrao, _ = _pagina(aba="Meta")
     assert figura == _figura_meta(padrao)

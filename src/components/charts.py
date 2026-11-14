@@ -62,12 +62,12 @@ def grafico_barra_horizontal(
         )
     )
     fig.update_layout(
-        title=dict(text=titulo, font=dict(size=15, color=COLOR["ink"])),
+        title=dict(text=titulo, font=dict(size=15, color="#14171C")),
         yaxis=dict(autorange="reversed",
-                   tickfont=dict(size=12, color=COLOR["text-secondary"])),
-        xaxis=dict(gridcolor=_COR_GRID,
-                   tickfont=dict(size=11.5, color=COLOR["text-meta"])),
-        plot_bgcolor=COLOR["surface-card"],
+                   tickfont=dict(size=12, color="#5B6472")),
+        xaxis=dict(gridcolor="#EDEFF2",
+                   tickfont=dict(size=11.5, color="#8B93A1")),
+        plot_bgcolor="#FFFFFF",
         paper_bgcolor="rgba(0,0,0,0)",
         margin=dict(t=52, b=16, l=8, r=8),
         bargap=0.38,

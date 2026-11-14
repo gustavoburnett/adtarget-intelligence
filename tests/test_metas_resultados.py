@@ -309,7 +309,7 @@ def test_sem_vendas_disponiveis_nao_quebra_filtro_de_ano():
 def test_rodape_e_valores_completos_preservam_metodologia_e_precisao():
     html = _html(_pagina(vendas=_base(atual=123.455)))
     assert 'title="R$ 246,91"' in html  # Arredondamento somente na apresentação.
-    for texto in ("Vendas Líquidas", "mês de veiculação", "somente meses encerrados", "entidades com meta ativa no mês", "sem sazonalidade", "Para vendas totais, consultar Performance Comercial"):
+    for texto in ("Vendas Líquidas", "Mês (Veiculação)", "somente meses encerrados", "entidades com meta ativa no mês", "sem sazonalidade", "Para vendas totais, consultar Performance Comercial"):
         assert texto in html
     assert "plotly" not in html.lower()
 
