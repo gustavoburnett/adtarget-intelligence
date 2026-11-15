@@ -91,7 +91,7 @@ def _hover_acumulado(mes: MesMetas, ano: int) -> str:
         f"{ano - 1}, mesmo perímetro: {_moeda(mes.realizado_anterior_acumulado)}"
     )
     if mes.estado_mes == "encerrado":
-        partes.append(f"YoY: {_pct(mes.yoy_acumulado_pct, sinal=True)}")
+        partes.append(f"Comparação com o ano anterior: {_pct(mes.yoy_acumulado_pct, sinal=True)}")
     return "<br>".join(parte for parte in partes if parte)
 
 
@@ -110,7 +110,7 @@ def _hover_mensal(mes: MesMetas, pulso: MesPulso, ano: int) -> str:
             ),
             _saldo(mes.saldo),
             f"{_MESES_COMPLETOS[mes.mes - 1]}/{ano - 1}: {_moeda(mes.realizado_anterior)}",
-            f"YoY: {_pct(mes.yoy_pct, sinal=True)}",
+            f"Comparação com o ano anterior: {_pct(mes.yoy_pct, sinal=True)}",
         ])
     else:
         partes.extend([
@@ -137,12 +137,12 @@ def _estilo(fig: go.Figure, resultado: ResultadoMetas, *, altura: int) -> None:
     fig.update_layout(
         height=altura,
         autosize=True,
-        plot_bgcolor="#FFFFFF",
+        plot_bgcolor=COLOR["surface-card"],
         paper_bgcolor="rgba(0,0,0,0)",
         font=dict(size=12, color=COR_TEXTO_SECUNDARIO),
         hovermode="closest",
         hoverlabel=dict(
-            bgcolor="#FFFFFF", bordercolor=COR_BORDA_SUAVE,
+            bgcolor=COLOR["surface-card"], bordercolor=COLOR["line-card"],
             font=dict(size=12, color=COR_TEXTO),
         ),
         legend=dict(
@@ -274,10 +274,10 @@ def evolucao_mensal(resultado: ResultadoMetas, pulso: ResultadoPulso) -> go.Figu
         x=meses, y=[float(mes.meta) for mes in resultado.meses],
         name="Meta", width=0.64, base=0,
         marker=dict(
-            color="#FFFFFF", line=dict(width=0),
+            color=COLOR["surface-card"], line=dict(width=0),
             pattern=dict(
                 shape="/", fillmode="overlay", fgcolor=COR_NEUTRO,
-                bgcolor="#FFFFFF", size=5, solidity=0.12,
+                bgcolor=COLOR["surface-card"], size=5, solidity=0.12,
             ),
         ),
         customdata=hovers, hovertemplate="%{customdata}<extra></extra>",

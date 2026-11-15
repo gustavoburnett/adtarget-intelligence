@@ -168,6 +168,45 @@ def test_meta_preserva_exatamente_valores_hovers_e_distincao_temporal_do_checkpo
     resultado, pulso = _resultados(**ESTADOS_META[estado])
     copia = deepcopy((resultado, pulso))
     antes = _meta_checkpoint(monkeypatch, resultado, pulso)
+    # Paleta aprovada desde 3765013: adapta somente os campos visuais do
+    # checkpoint; séries, escalas, hovers e distinção temporal seguem congelados.
+    paleta = metas_charts.COLOR
+    layout_antes = antes["layout"]
+    layout_antes["plot_bgcolor"] = paleta["surface-card"]
+    hover_antes = layout_antes["hoverlabel"]
+    hover_antes["bgcolor"] = paleta["surface-card"]
+    hover_antes["bordercolor"] = paleta["line-card"]
+    hover_antes["font"]["color"] = paleta["ink"]
+    layout_antes["legend"]["font"]["color"] = paleta["text-secondary"]
+    layout_antes["xaxis"]["tickfont"]["color"] = paleta["text-secondary"]
+    layout_antes["yaxis"]["gridcolor"] = paleta["chart-grid"]
+    layout_antes["yaxis"]["tickfont"]["color"] = paleta["text-meta"]
+    for anotacao in layout_antes.get("annotations", []):
+        if anotacao.get("text") == "Mês em andamento":
+            anotacao["font"]["color"] = paleta["text-meta"]
+    for serie in antes["data"]:
+        nome = serie.get("name")
+        # “Comparação com o ano anterior” já estava aprovada em eb41d3a;
+        # atualiza apenas a redação antiga do hover no checkpoint.
+        if serie.get("customdata") is not None:
+            serie["customdata"] = [
+                texto.replace("YoY: ", "Comparação com o ano anterior: ")
+                if isinstance(texto, str) else texto
+                for texto in serie["customdata"]
+            ]
+        if nome == "Meta acumulada":
+            serie["line"]["color"] = paleta["text-secondary"]
+        elif nome == "Realizado acumulado · fechado":
+            serie["line"]["color"] = paleta["brand"]
+            serie["marker"]["color"] = paleta["brand"]
+        elif nome == "Já vendido acumulado":
+            serie["line"]["color"] = paleta["brand"]
+            serie["marker"]["color"] = paleta["brand"]
+            serie["marker"]["line"]["color"] = paleta["brand"]
+    for forma in layout_antes.get("shapes", []):
+        if forma.get("fillcolor") != "rgba(0,0,0,0)":
+            forma["fillcolor"] = paleta["brand-tint"]
+        forma.setdefault("line", {})["color"] = paleta["text-meta"]
     assert _json(metas_charts.evolucao_performance_meta(resultado, pulso)) == antes
     depois = _json(metas_charts.evolucao_performance_meta(resultado, pulso, design_performance=True))
     assert _contrato_figura(depois, meta=True) == _contrato_figura(antes, meta=True)
@@ -196,16 +235,59 @@ def test_graficos_de_metas_resultados_fora_do_escopo_permanecem_integrais(estado
     baseline = _checkpoint("src/components/metas_charts.py")
 
     def contraste_aprovado(figura, *, mensal=False):
-        # Design 1I autoriza três cores e o deslocamento da nota mensal. A igualdade
-        # integral continua verificando todo o restante das figuras.
+        # Design 1I autoriza três cores e o deslocamento da nota mensal. A paleta
+        # aprovada em 3765013 atualiza apenas os campos visuais correspondentes;
+        # a igualdade integral continua verificando todo o restante da figura.
+        paleta = metas_charts.COLOR
+        figura.layout.plot_bgcolor = paleta["surface-card"]
+        figura.layout.font.color = paleta["text-secondary"]
+        figura.layout.hoverlabel.bgcolor = paleta["surface-card"]
+        figura.layout.hoverlabel.bordercolor = paleta["line-card"]
+        figura.layout.hoverlabel.font.color = paleta["ink"]
+        figura.layout.legend.font.color = paleta["text-secondary"]
+        figura.layout.xaxis.tickfont.color = paleta["text-secondary"]
+        figura.layout.yaxis.gridcolor = paleta["line-card"]
         figura.layout.yaxis.tickfont.color = metas_charts.COLOR["text-muted"]
+        for serie in figura.data:
+            nome = serie.name
+            if nome == "Meta acumulada":
+                serie.line.color = paleta["text-secondary"]
+            elif nome.endswith("· mesmo perímetro"):
+                serie.line.color = paleta["text-meta"]
+                serie.marker.color = paleta["text-meta"]
+            elif nome.startswith("Realizado"):
+                serie.line.color = paleta["brand"]
+                serie.marker.color = paleta["brand"]
+            elif nome == "Meta":
+                serie.marker.color = paleta["surface-card"]
+                serie.marker.pattern.bgcolor = paleta["surface-card"]
+                serie.marker.pattern.fgcolor = paleta["text-meta"]
+            elif nome == "Já vendido":
+                serie.marker.color = paleta["brand"]
+                serie.textfont.color = paleta["text-secondary"]
+        for forma in figura.layout.shapes:
+            if forma.fillcolor != "rgba(0,0,0,0)":
+                forma.fillcolor = paleta["brand-tint"]
+            forma.line.color = paleta["text-meta"]
         for anotacao in figura.layout.annotations:
             nota_estados = anotacao.yref == "paper" and anotacao.y == -0.20
             rotulo_anterior = anotacao.text.startswith(f"<b>{resultado.ano - 1} · ")
             if nota_estados or rotulo_anterior:
                 anotacao.font.color = metas_charts.COLOR["text-muted"]
+            elif anotacao.text.startswith("<b>Meta · "):
+                anotacao.font.color = paleta["text-secondary"]
+            elif anotacao.text.startswith("<b>Realizado · "):
+                anotacao.font.color = paleta["brand"]
             if mensal and nota_estados:
                 anotacao.yshift = -12
+        # A redação expandida foi aprovada em eb41d3a, antes desta rodada.
+        for serie in figura.data:
+            if serie.customdata is not None:
+                serie.customdata = [
+                    texto.replace("YoY: ", "Comparação com o ano anterior: ")
+                    if isinstance(texto, str) else texto
+                    for texto in serie.customdata
+                ]
         return _json(figura)
 
     assert _json(metas_charts.evolucao_acumulada(resultado)) == contraste_aprovado(
@@ -223,7 +305,16 @@ def test_barra_horizontal_fora_do_escopo_permanece_integral(monkeypatch):
     monkeypatch.setattr(st, "plotly_chart", lambda figura, **kwargs: figuras.append(_json(figura)))
     _checkpoint("src/components/charts.py").grafico_barra_horizontal(dados, "nome", "valor", "Ranking")
     charts.grafico_barra_horizontal(dados, "nome", "valor", "Ranking")
-    assert len(figuras) == 2 and figuras[0] == figuras[1]
+    assert len(figuras) == 2
+    # 3765013 aprovou a paleta atual nesses campos do gráfico congelado;
+    # todo o restante continua comparado integralmente.
+    figura_checkpoint = figuras[0]
+    figura_checkpoint["data"][0]["marker"]["color"] = charts.COLOR["brand"]
+    figura_checkpoint["layout"]["title"]["font"]["color"] = charts.COLOR["ink"]
+    figura_checkpoint["layout"]["yaxis"]["tickfont"]["color"] = charts.COLOR["text-secondary"]
+    figura_checkpoint["layout"]["xaxis"]["gridcolor"] = charts.COLOR["chart-grid"]
+    figura_checkpoint["layout"]["xaxis"]["tickfont"]["color"] = charts.COLOR["text-meta"]
+    assert figura_checkpoint == figuras[1]
     pd.testing.assert_frame_equal(dados, copia)
 
 

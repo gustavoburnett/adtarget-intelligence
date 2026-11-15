@@ -57,17 +57,17 @@ def grafico_barra_horizontal(
             x=list(recorte[coluna_valor]),
             y=list(recorte[coluna_rotulo]),
             orientation="h",
-            marker=dict(color="#0B7A66"),  # 2B.1: cor de marca
+            marker=dict(color=COR_SERIE_PRINCIPAL),  # 2B.1: cor de marca
             hovertemplate="R$ %{x:,.2f}<extra></extra>",
         )
     )
     fig.update_layout(
-        title=dict(text=titulo, font=dict(size=15, color="#14171C")),
+        title=dict(text=titulo, font=dict(size=15, color=COLOR["ink"])),
         yaxis=dict(autorange="reversed",
-                   tickfont=dict(size=12, color="#5B6472")),
-        xaxis=dict(gridcolor="#EDEFF2",
-                   tickfont=dict(size=11.5, color="#8B93A1")),
-        plot_bgcolor="#FFFFFF",
+                   tickfont=dict(size=12, color=COLOR["text-secondary"])),
+        xaxis=dict(gridcolor=_COR_GRID,
+                   tickfont=dict(size=11.5, color=COLOR["text-meta"])),
+        plot_bgcolor=COLOR["surface-card"],
         paper_bgcolor="rgba(0,0,0,0)",
         margin=dict(t=52, b=16, l=8, r=8),
         bargap=0.38,

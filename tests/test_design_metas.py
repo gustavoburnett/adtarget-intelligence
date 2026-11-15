@@ -469,6 +469,7 @@ def test_design_1f_preserva_fontes_protegidas_do_design_1e(caminho):
         "src/data/loader.py": {"load_all_sheets"},
         "pages_content/performance_comercial.py": {
             "render", "_linhas_ranking_dimensao", "_render_meta", "_abas_evolucao",
+            "_CONTROLES_META_CSS",
         },
         "pages_content/analitico_comercial.py": {"render", "_MESES_ABREV"},
         # Design 1H aprovado: render visual e substituição do formatador de
@@ -478,6 +479,13 @@ def test_design_1f_preserva_fontes_protegidas_do_design_1e(caminho):
     if caminho == "src/components/metas_charts.py":
         # Exceção estrita do Design 1I: nenhuma outra linha está liberada.
         substituicoes = (
+            ('plot_bgcolor="#FFFFFF"', 'plot_bgcolor=COLOR["surface-card"]'),
+            ('bgcolor="#FFFFFF", bordercolor=COR_BORDA_SUAVE',
+             'bgcolor=COLOR["surface-card"], bordercolor=COLOR["line-card"]'),
+            ('f"YoY: {_pct(mes.yoy_acumulado_pct, sinal=True)}"',
+             'f"Comparação com o ano anterior: {_pct(mes.yoy_acumulado_pct, sinal=True)}"'),
+            ('f"YoY: {_pct(mes.yoy_pct, sinal=True)}"',
+             'f"Comparação com o ano anterior: {_pct(mes.yoy_pct, sinal=True)}"'),
             ('tickfont=dict(size=11, color=COR_NEUTRO)',
              'tickfont=dict(size=11, color=COLOR["text-muted"])'),
             ('text=" · ".join(legenda_estados), showarrow=False,\n'
@@ -490,6 +498,20 @@ def test_design_1f_preserva_fontes_protegidas_do_design_1e(caminho):
              '    _estilo(fig, resultado, altura=330)\n'
              '    # Respiro fixo para a nota, inclusive quando os meses giram no mobile.\n'
              '    fig.update_annotations(yshift=-12, selector=dict(yref="paper", y=-0.20))\n'),
+            ('        marker=dict(\n'
+             '            color="#FFFFFF", line=dict(width=0),\n'
+             '            pattern=dict(\n'
+             '                shape="/", fillmode="overlay", fgcolor=COR_NEUTRO,\n'
+             '                bgcolor="#FFFFFF", size=5, solidity=0.12,\n'
+             '            ),\n'
+             '        ),',
+             '        marker=dict(\n'
+             '            color=COLOR["surface-card"], line=dict(width=0),\n'
+             '            pattern=dict(\n'
+             '                shape="/", fillmode="overlay", fgcolor=COR_NEUTRO,\n'
+             '                bgcolor=COLOR["surface-card"], size=5, solidity=0.12,\n'
+             '            ),\n'
+             '        ),'),
         )
         for original, aprovado in substituicoes:
             assert anterior.count(original) == 1
