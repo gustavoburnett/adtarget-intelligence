@@ -482,10 +482,6 @@ def test_design_1f_preserva_fontes_protegidas_do_design_1e(caminho):
             ('plot_bgcolor="#FFFFFF"', 'plot_bgcolor=COLOR["surface-card"]'),
             ('bgcolor="#FFFFFF", bordercolor=COR_BORDA_SUAVE',
              'bgcolor=COLOR["surface-card"], bordercolor=COLOR["line-card"]'),
-            ('f"YoY: {_pct(mes.yoy_acumulado_pct, sinal=True)}"',
-             'f"Comparação com o ano anterior: {_pct(mes.yoy_acumulado_pct, sinal=True)}"'),
-            ('f"YoY: {_pct(mes.yoy_pct, sinal=True)}"',
-             'f"Comparação com o ano anterior: {_pct(mes.yoy_pct, sinal=True)}"'),
             ('tickfont=dict(size=11, color=COR_NEUTRO)',
              'tickfont=dict(size=11, color=COLOR["text-muted"])'),
             ('text=" · ".join(legenda_estados), showarrow=False,\n'

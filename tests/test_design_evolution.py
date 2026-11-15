@@ -186,14 +186,6 @@ def test_meta_preserva_exatamente_valores_hovers_e_distincao_temporal_do_checkpo
             anotacao["font"]["color"] = paleta["text-meta"]
     for serie in antes["data"]:
         nome = serie.get("name")
-        # “Comparação com o ano anterior” já estava aprovada em eb41d3a;
-        # atualiza apenas a redação antiga do hover no checkpoint.
-        if serie.get("customdata") is not None:
-            serie["customdata"] = [
-                texto.replace("YoY: ", "Comparação com o ano anterior: ")
-                if isinstance(texto, str) else texto
-                for texto in serie["customdata"]
-            ]
         if nome == "Meta acumulada":
             serie["line"]["color"] = paleta["text-secondary"]
         elif nome == "Realizado acumulado · fechado":
@@ -256,8 +248,11 @@ def test_graficos_de_metas_resultados_fora_do_escopo_permanecem_integrais(estado
                 serie.line.color = paleta["text-meta"]
                 serie.marker.color = paleta["text-meta"]
             elif nome.startswith("Realizado"):
-                serie.line.color = paleta["brand"]
-                serie.marker.color = paleta["brand"]
+                if serie.type == "bar":
+                    serie.marker.color = paleta["brand"]
+                else:
+                    serie.line.color = paleta["brand"]
+                    serie.marker.color = paleta["brand"]
             elif nome == "Meta":
                 serie.marker.color = paleta["surface-card"]
                 serie.marker.pattern.bgcolor = paleta["surface-card"]
@@ -280,14 +275,6 @@ def test_graficos_de_metas_resultados_fora_do_escopo_permanecem_integrais(estado
                 anotacao.font.color = paleta["brand"]
             if mensal and nota_estados:
                 anotacao.yshift = -12
-        # A redação expandida foi aprovada em eb41d3a, antes desta rodada.
-        for serie in figura.data:
-            if serie.customdata is not None:
-                serie.customdata = [
-                    texto.replace("YoY: ", "Comparação com o ano anterior: ")
-                    if isinstance(texto, str) else texto
-                    for texto in serie.customdata
-                ]
         return _json(figura)
 
     assert _json(metas_charts.evolucao_acumulada(resultado)) == contraste_aprovado(
