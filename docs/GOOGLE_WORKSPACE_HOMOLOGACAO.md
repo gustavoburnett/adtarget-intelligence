@@ -63,6 +63,10 @@ Branch publicada; PR Draft tentado pelo conector GitHub, negado com 403
 A primeira renderização usava datas sintéticas em formato não aceito pelo normalizador,
 resultando em valores zerados. O entrypoint foi corrigido para o formato da fonte;
 teste adicional confirma 48 datas válidas e soma positiva. Também foi isolado o
+endereço dos links da Carteira, que era fixo para produção: o wrapper de homologação
+os redireciona para o próprio app. Nenhum byte dos renderizadores ou loaders de
+produção precisou ser alterado para esses ajustes.
+
 > O registro de 02/11 abaixo descreve a etapa sintética inicial. O estado vigente da homologação está nesta atualização.
 
 ## Atualização de 16/11/2026 — dados comerciais em leitura real
@@ -80,3 +84,10 @@ A configuração atual usa a planilha comercial, com acesso somente leitura.
 Durante a configuração, o primeiro ID informado apontava para a planilha financeira. O compartilhamento foi removido e o Secret foi corrigido para a planilha comercial antes da validação final.
 
 Após salvar os Secrets e reiniciar somente a homologação, o app abriu o Radar Executivo com as cinco páginas. A tela deixou de exibir os valores sintéticos do aceite inicial e não mostrou erro de permissão ou leitura. A reconciliação detalhada de cada indicador com a planilha continua pendente.
+
+## Adendo — autorização, identidade e prazo de revogação (16/11/2026)
+
+- Autorização: Gustavo Burnett autorizou a criação da Service Account `adtarget-homologacao-reader@adtarget-intelligence.iam.gserviceaccount.com` e o acesso mínimo (Leitor, somente na planilha comercial) em 16/11/2026.
+- Identidade confirmada: a criação foi executada por Gustavo Burnett, com assistência do GPT/Codex, em 16/11/2026.
+- Nome de exibição da Service Account: `adtarget-intelligence-homologacao-reader`. Não foi reutilizada a conta `streamlit-adtarget`, e nenhum papel IAM de projeto foi atribuído durante esta configuração.
+- Prazo: até 30/11/2026, revogar a chave e remover o acesso Leitor da Service Account à planilha comercial. Não renovar sem nova autorização explícita.
