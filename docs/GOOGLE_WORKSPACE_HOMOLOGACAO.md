@@ -76,3 +76,14 @@ R$ 8.800,00 sintéticos, zero PIs com mês inválido e link do recorte no domín
 da própria homologação. Sessão independente continuou mostrando somente login.
 A main remota foi conferida e permanece em `2b95cc933fb45defd8ade25e75bc886077fb9e73`.
 Nenhum merge ou deploy na aplicação de produção foi executado.
+
+## Adendo — leitura real temporária (16/11/2026)
+
+- Finalidade: validar a homologação do AdTarget Intelligence com a planilha comercial real, sem alterar produção.
+- Service Account exclusiva: `adtarget-homologacao-reader@adtarget-intelligence.iam.gserviceaccount.com` (nome de exibição `adtarget-intelligence-homologacao-reader`). Não foi reutilizada `streamlit-adtarget` e nenhum papel foi atribuído no projeto.
+- Autorização: Gustavo Burnett autorizou a criação e o acesso mínimo em 16/11/2026. O registro recebido não identifica o operador administrativo que executou a criação; confirmar essa identidade no Cloud Audit Logs.
+- Acesso à fonte: compartilhada somente a planilha comercial como Leitor em 16/11/2026. A planilha financeira não foi compartilhada.
+- Escopo da aplicação: `spreadsheets.readonly`, com leitura limitada pelo entrypoint aos anos 2024, 2025 e 2026. O modo sintético segue como padrão.
+- Chave: foi gerada no Google Cloud, mas ainda não foi configurada nos Secrets do app `adtarget-intelligence-homologacao`. A chave não está neste repositório.
+- Estado: até a configuração dos Secrets, o modo real não está habilitado no app; a homologação permanece em modo sintético.
+- Prazo: até 30/11/2026, revogar a chave e remover o acesso Leitor da Service Account à planilha comercial. Não renovar sem nova autorização.
