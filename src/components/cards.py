@@ -432,16 +432,9 @@ def linha_kpis(
         f'{TRIANGULOS_HERO[pecas["seta"]]}</svg>'
         f'<span class="atg-sr-only">{pecas["seta"]}</span></span>'
     ) if pecas["seta"] else ""
-    import datetime as _datetime
-    contexto_temporal = (
-        "Meses encerrados · mês em andamento apresentado à parte"
-        if rotulo_mes_em_andamento else
-        "Ano encerrado · janeiro a dezembro"
-        if ytd_resultado.get("mes_limite") == 12 else
-        "Meses encerrados no ano selecionado"
-        if ytd_resultado.get("mes_limite", 12) else
-        "Sem mês encerrado no ano selecionado"
-    )
+    periodo_metodologia = pecas["periodo"].removeprefix("Acumulado ")
+    if rotulo_mes_em_andamento:
+        periodo_metodologia += " · mês em andamento à parte."
     resumo_meta = ""
     if meta_anual is not None and saldo_meta is not None:
         valor_saldo = formatar_moeda_executiva(abs(saldo_meta))
@@ -485,7 +478,7 @@ def linha_kpis(
         '<span class="atg-hero-number num">'
         f'{pecas["percentual"]}</span></div>'
         f'<div class="atg-hero-caption num">{pecas["suporte"]}</div>'
-        f'<div class="atg-hero-context">Vendas totais · {pecas["periodo"]} · {contexto_temporal}</div>'
+        f'<div class="atg-hero-context">{periodo_metodologia}</div>'
         "</article>"
     )
     faturado_fmt = formatar_moeda_executiva(vendas_detalhado["faturado"])

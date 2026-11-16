@@ -350,7 +350,7 @@ def test_performance_compara_meses_fechados_separa_mes_aberto_e_exibe_meta_e_sal
 
     assert not app.exception
     assert "Variação em meses encerrados vs mesmo período do ano anterior" in html
-    assert "Acumulado Jan–Set/2026 vs Jan–Set/2025" in html
+    assert "Jan–Set/2026 vs Jan–Set/2025 · mês em andamento à parte." in html
     assert "R$ 1,70 mil este ano · R$ 850,00 no mesmo período de 2025" in html
     assert "Mês em andamento" in html
     assert "Outubro/2026 · Mês (Veiculação)" in html

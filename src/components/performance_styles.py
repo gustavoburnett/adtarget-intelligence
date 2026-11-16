@@ -126,6 +126,9 @@ CSS_PERFORMANCE = "<style>" + """
 .atg-performance-indicators .atg-hero-caption {
   color:var(--atg-text-secondary);font-size:var(--atg-type-context-size);
   font-weight:400;line-height:1.5;margin:0;}
+.atg-performance-indicators .atg-hero-context {
+  color:var(--atg-text-muted);font-size:var(--atg-type-metadata-size);
+  font-weight:400;line-height:1.4;margin:0;}
 .atg-performance-indicators .atg-kpi-grid {
   display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:var(--atg-space-16);
   align-items:start;border:0;background:transparent;border-radius:0;}
