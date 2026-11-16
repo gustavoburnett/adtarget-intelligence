@@ -1,8 +1,10 @@
-"""Isolated OAuth acceptance entrypoint: native auth, synthetic data only.
+"""Isolated OAuth acceptance entrypoint.
 
-Deploy this file in a SEPARATE Streamlit app. Never use production data secrets.
+Deploy this file in a SEPARATE Streamlit app. Synthetic data is the default;
+real data is available only through an explicit read-only homologation mode.
 The auth gate and all five page implementations run unchanged from app.py.
 """
+from contextlib import ExitStack
 from pathlib import Path
 import runpy
 from unittest.mock import patch
@@ -12,6 +14,9 @@ from pages_content import carteira_vendas
 
 from src.data import cleaning, loader, metas_loader, representacoes
 from src.data.metas_schema import COLUNAS_METAS, validar_metas
+
+ANOS_REAIS_HOMOLOGACAO = frozenset({"2024", "2025", "2026"})
+_load_all_sheets_original = loader.load_all_sheets
 
 
 def vendas_sinteticas(*_):
@@ -48,6 +53,19 @@ def bloquear_cliente_real(*_, **__):
     raise RuntimeError("Homologação sintética não permite acesso ao Google Sheets.")
 
 
+def filtrar_anos_homologacao(dados: pd.DataFrame) -> pd.DataFrame:
+    """Restringe a homologação real às abas comerciais oficiais de 2024–2026."""
+    if "ANO_ABA" not in dados.columns:
+        raise ValueError("A fonte comercial não contém a coluna ANO_ABA.")
+    return dados.loc[dados["ANO_ABA"].astype(str).isin(ANOS_REAIS_HOMOLOGACAO)].copy()
+
+
+def vendas_reais_homologacao(spreadsheet_id, credenciais):
+    """Lê a fonte oficial com o escopo spreadsheets.readonly do loader."""
+    dados = _load_all_sheets_original(spreadsheet_id, credenciais)
+    return filtrar_anos_homologacao(dados)
+
+
 _documento_original = carteira_vendas.documento
 
 
@@ -60,12 +78,28 @@ def documento_homologacao(*args, **kwargs):
 
 
 if __name__ == "__main__":
+    import streamlit as st
+
+    modo_dados = st.secrets.get("homologation_data_mode", "synthetic")
+    if modo_dados not in {"synthetic", "real_readonly"}:
+        st.error("Modo de dados inválido para a homologação.")
+        st.stop()
+
+    patches = [patch.object(carteira_vendas, "documento", documento_homologacao)]
+    if modo_dados == "real_readonly":
+        # Authentication remains unchanged and the loader requests only the
+        # spreadsheets.readonly OAuth scope.
+        patches.append(patch.object(loader, "load_all_sheets", vendas_reais_homologacao))
+    else:
+        patches.extend([
+            patch.object(loader, "load_all_sheets", vendas_sinteticas),
+            patch.object(loader, "criar_cliente", bloquear_cliente_real),
+            patch.object(metas_loader, "load_metas", metas_sinteticas),
+            patch.object(representacoes, "load_representacoes", representacoes_sinteticas),
+        ])
+
     # Contexts restore functions even on Streamlit stop/rerun. No auth is patched.
-    with (
-        patch.object(loader, "load_all_sheets", vendas_sinteticas),
-        patch.object(loader, "criar_cliente", bloquear_cliente_real),
-        patch.object(metas_loader, "load_metas", metas_sinteticas),
-        patch.object(representacoes, "load_representacoes", representacoes_sinteticas),
-        patch.object(carteira_vendas, "documento", documento_homologacao),
-    ):
+    with ExitStack() as stack:
+        for contexto in patches:
+            stack.enter_context(contexto)
         runpy.run_path(str(Path(__file__).with_name("app.py")), run_name="__main__")
