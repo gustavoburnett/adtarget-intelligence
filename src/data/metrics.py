@@ -280,20 +280,21 @@ def ytd(
     valor: Valor = "liquido",
     criterio_mes: CriterioMes = CRITERIO_MES_OFICIAL,
     hoje: Optional[_dt.date] = None,
+    *,
+    meses_fechados: int | None = None,
 ) -> dict[str, Optional[float]]:
     """YTD de Vendas em intervalo comparável.
 
     Regra do mês limite:
-    - **Ano selecionado é o ano corrente**: acumulado de janeiro até o MÊS
-      ATUAL (hoje), comparado ao mesmo intervalo do ano anterior. Ex: em
-      julho/2026, Jan–Jul/2026 vs Jan–Jul/2025. Meses futuros do ano
-      corrente (ex: veiculações já agendadas) ficam FORA do acumulado.
+    - **Ano selecionado é o ano corrente**: por padrão, acumulado até o mês
+      atual, comparado ao mesmo intervalo do ano anterior. Quando informado,
+      ``meses_fechados`` permite usar apenas meses-calendário encerrados.
     - **Ano encerrado (ou futuro)**: ano completo (Jan–Dez) contra o ano
-      anterior completo.
+      anterior completo, salvo se ``meses_fechados`` for informado.
 
     Nunca compara ano parcial atual com ano completo anterior. O parâmetro
     ``hoje`` existe para testes determinísticos; em produção usa a data
-    corrente.
+    corrente. ``meses_fechados`` aceita de 0 a 12 e substitui o mês limite.
 
     Retorno:
     - "atual": soma do ano selecionado até o mês limite
@@ -301,10 +302,19 @@ def ytd(
       não existe nenhum dado do ano anterior ("sem comparativo disponível")
     - "variacao_pct": percentual de variação, ou None quando não calculável
     - "mes_limite": mês final do intervalo comparado (mês atual no ano
-      corrente; 12 em ano encerrado)
+      corrente por padrão; ou o valor explícito de ``meses_fechados``)
     """
     hoje = hoje or _dt.date.today()
-    mes_limite = hoje.month if ano == hoje.year else 12
+    if meses_fechados is not None:
+        if (
+            isinstance(meses_fechados, bool)
+            or not isinstance(meses_fechados, int)
+            or not 0 <= meses_fechados <= 12
+        ):
+            raise ValueError("meses_fechados deve ser um inteiro entre 0 e 12.")
+        mes_limite = meses_fechados
+    else:
+        mes_limite = hoje.month if ano == hoje.year else 12
 
     col_mes = coluna_mes(criterio_mes)
     col_val = coluna_valor(valor)
@@ -315,6 +325,14 @@ def ytd(
             recorte_atual[col_mes].dt.month <= mes_limite, col_val
         ].sum()
     )
+
+    if mes_limite == 0:
+        return {
+            "atual": total_atual,
+            "anterior": None,
+            "variacao_pct": None,
+            "mes_limite": 0,
+        }
 
     recorte_anterior = _vendas_do_ano(df, ano - 1, criterio_mes)
     if recorte_anterior.empty:
@@ -442,13 +460,18 @@ def resumo_por_status(df: pd.DataFrame, valor: Valor = "liquido") -> pd.DataFram
 # ---------------------------------------------------------------------------
 
 def _janela_comparavel(
-    df: pd.DataFrame, ano: int, criterio_mes: CriterioMes, hoje: Optional[_dt.date]
+    df: pd.DataFrame, ano: int, criterio_mes: CriterioMes, hoje: Optional[_dt.date],
+    mes_limite: int | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, int]:
     """Base Vendas de (ano) e (ano−1) no MESMO intervalo comparável do YTD
     (regra v0.4): até o mês atual no ano corrente; Jan–Dez em ano encerrado.
     """
     hoje = hoje or _dt.date.today()
-    mes_limite = hoje.month if ano == hoje.year else 12
+    mes_limite = mes_limite if mes_limite is not None else (
+        hoje.month if ano == hoje.year else 12
+    )
+    if not 0 <= mes_limite <= 12:
+        raise ValueError("O mês limite da comparação deve estar entre 0 e 12.")
     col_mes = coluna_mes(criterio_mes)
     base = df[mascara_vendas(df)]
     atual = base[
@@ -468,16 +491,21 @@ def tendencia_por_dimensao(
     valor: Valor = "liquido",
     criterio_mes: CriterioMes = CRITERIO_MES_OFICIAL,
     hoje: Optional[_dt.date] = None,
+    meses_fechados: int | None = None,
 ) -> dict[str, Optional[float]]:
     """Variação % de cada entidade da dimensão vs o mesmo intervalo
     comparável do ano anterior (badge de tendência dos rankings — 2B.8).
 
     Retorna {entidade: variação % ou None quando não há base do ano
-    anterior}. NÃO altera nenhum número exibido: os valores dos rankings
-    continuam vindo de agregado_por_dimensao; isto apenas ADICIONA a
-    leitura de tendência.
+    anterior}. O resultado está em pontos percentuais (por exemplo, 12.5
+    significa +12,5%). Por padrão usa a janela YTD existente; quando
+    ``meses_fechados`` é informado, limita o comparativo a esses meses
+    encerrados. NÃO altera nenhum número exibido: os valores dos rankings
+    continuam vindo de agregado_por_dimensao; isto apenas ADICIONA a leitura.
     """
-    atual, anterior, _ = _janela_comparavel(df, ano, criterio_mes, hoje)
+    atual, anterior, _ = _janela_comparavel(
+        df, ano, criterio_mes, hoje, mes_limite=meses_fechados,
+    )
     col = coluna_valor(valor)
     soma_atual = atual.groupby(coluna)[col].sum()
     soma_anterior = anterior.groupby(coluna)[col].sum()

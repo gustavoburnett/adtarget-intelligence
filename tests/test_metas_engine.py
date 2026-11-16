@@ -533,3 +533,22 @@ def test_metricas_e_fontes_existentes_permanecem_invariantes():
     assert metrics.vendas(vendas) == venda_total
     assert metrics.vendas(vendas, "bruto") == bruto_total
     assert metrics.ytd(vendas, 2026, hoje=REF) == ytd
+
+
+def test_engine_compara_total_performance_com_vendas_no_perimetro_mesmo_periodo():
+    vendas = _vendas(
+        _venda("2026-01-01", 50, grupo="G"),
+        _venda("2026-01-01", 20, grupo="FORA"),
+        _venda("2026-02-01", 40, grupo="G"),
+        _venda("2026-02-01", 25, grupo="FORA"),
+        _venda("2026-03-01", 900, grupo="G"),
+        _venda("2026-03-01", 100, grupo="FORA"),
+    )
+    plano = _metas(_meta(mes=1, valor=100), _meta(mes=2, valor=100))
+
+    resultado = _avaliar(vendas, plano, referencia=REF)
+
+    assert resultado.meses_encerrados == 2
+    assert resultado.realizado_ytd == Decimal("90.0")
+    assert resultado.vendas_total_ytd == Decimal("135.0")
+    assert resultado.vendas_fora_perimetro_ytd == Decimal("45.0")

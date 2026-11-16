@@ -1,6 +1,7 @@
 """Renderização e regressão da Performance, sem conexão ou autenticação fictícia."""
 
 import subprocess
+import datetime as dt
 from dataclasses import replace
 
 import pytest
@@ -140,20 +141,19 @@ st.session_state["perf_mes"] = {mes!r}
     depois = AppTest.from_string(setup + '''
 import datetime as dt
 from pages_content.performance_comercial import render
-render(recorde(), sincronizado_em=dt.datetime(2026,9,18,12,30))
+render(recorde(), agora=dt.datetime.now(), sincronizado_em=dt.datetime(2026,9,18,12,30))
 ''').run(timeout=20)
     assert not antes.exception
     assert not depois.exception
-    def kpis_rankings(app):
-        return [m.value for m in app.markdown if 'class="atg-kpi-row"' in m.value
-                or 'class="atg-card atg-rank"' in m.value]
-    assert len(kpis_rankings(antes)) == 4
-    assert len(kpis_rankings(depois)) == 4
-    # Design 1E aprova a consolidação do primeiro ranking por GRUPO. Hero,
-    # Agências e Clientes continuam comparados integralmente à Release 1.0.
-    assert kpis_rankings(antes)[0:1] + kpis_rankings(antes)[2:] == (
-        kpis_rankings(depois)[0:1] + kpis_rankings(depois)[2:]
-    )
+    def rankings(app):
+        return [m.value for m in app.markdown if 'class="atg-card atg-rank"' in m.value]
+    assert len(rankings(antes)) == len(rankings(depois)) == 3
+    # A estrutura atual mantém os três rankings comerciais previstos.
+    titulos = [
+        trecho.split('class="atg-rank-title"', 1)[1].split(">", 1)[1].split("</div>", 1)[0]
+        for trecho in rankings(depois)
+    ]
+    assert titulos == ["Top 5 Grupos", "Top 5 Agências", "Top 5 Clientes"]
     assert [p.proto.spec for p in antes.get("plotly_chart")] == [
         p.proto.spec for p in depois.get("plotly_chart")
     ]

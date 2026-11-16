@@ -50,6 +50,13 @@ class TestFormatacaoExecutiva:
         assert cards.formatar_moeda(12_500_000) == "R$ 12.500.000,00"
 
 
+class TestFormatacaoPercentual:
+    def test_sinal_opcional(self):
+        assert cards.formatar_pct(12.5) == "+12,5%"
+        assert cards.formatar_pct(12.5, com_sinal=False) == "12,5%"
+        assert cards.formatar_pct(-12.5, com_sinal=False) == "-12,5%"
+
+
 # ---------------------------------------------------------------------------
 # Card YTD de destaque: apenas fatos, 4 estados
 # ---------------------------------------------------------------------------

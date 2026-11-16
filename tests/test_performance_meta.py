@@ -4,6 +4,7 @@ from tests.oidc_helpers import identity
 
 import datetime as dt
 import json
+import re
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -12,7 +13,7 @@ import pytest
 import streamlit as st
 from streamlit.testing.v1 import AppTest
 
-from pages_content import performance_comercial
+from pages_content import metas_resultados, performance_comercial
 from src.data import cleaning, loader, metas, metas_loader
 from src.data.loader import COL_ANO_ABA
 from src.data.metas_schema import COLUNAS_METAS, ErroDeMetas
@@ -182,16 +183,26 @@ def test_terceira_tab_preserva_nomes_ordem_e_duas_visoes_originais():
     assert not app.error
 
 
-@pytest.mark.parametrize("aba", ["Vendas", "Ticket Médio"])
-def test_visoes_originais_nao_avaliam_engine_metas(monkeypatch, aba):
-    def proibido(*_, **__):
-        raise AssertionError("A engine de metas não pertence às visões existentes")
+def test_legenda_de_filtros_distingue_recorte_comercial_da_meta_consolidada():
+    app, _ = _pagina()
+    textos = [item.value for item in app.caption]
+    assert any(
+        texto == (
+            "Filtros que afetam esta página: Ano define o recorte anual. Métrica de valor e "
+            "Critério de mês (Mês (Ganho) ou Mês (Veiculação)) afetam KPIs, Radar, gráficos "
+            "de Vendas e Ticket Médio e rankings. Grupo restringe as vendas analisadas; "
+            "a aba Meta permanece consolidada AdTarget."
+        ) for texto in textos
+    )
 
-    monkeypatch.setattr(metas, "avaliar_metas", proibido)
-    monkeypatch.setattr(metas, "avaliar_pulso", proibido)
-    app, _ = _pagina(aba=aba, erro=AssertionError("A fonte METAS não deve ser consultada"))
+
+@pytest.mark.parametrize("aba", ["Vendas", "Ticket Médio"])
+def test_indicadores_de_metas_na_primeira_dobra_nao_abrem_grafico_meta(aba):
+    app, _ = _pagina(aba=aba)
     assert not app.exception
     assert len(_figuras(app)) == 2
+    assert "Meta anual AdTarget" in _conteudo(app)
+    assert "Falta vender até dezembro" in _conteudo(app)
 
 
 def test_meta_preserva_kpis_radar_rankings_e_graficos_das_visoes_originais():
@@ -235,7 +246,7 @@ def test_meta_fixa_consolidado_liquido_veiculacao_independentemente_dos_controle
     assert meta["y"][-1] == 3600
     assert any(serie["y"][-1] == 3020 for serie in figura["data"] if serie["name"] != "Meta acumulada")
     texto = _conteudo(app)
-    assert "Meta · Valor Líquido · Mês de Veiculação · Consolidado AdTarget" in texto
+    assert "Meta · Valor Líquido · Mês (Veiculação) · Consolidado AdTarget" in texto
     assert "controles acima continuam aplicados" not in texto
     padrao, _ = _pagina(aba="Meta")
     assert figura == _figura_meta(padrao)
@@ -333,6 +344,56 @@ def test_meta_respeita_ano_sem_inventar_metas_para_anos_sem_plano(ano):
     assert not app.exception and len(_figuras(app)) == 2
 
 
+def test_performance_compara_meses_fechados_separa_mes_aberto_e_exibe_meta_e_saldo():
+    app, _ = _pagina()
+    html = _conteudo(app)
+
+    assert not app.exception
+    assert "Variação em meses encerrados vs mesmo período do ano anterior" in html
+    assert "Jan–Set/2026 vs Jan–Set/2025 · mês em andamento à parte." in html
+    assert "R$ 1,70 mil este ano · R$ 850,00 no mesmo período de 2025" in html
+    assert "Mês em andamento" in html
+    assert "Outubro/2026 · Mês (Veiculação)" in html
+    assert "R$ 330,00" in html
+    assert "Meta anual AdTarget" in html and "R$ 3,60 mil" in html
+    assert "Falta vender até dezembro" in html and "R$ 580,00" in html
+    assert "Inclui o que já está vendido para os meses restantes." in html
+    assert "Crescimento/queda: Jan–Set/2026 vs Jan–Set/2025" in html
+    assert "Variações: Jan–Set/2026 vs Jan–Set/2025 · meses encerrados" in html
+    assert "destaque mensal: último mês fechado vs 12 meses anteriores" in html
+
+
+def test_gap_na_performance_bate_com_gap_comercial_de_metas():
+    vendas = cleaning.limpar_dataframe(_fonte_vendas())
+    plano = _plano()
+    pulso = metas.avaliar_pulso(vendas, plano, 2026, data_referencia=REF.date())
+    performance, _ = _pagina()
+    html_performance = re.sub(r"<[^>]+>", "", _conteudo(performance))
+    html_metas = re.sub(r"<[^>]+>", "", metas_resultados._meta_anual(pulso))
+    valor_gap = re.sub(r"<[^>]+>", "", metas_resultados._moeda(pulso.gap_comercial))
+
+    assert pulso.gap_comercial == 580
+    assert f"Falta vender até dezembro{valor_gap}" in html_performance
+    assert f"GAP COMERCIAL{valor_gap}" in html_metas
+    percentual = metas_resultados._pct(pulso.percentual_meta_ja_vendida)
+    assert f"Meta anual já vendida{percentual}" in html_performance
+    assert f"Meta anual já vendida{percentual}" in html_metas
+
+
+def test_meta_na_primeira_dobra_permanece_consolidada_com_filtro_de_grupo():
+    geral, _ = _pagina()
+    grupo, _ = _pagina(grupos=["G"])
+    geral_html = _conteudo(geral)
+    grupo_html = _conteudo(grupo)
+
+    assert "R$ 3,60 mil" in geral_html and "R$ 580,00" in geral_html
+    assert "R$ 3,60 mil" in grupo_html and "R$ 580,00" in grupo_html
+    assert "R$ 1,70 mil este ano" in geral_html
+    assert "R$ 800,00 este ano" in grupo_html
+    assert "Meta consolidada AdTarget, não muda com o filtro de Grupo." not in geral_html
+    assert "Meta consolidada AdTarget, não muda com o filtro de Grupo." in grupo_html
+
+
 @pytest.mark.parametrize("categoria", ["fonte", "estrutura", "validacao"])
 def test_erro_de_metas_fica_isolado_da_performance_e_das_visoes_existentes(categoria):
     erro = ErroDeMetas("CONTEUDO_SENSIVEL_NAO_EXIBIR", categoria)
@@ -358,16 +419,16 @@ def test_schema_invalido_na_meta_nao_interrompe_kpis_radar_rankings():
 
 
 @pytest.mark.parametrize("aba", ["Vendas", "Ticket Médio"])
-def test_entrada_real_nao_consulta_metas_nas_visoes_originais(monkeypatch, aba):
+def test_entrada_carrega_metas_para_indicadores_da_primeira_dobra(monkeypatch, aba):
     app, _, _, leituras = _entrada(monkeypatch, aba=aba)
     assert not app.exception
-    assert leituras == {"vendas": 1, "metas": 0}
+    assert leituras == {"vendas": 1, "metas": 1}
     assert [tab.label for tab in app.tabs] == ["Vendas", "Ticket Médio", "Meta"]
 
 
 def test_entrada_ler_metas_ao_abrir_tab_e_reutilizar_cache_compartilhado(monkeypatch):
     app, _, _, leituras = _entrada(monkeypatch)
-    assert not app.exception and leituras == {"vendas": 1, "metas": 0}
+    assert not app.exception and leituras == {"vendas": 1, "metas": 1}
     _alternar(app, "Meta")
     assert not app.exception and leituras == {"vendas": 1, "metas": 1}
     _alternar(app, "Vendas")
@@ -388,7 +449,7 @@ def test_entrada_falha_metas_nao_impede_retornar_ticket_ou_outra_pagina(monkeypa
     assert not app.exception and not app.error
     app.radio(key="nav_pagina").set_value("Analítico Comercial").run(timeout=20)
     assert not app.exception and not app.error
-    assert leituras == {"vendas": 1, "metas": 1}
+    assert leituras == {"vendas": 1, "metas": 2}
 
 
 @pytest.mark.parametrize("pagina", ["Analítico Comercial", "Analítico Veículos", "🔧 Auditoria (dev)"])

@@ -23,7 +23,7 @@ from src.components import cards, charts, filters, metas_charts, ranking_data
 from src.data import metas, metrics, radar
 from src.data.representacoes import CadastroRepresentacoes, ErroRepresentacoes
 from src.data.cleaning import COL_AGENCIA, COL_CLIENTE, COL_GRUPO
-from src.data.metas_schema import ErroDeMetas
+from src.data.metas_schema import ErroDeMetas, FUSO_METAS
 
 _CHAVE = "perf"
 
@@ -46,7 +46,7 @@ _CONTROLES_META_CSS = """<style>
 }
 .st-key-performance_meta_grupo button:disabled,
 .st-key-performance_meta_grupo button:disabled:hover {
-    color: #8B93A1;
+    color: var(--atg-text-meta);
     background: transparent;
     cursor: not-allowed;
 }
@@ -78,18 +78,27 @@ def _linhas_ranking_dimensao(
 
 def _render_meta(
     df: pd.DataFrame, ano: int, carregar_metas: Callable[[], pd.DataFrame] | None,
+    *, metas_df: pd.DataFrame | None = None,
+    erro_metas: ErroDeMetas | None = None,
+    resultado_fechado: metas.ResultadoMetas | None = None,
 ) -> None:
     st.caption(
-        "Meta · Valor Líquido · Mês de Veiculação · Consolidado AdTarget"
+        "Meta · Valor Líquido · Mês (Veiculação) · Consolidado AdTarget"
     )
-    if carregar_metas is None:
+    if erro_metas is not None:
+        st.error(
+            "Não foi possível carregar ou validar a aba METAS. "
+            "Verifique a estrutura e o acesso à fonte. "
+            "Vendas, Ticket Médio e os demais indicadores continuam disponíveis."
+        )
+    elif metas_df is None and carregar_metas is None:
         st.info("A fonte METAS não está disponível nesta visualização.")
     else:
         try:
-            metas_df = carregar_metas()
-            resultado = metas.avaliar_metas(df, metas_df, ano)
+            plano = metas_df if metas_df is not None else carregar_metas()
+            resultado = resultado_fechado or metas.avaliar_metas(df, plano, ano)
             pulso = metas.avaliar_pulso(
-                df, metas_df, ano, data_referencia=resultado.data_referencia,
+                df, plano, ano, data_referencia=resultado.data_referencia,
             )
         except ErroDeMetas:
             st.error(
@@ -116,6 +125,9 @@ def _abas_evolucao(
     df: pd.DataFrame, df_dim: pd.DataFrame, ano: int, valor: str,
     criterio_mes: str, mes_limite: int | None,
     carregar_metas: Callable[[], pd.DataFrame] | None,
+    metas_df: pd.DataFrame | None = None,
+    erro_metas: ErroDeMetas | None = None,
+    resultado_fechado: metas.ResultadoMetas | None = None,
 ) -> None:
     # A troca de aba reexecuta somente os gráficos, preservando o restante
     # da Performance. Os controles permanecem fora deste fragmento.
@@ -139,16 +151,20 @@ def _abas_evolucao(
         )
     if aba_meta.open:
         with aba_meta:
-            _render_meta(df, ano, carregar_metas)
+            _render_meta(
+                df, ano, carregar_metas, metas_df=metas_df,
+                erro_metas=erro_metas, resultado_fechado=resultado_fechado,
+            )
 
 
 def render(
     df: pd.DataFrame, sincronizado_em: _dt.datetime | None = None, *,
+    agora: _dt.datetime | None = None,
     carregar_metas: Callable[[], pd.DataFrame] | None = None,
     carregar_representacoes: Callable[[], CadastroRepresentacoes] | None = None,
 ) -> None:
-    agora = _dt.datetime.now()
-    hoje = agora.date()
+    agora = agora or _dt.datetime.now(FUSO_METAS)
+    hoje = metas.data_local(agora)
     st.html(_CONTROLES_META_CSS)
 
     # ---------------------------------------------------- barra de filtros
@@ -169,20 +185,77 @@ def render(
                     pass
         with st.container(key="design_performance_clear", width="content"):
             filters.botao_limpar_filtros(_CHAVE)
+    st.caption(
+        "Filtros que afetam esta página: Ano define o recorte anual. Métrica de valor e "
+        "Critério de mês (Mês (Ganho) ou Mês (Veiculação)) afetam KPIs, Radar, gráficos "
+        "de Vendas e Ticket Médio e rankings. Grupo restringe as vendas analisadas; "
+        "a aba Meta permanece consolidada AdTarget."
+    )
 
     # Estado global dos toggles (widgets renderizados no Gráfico Hero)
     valor, criterio_mes = filters.toggles_do_estado(_CHAVE)
     df_ano = filters.recorte_do_ano(df_dim, ano, criterio_mes)
+    grupos_disponiveis = {grupo for grupo in df[COL_GRUPO].unique() if grupo}
+    grupos_aplicados = st.session_state.get(f"{_CHAVE}_fc_{COL_GRUPO}_aplicado")
+    filtro_grupo_ativo = (
+        grupos_aplicados is not None
+        and len(set(grupos_aplicados).intersection(grupos_disponiveis)) < len(grupos_disponiveis)
+    )
+    hoje_local = hoje
+    meses_fechados = metas.meses_encerrados(ano, data_referencia=hoje_local)
+    resumo_ytd = metrics.ytd(
+        df_dim, ano, valor, criterio_mes,
+        hoje=hoje_local, meses_fechados=meses_fechados,
+    )
+    vendas_mes = metrics.evolucao_mensal(
+        df_dim, ano, valor, criterio_mes,
+    ).get(hoje_local.month, 0.0) if ano == hoje_local.year else None
+    rotulo_mes = (
+        f"{cards.MESES_NOMES[hoje_local.month - 1]}/{ano} · "
+        f"{metrics.ROTULOS_CRITERIO_MES[criterio_mes]}"
+        if ano == hoje_local.year else None
+    )
+    plano_metas = None
+    resultado_metas = None
+    pulso_metas = None
+    meta_resumo = None
+    erro_metas = None
+    meta_indisponivel = None
+    if carregar_metas is not None:
+        try:
+            plano_metas = carregar_metas()
+            resultado_metas = metas.avaliar_metas(
+                df, plano_metas, ano, data_referencia=hoje_local,
+            )
+            pulso_metas = metas.avaliar_pulso(
+                df, plano_metas, ano, data_referencia=hoje_local,
+            )
+            if resultado_metas.estado == "sem_metas":
+                meta_indisponivel = "Sem meta cadastrada"
+            else:
+                meta_resumo = resultado_metas
+        except ErroDeMetas as erro:
+            erro_metas = erro
+            meta_indisponivel = "Indisponível"
 
     # ------------------------------------------------------- KPIs (2B.5)
     cards.linha_kpis(
-        metrics.ytd(df_dim, ano, valor, criterio_mes),
+        resumo_ytd,
         ano,
         df_ano.empty,
         metrics.vendas_detalhado(df_ano, valor),
         metrics.em_aberto(df_ano, valor),
         metrics.ticket_medio(df_ano, valor),
         metrics.quantidade_campanhas(df_ano),
+        vendas_mes_em_andamento=vendas_mes,
+        rotulo_mes_em_andamento=rotulo_mes,
+        meta_anual=float(meta_resumo.meta_anual) if meta_resumo else None,
+        saldo_meta=float(pulso_metas.gap_comercial) if meta_resumo and pulso_metas else None,
+        meta_percentual=float(pulso_metas.percentual_meta_ja_vendida)
+        if meta_resumo and pulso_metas and pulso_metas.percentual_meta_ja_vendida is not None
+        else None,
+        meta_indisponivel=meta_indisponivel,
+        meta_consolidada_filtro_grupo=filtro_grupo_ativo,
     )
 
     # --------------------------------------------------- Radar Executivo
@@ -202,7 +275,8 @@ def render(
             radar.recorte_por_grupos(df, df_dim[COL_GRUPO].unique()),
             ano, agora=agora, valor=valor, criterio_mes=criterio_mes,
             sincronizado_em=sincronizado_em, representacoes=cadastro,
-        )
+            meses_fechados=meses_fechados,
+        ),
     )
 
     # ----------------------------------------------- Gráfico Hero (2B.7)
@@ -238,20 +312,34 @@ def render(
                     )
 
         mes_limite = hoje.month if ano == hoje.year else None
-        _abas_evolucao(df, df_dim, ano, valor, criterio_mes, mes_limite, carregar_metas)
+        _abas_evolucao(
+            df, df_dim, ano, valor, criterio_mes, mes_limite, carregar_metas,
+            metas_df=plano_metas, erro_metas=erro_metas,
+            resultado_fechado=resultado_metas,
+        )
 
     # -------------------------------------------------- Rankings (Design 1E)
     linhas_grupos = ranking_data.linhas_ranking_grupos(
         df_ano, df_dim, ano, valor, criterio_mes, hoje=hoje,
+        meses_fechados=meses_fechados,
     )
     tend_agencia = metrics.tendencia_por_dimensao(
-        df_dim, COL_AGENCIA, ano, valor, criterio_mes
+        df_dim, COL_AGENCIA, ano, valor, criterio_mes,
+        hoje=hoje, meses_fechados=meses_fechados,
     )
     tend_cliente = metrics.tendencia_por_dimensao(
-        df_dim, COL_CLIENTE, ano, valor, criterio_mes
+        df_dim, COL_CLIENTE, ano, valor, criterio_mes,
+        hoje=hoje, meses_fechados=meses_fechados,
     )
 
     with st.container(key="design_performance_rankings", border=False, gap=None):
+        periodo_variacoes = (
+            f"Variações: {cards.rotulo_periodo(meses_fechados, ano)} vs "
+            f"{cards.rotulo_periodo(meses_fechados, ano - 1)} · meses encerrados"
+            if meses_fechados else
+            "Variações: sem meses encerrados para comparar"
+        )
+        st.caption(periodo_variacoes)
         r1, r2, r3 = st.columns(3)
     with r1:
         with st.container(key="design_performance_ranking_groups", border=False, gap=None):

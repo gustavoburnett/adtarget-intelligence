@@ -96,6 +96,12 @@ def _conteudo(app):
 def test_hero_atingimento_monetarios_periodo_e_like_for_like():
     app = _pagina()
     html = _html(app)
+    assert any(
+        item.value == (
+            "Filtro que afeta esta página: Ano. Indicadores, gráficos e metas são "
+            "apresentados para o ano selecionado, no perímetro oficial de metas."
+        ) for item in app.caption
+    )
     assert "RITMO FECHADO" in html
     assert "FECHADO ATÉ FEV/2026" in html
     assert "100,0%" in html
@@ -303,18 +309,20 @@ def test_sem_vendas_disponiveis_nao_quebra_filtro_de_ano():
 def test_rodape_e_valores_completos_preservam_metodologia_e_precisao():
     html = _html(_pagina(vendas=_base(atual=123.455)))
     assert 'title="R$ 246,91"' in html  # Arredondamento somente na apresentação.
-    for texto in ("Vendas Líquidas", "mês de veiculação", "somente meses encerrados", "entidades com meta ativa no mês", "sem sazonalidade", "Para vendas totais, consultar Performance Comercial"):
+    for texto in ("Vendas Líquidas", "Mês (Veiculação)", "somente meses encerrados", "entidades com meta ativa no mês", "sem sazonalidade", "Para vendas totais, consultar Performance Comercial"):
         assert texto in html
     assert "plotly" not in html.lower()
 
 
 def test_css_especifico_reutiliza_tokens_e_responsividade_sem_efeito_global():
-    from pages_content.metas_resultados import _CSS
+    from pages_content.metas_resultados import _CSS, _CSS_COMPARACAO
     from src.components.metas_styles import CSS_METAS
     from src.components.partner_logos import CSS_PARTNER_LOGOS
 
     # Uma única fonte de estilos; marca e semântica usam os tokens aprovados.
-    assert _CSS == CSS_METAS.replace("</style>", CSS_PARTNER_LOGOS + "</style>")
+    assert _CSS == CSS_METAS.replace(
+        "</style>", CSS_PARTNER_LOGOS + _CSS_COMPARACAO + "</style>"
+    )
     assert "var(--atg-brand)" in _CSS
     assert re.search(r'\.st-key-design_metas_content \.atg-metas-positive\s*\{color:var\(--atg-positive\)', _CSS)
     assert re.search(r'\.st-key-design_metas_content \.atg-metas-negative\s*\{color:var\(--atg-negative\)', _CSS)
@@ -364,10 +372,29 @@ def test_graficos_integrados_e_hierarquia_antes_dos_parceiros():
     html = _html(app)
     assert len(app.get("plotly_chart")) == 4  # Dois legados e duas orientações do Checkpoint 2B.
     titulos = ["FECHADO ATÉ", "META ANUAL ·", "GAP COMERCIAL", "Projeção",
-               "Evolução Mensal", "Evolução Acumulada", "Desempenho Mensal por Grupo", "Metas por parceiro"]
+               "Por que os totais diferem?", "Metas por parceiro", "Evolução Mensal",
+               "Evolução Acumulada", "Desempenho Mensal por Grupo"]
     posicoes = [html.index(titulo) for titulo in titulos]
     assert posicoes == sorted(posicoes)
     assert "Realizado nos meses encerrados · Já vendido" in html
+
+
+def test_comparacao_mostra_total_da_performance_perimetro_e_diferenca_do_engine():
+    vendas = _vendas(
+        _venda("2026-01-01", 50, grupo="G"),
+        _venda("2026-01-01", 20, grupo="FORA"),
+        _venda("2026-02-01", 40, grupo="G"),
+        _venda("2026-02-01", 25, grupo="FORA"),
+        _venda("2026-03-01", 900, grupo="G"),
+    )
+    html = _html(_pagina(vendas=vendas))
+    assert 'aria-label="Comparação dos recortes de vendas"' in html
+    assert "Vendas totais nos meses encerrados (todos os parceiros)" in html
+    assert "Total de vendas da Performance" not in html
+    assert 'class="atg-metas-comparison-value"><span class="num" title="R$ 90,00">' in html
+    assert 'class="atg-metas-comparison-value"><span class="num" title="R$ 135,00">' in html
+    assert 'class="atg-metas-comparison-value"><span class="num" title="R$ 45,00">' in html
+    assert "Meses encerrados: Jan a Fev/2026" in html
 
 
 def test_parceiro_status_ytd_visivel_e_detalhes_acessiveis_sem_hover():

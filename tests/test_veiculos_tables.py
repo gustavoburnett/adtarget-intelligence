@@ -8,6 +8,7 @@ import pytest
 from streamlit.elements.lib.pandas_styler_utils import marshall_styler
 from streamlit.proto.ArrowData_pb2 import ArrowData
 
+import src.components.veiculos_tables as veiculos_tables
 from src.components.veiculos_tables import (
     configuracao_colunas_ranking,
     preparar_ranking_dimensao,
@@ -200,6 +201,21 @@ def test_zero_e_ausencia_sao_distintos_com_precisao_numerica_preservada():
     pa.Table.from_pandas(styler.data, preserve_index=False)
 
 
+def test_percentual_do_total_usa_formatador_padrao_sem_sinal_em_ptbr(monkeypatch):
+    chamadas = []
+    formatador_original = veiculos_tables.formatar_pct
+
+    def formatador_registrado(valor, *, com_sinal=True):
+        chamadas.append(com_sinal)
+        return formatador_original(valor, com_sinal=com_sinal)
+
+    monkeypatch.setattr(veiculos_tables, "formatar_pct", formatador_registrado)
+    styler = preparar_ranking_dimensao(pd.DataFrame({"% do Total": [1234.56, 0.04]}))
+
+    assert _exibida(styler)["% do Total"].tolist() == ["1234,6%", "0,0%"]
+    assert chamadas == [False, False]
+
+
 def test_decimal_e_contagem_nullable_nao_viram_texto():
     original = pd.DataFrame({
         COL_CLIENTE: ["CLIENTE A", "CLIENTE B"],
@@ -229,6 +245,27 @@ def test_valores_monetarios_extensos_tem_largura_para_formato_completo():
     original = pd.DataFrame({COL_AGENCIA: ["A"], "Vendas": [1234567890123.45], "Qtd PIs": [1]})
     configuracao = configuracao_colunas_ranking(original)
     assert configuracao["Vendas"]["width"] >= len("R$ 1.234.567.890.123,45") * 8 + 40
+
+
+@pytest.mark.parametrize(
+    ("coluna", "valores", "texto_exibido"),
+    [
+        ("Qtd PIs", [1, 1234567], "1.234.567"),
+        ("% do Total", [1.0, 123456.7], "123456,7%"),
+    ],
+)
+def test_largura_colunas_numericas_usa_valor_real_formatado(coluna, valores, texto_exibido):
+    configuracao = configuracao_colunas_ranking(pd.DataFrame({coluna: valores}))
+
+    assert configuracao[coluna]["width"] >= len(texto_exibido) * 8 + 40
+
+
+@pytest.mark.parametrize("coluna", ["Veículo", COL_AGENCIA, COL_CLIENTE])
+def test_largura_coluna_textual_cresce_com_o_maior_conteudo_real(coluna):
+    valor_longo = "PARCEIRO " + "NOME DE VEÍCULO EXTENSO " * 10
+    configuracao = configuracao_colunas_ranking(pd.DataFrame({coluna: ["curto", valor_longo]}))
+
+    assert configuracao[coluna]["width"] >= len(valor_longo) * 8 + 40
 
 
 @pytest.mark.parametrize("coluna", [COL_AGENCIA, COL_CLIENTE])

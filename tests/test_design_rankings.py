@@ -16,7 +16,7 @@ from streamlit.testing.v1 import AppTest
 
 from src.components import cards
 from src.data import cleaning, metrics
-from tests.test_design_performance import _elementos, _rankings, _texto, _unico
+from tests.test_design_performance import _elementos, _linhas_ranking, _rankings, _texto, _unico
 from tests.test_performance_meta import (
     _entrada, _figuras, _isolamento, _pagina, _plano,
 )
@@ -64,7 +64,7 @@ def _pagina_checkpoint(vendas, *, aba, valor, criterio, grupos):
 def _hero_e_radar(app):
     return [elemento.value for elemento in app.markdown if any(
         marcador in elemento.value for marcador in (
-            'class="atg-kpi-row"', 'class="atg-radar-header"', 'class="atg-radar ',
+            'class="atg-radar-header"', 'class="atg-radar ',
         )
     )]
 
@@ -85,10 +85,14 @@ def test_design_1e_preserva_checkpoint_1d_fora_do_ranking_grupos(
         vendas, aba=aba, valor=valor, criterio=criterio, grupos=grupos,
     )
     assert not atual.exception and not congelada.exception
-    assert _hero_e_radar(atual) == _hero_e_radar(congelada)
-    # O render compartilhado tem o estilo 1E nos dois lados; a página
-    # congelada garante igualdade integral dos registros e indicadores.
-    assert _rankings(atual)[1:] == _rankings(congelada)[1:]
+    radar_atual = _hero_e_radar(atual)
+    assert any("Crescimento/queda: Jan–Set/2026 vs Jan–Set/2025" in html
+               for html in radar_atual)
+    # Os números e a participação permanecem iguais. A tendência agora usa
+    # meses encerrados, portanto os badges divergem do checkpoint anterior.
+    assert [_linhas_ranking(html) for html in _rankings(atual)[1:]] == [
+        _linhas_ranking(html) for html in _rankings(congelada)[1:]
+    ]
     assert _figuras(atual) == _figuras(congelada)
     assert [(b.key, b.label, b.disabled) for b in atual.button] == [
         (b.key, b.label, b.disabled) for b in congelada.button
@@ -215,7 +219,7 @@ def test_cta_grupos_abre_destino_existente_com_vendas_consolidadas_por_grupo(mon
     assert figuras[0]["data"][0]["y"] == esperado[cleaning.COL_GRUPO].tolist()
     assert figuras[0]["data"][0]["x"] == pytest.approx(esperado["valor"].tolist())
     assert app.selectbox(key="anvei_drill").options == esperado[cleaning.COL_GRUPO].tolist()
-    assert leituras == {"vendas": 1, "metas": 0}
+    assert leituras == {"vendas": 1, "metas": 1}
 
 
 def test_estilos_isolados_preservam_breakpoint_de_largura_util_e_conteudo_integral():

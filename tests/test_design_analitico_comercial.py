@@ -5,8 +5,10 @@ Não substituem a conferência visual de fontes, responsividade e teclado.
 """
 
 from functools import lru_cache
+from decimal import Decimal
 import json
 from pathlib import Path
+import re
 import subprocess
 from types import ModuleType
 import xml.etree.ElementTree as ET
@@ -17,8 +19,8 @@ import pytest
 from streamlit.testing.v1 import AppTest
 
 from pages_content import analitico_comercial as pagina
-from src.components import cards
-from src.data import cleaning, quality_checks
+from src.components import cards, filters
+from src.data import cleaning, metrics, quality_checks
 from tests.test_performance_meta import _fonte_vendas
 
 
@@ -77,7 +79,7 @@ def _render_congelada(df):
 
 
 def _pagina(executar=_render_atual, *, fonte=None, ano=2026, valor="Valor Líquido",
-            criterio="Mês (Veiculação)", grupos=None, pares=None, pesquisa="",
+            criterio="Mês (Veiculação)", grupos=None, pares=None, executivos=None, pesquisa="",
             permitir_falha=False):
     df = _fonte() if fonte is None else fonte
     app = AppTest.from_function(executar, args=(df,))
@@ -89,6 +91,8 @@ def _pagina(executar=_render_atual, *, fonte=None, ano=2026, valor="Valor Líqui
         app.session_state["anfat_fc_GRUPO_aplicado"] = grupos
     if pares is not None:
         app.session_state["anfat_fc_VEICULO_PAR_aplicado"] = pares
+    if executivos is not None:
+        app.session_state["anfat_fc_EXECUTIVO_aplicado"] = executivos
     app.run(timeout=20)
     if not permitir_falha:
         assert not app.exception
@@ -179,7 +183,16 @@ def test_quatro_verificadores_base_completa_e_quantidade_de_categorias_ativas():
         campos = {el.get("class"): "".join(el.itertext()) for el in elemento if el.tag == "span"}
         assert campos["atg-analytic-alert-title"] == esperado.titulo
         assert campos["atg-analytic-alert-count"] == str(esperado.quantidade)
-    assert [len(el.value) for el in atual.dataframe[:-1]] == [len(el.value) for el in anterior.dataframe[:-1]]
+    assert [len(el.value) for el in atual.dataframe[:-2]] == [len(el.value) for el in anterior.dataframe[:-1]]
+    assert list(_raw(atual.dataframe[-2]).columns[:-1]) == [
+        "EXECUTIVO", "Vendas", "% do total", "PIs", "Ticket médio", "Em aberto",
+    ]
+    coluna_variacao = _raw(atual.dataframe[-2]).columns[-1]
+    assert re.fullmatch(
+        r"Variação · Jan–(?:Jan|Fev|Mar|Abr|Mai|Jun|Jul|Ago|Set|Out|Nov|Dez)/2026 "
+        r"vs Jan–(?:Jan|Fev|Mar|Abr|Mai|Jun|Jul|Ago|Set|Out|Nov|Dez)/2025",
+        coluna_variacao,
+    )
     assert [exp.label for exp in atual.expander] == ["Filtros", "Alertas de Qualidade (4 ativos)"]
     assert atual.expander[0].proto.expanded
     assert not atual.expander[1].proto.expanded
@@ -270,7 +283,8 @@ def test_tabela_exibe_moeda_e_datas_ptbr_sem_alterar_registros_originais():
     antes = fonte.copy(deep=True)
     app = _pagina(fonte=fonte, ano=2024)
     assert [el.value for el in app.subheader] == [
-        "Carteira por status (valor e quantidade de PIs)", "Tabela analítica",
+        "Carteira por status (valor e quantidade de PIs)",
+        "Vendas por executivo", "Tabela analítica",
     ]
     raw, exibida = _raw(app.dataframe[-1]), _display(app.dataframe[-1])
     assert list(raw.columns) == list(exibida.columns) == COLUNAS
@@ -285,6 +299,31 @@ def test_tabela_exibe_moeda_e_datas_ptbr_sem_alterar_registros_originais():
     pd.testing.assert_frame_equal(fonte, antes)
 
 
+def test_tabela_analitica_explica_filtros_ordenacao_e_limite_do_detalhe_pi():
+    app = _pagina()
+    legendas = [elemento.value for elemento in app.caption]
+    assert any(
+        texto == (
+            "Filtros que afetam esta tabela: Ano, Métrica de valor, Critério de mês "
+            "(Mês (Ganho) ou Mês (Veiculação)), Grupo, Veículo, Agência, "
+            "Cliente, Status e Executivo. Nenhum desses filtros é ignorado. A pesquisa "
+            "também filtra a tabela e o CSV, sem alterar os cartões ou o gráfico de status."
+        )
+        for texto in legendas
+    )
+    assert any(
+        texto == (
+            "PI significa Pedido de Inserção. Mês (Ganho) é a competência comercial; "
+            "Mês (Veiculação) é a competência da campanha. Não há ranking Top N nem "
+            "destaque por cor; clique no cabeçalho para ordenar. A tabela não abre ficha "
+            "detalhada do PI: cliente, campanha, período e status aparecem nas colunas."
+        )
+        for texto in legendas
+    )
+    assert "Variação" not in _raw(app.dataframe[-1]).columns
+    assert not any("%" in coluna for coluna in _raw(app.dataframe[-1]).columns)
+
+
 def test_alertas_inativos_continuam_visiveis_sem_ocorrencias_inventadas():
     fonte = cleaning.limpar_dataframe(_fonte_vendas())
     fonte = fonte[(fonte["STATUS"] == "FATURADO") & (fonte["GRUPO"] != "FORA")]
@@ -293,7 +332,7 @@ def test_alertas_inativos_continuam_visiveis_sem_ocorrencias_inventadas():
     cabecalhos = [ET.fromstring(el.value) for el in app.markdown if 'class="atg-analytic-alert ' in el.value]
     assert len(cabecalhos) == 4
     assert all("atg-analytic-alert-inactive" in el.get("class") for el in cabecalhos)
-    assert len(app.dataframe) == 1
+    assert len(app.dataframe) == 2
 
 
 def test_recorte_vazio_com_datas_preserva_tipos_e_exporta_apenas_16_cabecalhos(monkeypatch):
@@ -351,3 +390,70 @@ def test_defaults_mais_recente_liquido_veiculacao_e_dimensoes_completas_preserva
     assert _filtros(atual) == _filtros(anterior)
     assert len(_filtros(atual)) == 6
     assert _raw(atual.dataframe[-1])["GRUPO"].unique().tolist() == ["G", "H", "FORA"]
+
+
+def test_por_executivo_com_dados_soma_igual_ao_cartao_vendas():
+    app = _pagina()
+    tabela = _raw(app.dataframe[-2])
+    tabela_exibida = _display(app.dataframe[-2])
+    soma = Decimal(str(tabela["Vendas"].sum()))
+    recorte_cartao = filters.recorte_do_ano(_fonte(), 2026, metrics.CRITERIO_MES_OFICIAL)
+    valor_cartao = Decimal(str(metrics.vendas(recorte_cartao, "liquido")))
+    assert abs(soma - valor_cartao) < Decimal("0.01")
+    assert all(not str(valor).startswith("+") for valor in tabela_exibida["% do total"])
+    assert not tabela.empty
+
+
+def test_filtro_executivo_nao_reduz_tabela_destaca_linha_e_reconcilia_recorte():
+    fonte = _fonte()
+    elegiveis = fonte.index[
+        (fonte["ANO_ABA"] == 2026)
+        & fonte["STATUS"].isin(metrics.STATUS_VENDAS)
+    ]
+    fonte.loc[elegiveis[0], "EXECUTIVO"] = "EXECUTIVO A"
+    fonte.loc[elegiveis[1], "EXECUTIVO"] = "EXECUTIVO B"
+
+    app = _pagina(fonte=fonte, executivos=["EXECUTIVO A"])
+    tabela = _raw(app.dataframe[-2])
+    exibida = _display(app.dataframe[-2])
+
+    assert {"EXECUTIVO A", "EXECUTIVO B", "TESTE"}.issubset(set(tabela["EXECUTIVO"]))
+    soma_tabela = Decimal(str(tabela["Vendas"].sum()))
+    recorte_sem_executivo = filters.recorte_do_ano(
+        fonte, 2026, metrics.CRITERIO_MES_OFICIAL
+    )
+    total_recorte = Decimal(str(metrics.vendas(recorte_sem_executivo, "liquido")))
+    assert abs(soma_tabela - total_recorte) < Decimal("0.01")
+    assert abs(float(tabela["% do total"].sum()) - 100.0) < 1e-8
+
+    styler = app.dataframe[-2].proto.arrow_data.styler
+    indice_selecionado = exibida.index[
+        exibida["EXECUTIVO"] == "EXECUTIVO A"
+    ][0]
+    assert f"#T_{styler.uuid}_row{indice_selecionado}_col0" in styler.styles
+    assert any(
+        elemento.value == (
+            "Esta comparação mostra todos os executivos. O filtro de Executivo vale para "
+            "os cartões, o gráfico de status e a Tabela analítica."
+        )
+        for elemento in app.caption
+    )
+
+
+def test_por_executivo_sem_dados_mostra_estado_vazio():
+    app = _pagina(grupos=[])
+    assert any(elemento.value == cards.SEM_DADOS for elemento in app.info)
+
+
+def test_por_executivo_mantem_pis_sem_responsavel_em_linha_propria():
+    fonte = _fonte()
+    elegiveis = fonte.index[(fonte["ANO_ABA"] == 2026) & fonte["STATUS"].isin(metrics.STATUS_VENDAS)]
+    fonte.loc[elegiveis[0], "EXECUTIVO"] = ""
+    app = _pagina(fonte=fonte)
+    tabela = _raw(app.dataframe[-2])
+    exibida = _display(app.dataframe[-2])
+    assert "(Sem executivo)" in exibida["EXECUTIVO"].tolist()
+    soma = Decimal(str(tabela["Vendas"].sum()))
+    recorte_cartao = filters.recorte_do_ano(fonte, 2026, metrics.CRITERIO_MES_OFICIAL)
+    valor_cartao = Decimal(str(metrics.vendas(recorte_cartao, "liquido")))
+    assert abs(soma - valor_cartao) < Decimal("0.01")

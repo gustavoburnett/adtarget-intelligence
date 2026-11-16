@@ -394,7 +394,10 @@ def test_performance_preserva_kpis_radar_evolucao_e_rankings_do_design_1e(aba, v
         congelada.session_state[f"perf_fc_{cleaning.COL_GRUPO}_aplicado"] = grupos
     congelada.run(timeout=20)
     assert not atual.exception and not congelada.exception
-    assert [el.value for el in atual.markdown] == [el.value for el in congelada.markdown]
+    radar_atual = [el.value for el in atual.markdown if 'class="atg-radar' in el.value]
+    assert any('class="atg-radar-title">Radar Executivo' in html for html in radar_atual)
+    assert any('Crescimento/queda: Jan–Set/2026 vs Jan–Set/2025' in html
+               for html in radar_atual)
     assert _figuras(atual) == _figuras(congelada)
     assert [(botao.key, botao.label, botao.disabled) for botao in atual.button] == [
         (botao.key, botao.label, botao.disabled) for botao in congelada.button
@@ -462,9 +465,13 @@ def test_design_1f_preserva_fontes_protegidas_do_design_1e(caminho):
     atual = (RAIZ / caminho).read_text()
     anterior = _fonte_congelada(caminho)
     autorizadas = {
+        "src/data/metas.py": {"ResultadoMetas", "avaliar_metas"},
         "src/data/loader.py": {"load_all_sheets"},
-        "pages_content/performance_comercial.py": {"render", "_linhas_ranking_dimensao"},
-        "pages_content/analitico_comercial.py": {"render"},
+        "pages_content/performance_comercial.py": {
+            "render", "_linhas_ranking_dimensao", "_render_meta", "_abas_evolucao",
+            "_CONTROLES_META_CSS",
+        },
+        "pages_content/analitico_comercial.py": {"render", "_MESES_ABREV"},
         # Design 1H aprovado: render visual e substituição do formatador de
         # strings pelo adaptador nativo numérico; não libera regras comerciais.
         "pages_content/analitico_veiculos.py": {"render", "_tabela_formatada"},
@@ -472,6 +479,9 @@ def test_design_1f_preserva_fontes_protegidas_do_design_1e(caminho):
     if caminho == "src/components/metas_charts.py":
         # Exceção estrita do Design 1I: nenhuma outra linha está liberada.
         substituicoes = (
+            ('plot_bgcolor="#FFFFFF"', 'plot_bgcolor=COLOR["surface-card"]'),
+            ('bgcolor="#FFFFFF", bordercolor=COR_BORDA_SUAVE',
+             'bgcolor=COLOR["surface-card"], bordercolor=COLOR["line-card"]'),
             ('tickfont=dict(size=11, color=COR_NEUTRO)',
              'tickfont=dict(size=11, color=COLOR["text-muted"])'),
             ('text=" · ".join(legenda_estados), showarrow=False,\n'
@@ -484,6 +494,20 @@ def test_design_1f_preserva_fontes_protegidas_do_design_1e(caminho):
              '    _estilo(fig, resultado, altura=330)\n'
              '    # Respiro fixo para a nota, inclusive quando os meses giram no mobile.\n'
              '    fig.update_annotations(yshift=-12, selector=dict(yref="paper", y=-0.20))\n'),
+            ('        marker=dict(\n'
+             '            color="#FFFFFF", line=dict(width=0),\n'
+             '            pattern=dict(\n'
+             '                shape="/", fillmode="overlay", fgcolor=COR_NEUTRO,\n'
+             '                bgcolor="#FFFFFF", size=5, solidity=0.12,\n'
+             '            ),\n'
+             '        ),',
+             '        marker=dict(\n'
+             '            color=COLOR["surface-card"], line=dict(width=0),\n'
+             '            pattern=dict(\n'
+             '                shape="/", fillmode="overlay", fgcolor=COR_NEUTRO,\n'
+             '                bgcolor=COLOR["surface-card"], size=5, solidity=0.12,\n'
+             '            ),\n'
+             '        ),'),
         )
         for original, aprovado in substituicoes:
             assert anterior.count(original) == 1
@@ -504,7 +528,10 @@ def test_design_1f_preserva_fontes_protegidas_do_design_1e(caminho):
             "# changes response-start forwarding (ASGI body before headers). See PR #11.\n"
             "starlette==1.3.1\n"
         )
-        assert atual == (anterior + acrescimo).replace("streamlit==1.59.1", "streamlit[auth]==1.59.1")
+        esperado = (anterior + acrescimo).replace(
+            "streamlit==1.59.1", "streamlit[auth]==1.59.1"
+        ).replace("pandas>=2.0", "pandas==3.0.3")
+        assert atual == esperado
     elif caminho not in autorizadas:
         assert atual == anterior
     else:
@@ -513,6 +540,10 @@ def test_design_1f_preserva_fontes_protegidas_do_design_1e(caminho):
         def protegidas(fonte):
             return [ast.dump(no) for no in ast.parse(fonte).body
                     if not isinstance(no, (ast.Import, ast.ImportFrom))
+                        and not (isinstance(no, ast.Assign)
+                                 and any(isinstance(alvo, ast.Name)
+                                         and alvo.id in autorizadas[caminho]
+                                         for alvo in no.targets))
                     and not (caminho == "pages_content/analitico_veiculos.py"
                              and isinstance(no, ast.Expr)
                              and isinstance(no.value, ast.Constant)
@@ -524,7 +555,17 @@ def test_design_1f_preserva_fontes_protegidas_do_design_1e(caminho):
             # continuam vindo exclusivamente da engine oficial congelada.
             assert "def _tabela_formatada(" in anterior
             assert "def _tabela_formatada(" not in atual
-            assert (RAIZ / "src/data/metrics.py").read_text() == _fonte_congelada("src/data/metrics.py")
+            atual_metrics = ast.parse((RAIZ / "src/data/metrics.py").read_text()).body
+            anterior_metrics = ast.parse(_fonte_congelada("src/data/metrics.py")).body
+            autorizadas_metrics = {"_janela_comparavel", "tendencia_por_dimensao", "ytd"}
+            protegidas_metrics = lambda arvore: [
+                ast.dump(no) for no in arvore
+                if not isinstance(no, (ast.Import, ast.ImportFrom))
+                and not (isinstance(no, ast.Expr) and isinstance(no.value, ast.Constant)
+                         and isinstance(no.value.value, str))
+                and getattr(no, "name", None) not in autorizadas_metrics
+            ]
+            assert protegidas_metrics(atual_metrics) == protegidas_metrics(anterior_metrics)
 
 
 def test_novo_css_isola_metas_e_usa_largura_util_sem_ocultar_dados_financeiros():

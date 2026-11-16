@@ -331,6 +331,22 @@ class TestYTD:
         assert resultado["atual"] == 0.0
         assert resultado["variacao_pct"] is None
 
+    def test_ytd_pode_comparar_somente_meses_fechados(self, df):
+        resultado = metrics.ytd(
+            df, 2026, criterio_mes="veiculacao", meses_fechados=2,
+        )
+        assert resultado["mes_limite"] == 2
+        assert resultado["atual"] == pytest.approx(16000.0)
+        assert resultado["anterior"] == pytest.approx(8000.0)
+        assert resultado["variacao_pct"] == pytest.approx(100.0)
+
+    def test_ytd_sem_mes_fechado_nao_inventa_comparativo(self, df):
+        resultado = metrics.ytd(df, 2026, meses_fechados=0)
+        assert resultado == {
+            "atual": 0.0, "anterior": None,
+            "variacao_pct": None, "mes_limite": 0,
+        }
+
 
 class TestYTDAnoCorrenteVsEncerrado:
     """Regra do YTD verdadeiro: ano corrente corta no mês atual;
@@ -610,3 +626,22 @@ class TestAlertasQualidade:
         alertas = quality_checks.executar_todas(df)
         # Alerta 2 (sem status) removido em 2026-07-09; códigos preservados
         assert [a.codigo for a in alertas] == ["1", "3", "4", "5"]
+
+
+def test_tendencia_em_pontos_percentuais_e_limitada_aos_meses_fechados():
+    linhas = [
+        _linha(EXECUTIVO="EXEC 1", **{"MÊS (VEICULAÇÃO)": f"{mes}/2026", "MÊS (GANHO)": f"{mes}/2026",
+                                        "VALOR PI LIQUIDO": valor, "VALOR PI BRUTO": valor})
+        for mes, valor in (("JANEIRO", 120), ("FEVEREIRO", 90), ("MARÇO", 900))
+    ] + [
+        _linha(EXECUTIVO="EXEC 1", **{"MÊS (VEICULAÇÃO)": f"{mes}/2025", "MÊS (GANHO)": f"{mes}/2025",
+                                        "VALOR PI LIQUIDO": valor, "VALOR PI BRUTO": valor})
+        for mes, valor in (("JANEIRO", 100), ("FEVEREIRO", 100), ("MARÇO", 100))
+    ]
+    df = limpar_dataframe(pd.DataFrame(linhas))
+    resultado = metrics.tendencia_por_dimensao(
+        df, "EXECUTIVO", 2026, "liquido", "veiculacao",
+        hoje=HOJE_MAR_2026, meses_fechados=2,
+    )
+    # (120 + 90) / (100 + 100) - 1 = 5%; março é mês aberto e não entra.
+    assert resultado["EXEC 1"] == pytest.approx(5.0)

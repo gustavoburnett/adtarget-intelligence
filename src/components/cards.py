@@ -25,6 +25,7 @@ from typing import Optional
 
 import streamlit as st
 
+from src.components.design_tokens import COLOR
 from src.components.kpi_icons import ICONES_KPI, TRIANGULOS_HERO
 from src.components.radar_icons import ICONES_RADAR
 from src.data.metrics import ROTULOS_CRITERIO_MES
@@ -36,16 +37,16 @@ SEM_COMPARATIVO = "Sem comparativo disponível"
 # ---------------------------------------------------------------------------
 # Design Tokens (DS §5.4 — semântica permanente)
 # ---------------------------------------------------------------------------
-COR_MARCA = "#0B7A66"
-COR_MARCA_SUAVE = "#E7F3F0"
-COR_POSITIVO = "#1E9E52"
-COR_POSITIVO_SUAVE = "#E9F8EE"
-COR_NEGATIVO = "#DC4545"
-COR_AMBAR = "#C97F12"
-COR_NEUTRO = "#8B93A1"
-COR_TEXTO = "#14171C"
-COR_TEXTO_SECUNDARIO = "#5B6472"
-COR_BORDA_SUAVE = "#EDEFF2"
+COR_MARCA = COLOR["brand"]
+COR_MARCA_SUAVE = COLOR["brand-tint"]
+COR_POSITIVO = COLOR["positive"]
+COR_POSITIVO_SUAVE = COLOR["positive-bg"]
+COR_NEGATIVO = COLOR["negative"]
+COR_AMBAR = COLOR["warning"]
+COR_NEUTRO = COLOR["text-meta"]
+COR_TEXTO = COLOR["ink"]
+COR_TEXTO_SECUNDARIO = COLOR["text-secondary"]
+COR_BORDA_SUAVE = COLOR["line-card"]
 
 #: CSS global — Sprint 3B: folha única, grid 8pt, injetada pelo app.py
 CSS_GLOBAL = """
@@ -64,60 +65,60 @@ header[data-testid="stHeader"] [data-testid="stExpandSidebarButton"]{
 /* ---- P1/P4: faixa de contexto — título com presença, sem subtítulo fixo */
 .atg-product-brand{margin:0 0 16px;}
 .atg-product-brand img{display:block;width:160px;max-width:100%;height:auto;}
-.atg-h1{font-size:22px;font-weight:700;letter-spacing:-.01em;color:#14171C;
+.atg-h1{font-size:22px;font-weight:700;letter-spacing:-.01em;color:var(--atg-ink);
   line-height:1.2;margin:0;}
-.atg-updated{font-size:12px;color:#8B93A1;text-align:right;}
+.atg-updated{font-size:12px;color:var(--atg-text-meta);text-align:right;}
 /* ---- P2: toolbar executiva — filtros ghost, formulário zero ---- */
 div[data-testid="stPopover"]>div>button{
   width:100%;justify-content:space-between;background:transparent;
   border:1px solid transparent;border-radius:8px;min-height:40px;
-  font-size:13px;font-weight:500;color:#14171C;box-shadow:none;
+  font-size:13px;font-weight:500;color:var(--atg-ink);box-shadow:none;
   padding:8px 8px;}
 div[data-testid="stPopover"]>div>button:hover{
-  background:#FFFFFF;border-color:#E3E6EA;color:#0B7A66;}
+  background:var(--atg-surface-card);border-color:var(--atg-line-control);color:var(--atg-brand);}
 div[data-testid="stPopoverBody"]{min-width:328px;}
 div[data-testid="stPopoverBody"] .stCheckbox{margin-bottom:-8px;}
 div[data-testid="stPopoverBody"] .stCheckbox p{font-size:13px;}
-.atg-filtro-contador{font-size:12px;color:#5B6472;text-align:right;
+.atg-filtro-contador{font-size:12px;color:var(--atg-text-secondary);text-align:right;
   font-variant-numeric:tabular-nums;}
-.atg-filtro-pendente{font-size:12px;color:#C97F12;font-weight:600;
+.atg-filtro-pendente{font-size:12px;color:var(--atg-warning);font-weight:600;
   margin:0 0 8px;}
 /* ---- P3: KPI band — hero + stat strip (superfície única) ---- */
-.atg-card{background:#FFFFFF;border:1px solid #F0F2F4;border-radius:12px;
+.atg-card{background:var(--atg-surface-card);border:1px solid var(--atg-line-card);border-radius:12px;
   box-shadow:none;transition:box-shadow .15s ease;}
-.atg-card:hover{box-shadow:0 2px 8px rgba(20,23,28,.06);}
+.atg-card:hover{box-shadow:var(--atg-shadow-card);}
 .atg-kpi-row{display:flex;gap:16px;align-items:stretch;margin:8px 0 24px;}
 .atg-kpi-hero{flex:1.35;padding:24px;display:flex;flex-direction:column;
   justify-content:center;}
 .atg-eyebrow{font-size:11px;font-weight:700;letter-spacing:.08em;
-  color:#0B7A66;text-transform:uppercase;margin-bottom:8px;}
+  color:var(--atg-brand);text-transform:uppercase;margin-bottom:8px;}
 .atg-hero-value{display:flex;align-items:baseline;gap:8px;}
 .atg-hero-arrow{font-size:24px;}
 .atg-hero-number{font-size:38px;font-weight:700;letter-spacing:-.02em;
   line-height:1.1;}
-.atg-hero-caption{font-size:12px;color:#5B6472;margin-top:8px;}
-.atg-statstrip{flex:3.2;display:flex;align-items:stretch;background:#FFFFFF;
-  border:1px solid #F0F2F4;border-radius:12px;}
+.atg-hero-caption{font-size:12px;color:var(--atg-text-secondary);margin-top:8px;}
+.atg-statstrip{flex:3.2;display:flex;align-items:stretch;background:var(--atg-surface-card);
+  border:1px solid var(--atg-line-card);border-radius:12px;}
 .atg-stat{flex:1;padding:24px 24px 16px;min-width:0;}
-.atg-stat+.atg-stat{border-left:1px solid #F0F2F4;}
-.atg-kpi-label{font-size:11px;font-weight:600;color:#8B93A1;
+.atg-stat+.atg-stat{border-left:1px solid var(--atg-line-card);}
+.atg-kpi-label{font-size:11px;font-weight:600;color:var(--atg-text-meta);
   letter-spacing:.02em;}
 .atg-kpi-value{font-size:24px;font-weight:600;letter-spacing:-.01em;
-  color:#14171C;white-space:nowrap;margin-top:8px;}
-.atg-kpi-value.positivo{color:#1E9E52;}
-.atg-kpi-value.ambar{color:#C97F12;}
-.atg-kpi-caption{font-size:11px;color:#8B93A1;margin-top:8px;
+  color:var(--atg-ink);white-space:nowrap;margin-top:8px;}
+.atg-kpi-value.positivo{color:var(--atg-positive);}
+.atg-kpi-value.ambar{color:var(--atg-warning);}
+.atg-kpi-caption{font-size:11px;color:var(--atg-text-meta);margin-top:8px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 /* ---- P5: insights — linha ambiente, sem caixa ---- */
 .atg-insights{display:flex;gap:24px;margin:0 0 24px;padding:0 4px;}
 .atg-insight{flex:1;display:flex;align-items:center;gap:8px;
-  font-size:12.5px;color:#5B6472;line-height:1.45;background:transparent;
+  font-size:12.5px;color:var(--atg-text-secondary);line-height:1.45;background:transparent;
   border:none;padding:0;}
 .atg-insight .ic{display:flex;flex-shrink:0;}
 .atg-radar-header{margin:0 0 16px;}
-.atg-radar-header h3.atg-radar-title{font-size:17px;font-weight:600;color:#14171C;
+.atg-radar-header h3.atg-radar-title{font-size:17px;font-weight:600;color:var(--atg-ink);
   line-height:1.3;letter-spacing:-.01em;margin:0 0 4px;padding:0;}
-.atg-radar-meta{display:block;font-size:11px;color:#8B93A1;line-height:1.4;}
+.atg-radar-meta{display:block;font-size:11px;color:var(--atg-text-meta);line-height:1.4;}
 .atg-radar{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));
   gap:24px 32px;margin:0 0 16px;}
 .atg-radar-two{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:24px;}
@@ -125,53 +126,53 @@ div[data-testid="stPopoverBody"] .stCheckbox p{font-size:13px;}
 .atg-radar-single{max-width:420px;}
 .atg-radar-item{min-width:0;line-height:1.45;overflow-wrap:anywhere;}
 .atg-radar-category{display:block;font-size:10px;font-weight:500;letter-spacing:.06em;
-  color:#8B93A1;margin-bottom:6px;}
+  color:var(--atg-text-meta);margin-bottom:6px;}
 .atg-radar-headline{display:block;font-size:20px;font-weight:700;letter-spacing:-.02em;
-  color:#14171C;margin-bottom:6px;}
+  color:var(--atg-ink);margin-bottom:6px;}
 .atg-radar-headline strong{font-size:inherit;font-weight:inherit;}
-.atg-radar-context{display:block;font-size:12px;color:#5B6472;margin-bottom:8px;}
-.atg-radar-cta{display:block;font-size:11px;font-style:italic;color:#8B93A1;}
+.atg-radar-context{display:block;font-size:12px;color:var(--atg-text-secondary);margin-bottom:8px;}
+.atg-radar-cta{display:block;font-size:11px;font-style:italic;color:var(--atg-text-meta);}
 @media(max-width:700px){
   .atg-radar-two,.atg-radar-three{grid-template-columns:1fr;}
 }
 /* ---- rankings ---- */
 .atg-rank{padding:24px 24px 16px;}
-.atg-rank-title{font-size:14px;font-weight:700;color:#14171C;
+.atg-rank-title{font-size:14px;font-weight:700;color:var(--atg-ink);
   margin-bottom:16px;}
 .atg-rank-row{display:flex;align-items:center;gap:8px;margin-bottom:16px;}
-.atg-rank-name{font-size:12px;color:#5B6472;width:27%;flex-shrink:0;
+.atg-rank-name{font-size:12px;color:var(--atg-text-secondary);width:27%;flex-shrink:0;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.atg-rank-barwrap{flex:1;min-width:56px;background:#F5F6F8;border-radius:6px;
+.atg-rank-barwrap{flex:1;min-width:56px;background:var(--atg-surface-muted);border-radius:6px;
   height:8px;}
-.atg-rank-bar{height:8px;border-radius:6px;background:#0B7A66;}
-.atg-rank-value{font-size:12px;font-weight:700;color:#14171C;flex-shrink:0;
+.atg-rank-bar{height:8px;border-radius:6px;background:var(--atg-brand);}
+.atg-rank-value{font-size:12px;font-weight:700;color:var(--atg-ink);flex-shrink:0;
   min-width:62px;text-align:right;}
-.atg-rank-pct{font-size:11px;color:#8B93A1;width:30px;flex-shrink:0;
+.atg-rank-pct{font-size:11px;color:var(--atg-text-meta);width:30px;flex-shrink:0;
   text-align:right;}
 .atg-trend{font-size:11px;font-weight:700;width:44px;flex-shrink:0;
   text-align:right;}
-.atg-trend.alta{color:#1E9E52;}
-.atg-trend.queda{color:#DC4545;}
-.atg-trend.neutro{color:#8B93A1;font-weight:600;}
+.atg-trend.alta{color:var(--atg-positive);}
+.atg-trend.queda{color:var(--atg-negative);}
+.atg-trend.neutro{color:var(--atg-text-meta);font-weight:600;}
 /* Status legado; a apresentação da sidebar está em design_styles.py. */
 .atg-status-line{display:flex;align-items:center;gap:8px;font-size:11.5px;
-  color:#5B6472;white-space:nowrap;}
-.atg-status-dot{width:6px;height:6px;border-radius:50%;background:#1E9E52;
-  box-shadow:0 0 0 3px #E9F8EE;display:inline-block;flex-shrink:0;}
+  color:var(--atg-text-secondary);white-space:nowrap;}
+.atg-status-dot{width:6px;height:6px;border-radius:50%;background:var(--atg-positive);
+  box-shadow:0 0 0 3px var(--atg-positive-bg);display:inline-block;flex-shrink:0;}
 /* ---- P6a/abas/tabelas ---- */
 [data-testid="stTabs"] button p{font-size:13px;font-weight:600;}
 /* A toolbar nativa fica acima da tabela e não pode ser recortada pelo wrapper. */
-[data-testid="stDataFrame"]{border:1px solid #F0F2F4;border-radius:12px;}
+[data-testid="stDataFrame"]{border:1px solid var(--atg-line-card);border-radius:12px;}
 </style>
 """
 
 #: Ícone das cápsulas de insight (sparkle em cor de marca — SVG inline)
 ICONE_INSIGHT = (
     '<svg class="ic" width="14" height="14" viewBox="0 0 24 24" '
-    'fill="#E7F3F0" stroke="#0B7A66" stroke-width="1.6" '
+    f'fill="{COLOR["brand-tint"]}" stroke="{COLOR["brand"]}" stroke-width="1.6" '
     'stroke-linejoin="round" aria-hidden="true">'
     '<path d="M12 2.5l2.3 6.4 6.4 2.3-6.4 2.3L12 19.9l-2.3-6.4-6.4-2.3 '
-    '6.4-2.3z"/><circle cx="19.5" cy="4.5" r="1.3" fill="#0B7A66" '
+    f'6.4-2.3z"/><circle cx="19.5" cy="4.5" r="1.3" fill="{COLOR["brand"]}" '
     'stroke="none"/></svg>'
 )
 
@@ -220,11 +221,12 @@ def formatar_moeda_executiva(valor: Optional[float]) -> str:
     return f"{sinal}R$ {_numero_ptbr(_quantizar(v))}"
 
 
-def formatar_pct(valor: Optional[float]) -> str:
-    """Percentual com sinal e uma casa decimal (+12,3% / -4,5%)."""
+def formatar_pct(valor: Optional[float], *, com_sinal: bool = True) -> str:
+    """Percentual com uma casa decimal, com sinal opcional."""
     if valor is None:
         return SEM_COMPARATIVO
-    texto = f"{valor:+.1f}".replace(".", ",")
+    texto = f"{valor:+.1f}" if com_sinal else f"{valor:.1f}"
+    texto = texto.replace(".", ",")
     return f"{texto}%"
 
 
@@ -297,11 +299,24 @@ def montar_ytd(
     Estados: "ok" | "sem_comparativo" | "sem_dados". Nenhuma frase
     interpretativa — apenas fatos.
     """
-    mes_limite = ytd_resultado.get("mes_limite") or 12
+    mes_limite = ytd_resultado.get("mes_limite")
+    mes_limite = 12 if mes_limite is None else mes_limite
     periodo = (
+        "Sem meses encerrados para comparar"
+        if mes_limite == 0 else
         f"Acumulado {rotulo_periodo(mes_limite, ano)} "
         f"vs {rotulo_periodo(mes_limite, ano - 1)}"
     )
+
+    if mes_limite == 0:
+        return {
+            "estado": "sem_meses_encerrados",
+            "periodo": periodo,
+            "seta": "",
+            "percentual": "—",
+            "cor": COR_NEUTRO,
+            "suporte": "O mês em andamento aparece em indicador separado.",
+        }
 
     if sem_dados:
         return {
@@ -375,7 +390,8 @@ def _celula_stat(
         exibido = formatar_moeda_executiva(valor)
         completo = formatar_moeda(valor)
     tipo = {
-        "Vendas": "vendas", "Em Aberto": "em-aberto", "Ticket Médio": "ticket",
+        "Vendas": "vendas", "Mês em andamento": "vendas",
+        "Em Aberto": "em-aberto", "Ticket Médio": "ticket",
     }.get(rotulo, "neutro")
     return (
         f'<article class="atg-card atg-stat atg-kpi-card atg-kpi-{tipo}">'
@@ -397,6 +413,14 @@ def linha_kpis(
     valor_em_aberto: float,
     valor_ticket: Optional[float],
     qtd_campanhas: int,
+    *,
+    vendas_mes_em_andamento: Optional[float] = None,
+    rotulo_mes_em_andamento: str | None = None,
+    meta_anual: Optional[float] = None,
+    saldo_meta: Optional[float] = None,
+    meta_percentual: Optional[float] = None,
+    meta_indisponivel: str | None = None,
+    meta_consolidada_filtro_grupo: bool = False,
 ) -> None:
     """Hero e quatro cards individuais, com os mesmos dados, textos e ordem."""
     pecas = montar_ytd(ytd_resultado, ano, sem_dados)
@@ -408,17 +432,53 @@ def linha_kpis(
         f'{TRIANGULOS_HERO[pecas["seta"]]}</svg>'
         f'<span class="atg-sr-only">{pecas["seta"]}</span></span>'
     ) if pecas["seta"] else ""
-    import datetime as _datetime
-    contexto_temporal = ("Inclui o mês atual inteiro" if ano == _datetime.date.today().year
-                         else "Total do ano selecionado · janeiro a dezembro")
+    periodo_metodologia = pecas["periodo"].removeprefix("Acumulado ")
+    if rotulo_mes_em_andamento:
+        periodo_metodologia += " · mês em andamento à parte."
+    resumo_meta = ""
+    if meta_anual is not None and saldo_meta is not None:
+        valor_saldo = formatar_moeda_executiva(abs(saldo_meta))
+        saldo_html = (
+            f'<div class="atg-meta-over">Meta superada em <strong class="num">{valor_saldo}</strong></div>'
+            if saldo_meta < 0 else
+            '<div><span>Falta vender até dezembro</span>'
+            f'<strong class="num">{valor_saldo}</strong></div>'
+        )
+        percentual_meta = formatar_pct(meta_percentual, com_sinal=False)
+        nota_grupo = (
+            '<p>Meta consolidada AdTarget, não muda com o filtro de Grupo.</p>'
+            if meta_consolidada_filtro_grupo else ""
+        )
+        resumo_meta = (
+            '<article class="atg-card atg-meta-card">'
+            '<div class="atg-eyebrow">Meta anual AdTarget</div>'
+            '<span class="atg-meta-percent-label">Meta anual já vendida</span>'
+            f'<div class="atg-meta-percent num">{percentual_meta}</div>'
+            '<div class="atg-meta-breakdown">'
+            f'<div><span>Meta anual</span><strong class="num">{formatar_moeda_executiva(meta_anual)}</strong></div>'
+            f'{saldo_html}'
+            '</div>'
+            '<p class="atg-meta-note">Inclui o que já está vendido para os meses restantes.</p>'
+            f'{nota_grupo}'
+            '</article>'
+        )
+    elif meta_indisponivel:
+        resumo_meta = (
+            '<article class="atg-card atg-meta-card atg-meta-card-unavailable">'
+            '<div class="atg-eyebrow">Meta anual AdTarget</div>'
+            '<span class="atg-meta-percent-label">Meta anual já vendida</span>'
+            '<div class="atg-meta-percent">—</div>'
+            f'<div class="atg-meta-breakdown"><div><span>Disponibilidade</span><strong>{meta_indisponivel}</strong></div></div>'
+            '<p class="atg-meta-note">Consulte a fonte METAS para validar o plano anual.</p></article>'
+        )
     hero = (
         f'<article class="atg-card atg-kpi-hero atg-hero-{estado_visual}">'
-        '<div class="atg-eyebrow">Comparação com o mesmo período do ano anterior</div>'
+        '<div class="atg-eyebrow">Variação em meses encerrados vs mesmo período do ano anterior</div>'
         f'<div class="atg-hero-value">{seta}'
         '<span class="atg-hero-number num">'
         f'{pecas["percentual"]}</span></div>'
         f'<div class="atg-hero-caption num">{pecas["suporte"]}</div>'
-        f'<div class="atg-hero-context">Vendas acumuladas no ano · {pecas["periodo"]} · {contexto_temporal}</div>'
+        f'<div class="atg-hero-context">{periodo_metodologia}</div>'
         "</article>"
     )
     faturado_fmt = formatar_moeda_executiva(vendas_detalhado["faturado"])
@@ -426,7 +486,14 @@ def linha_kpis(
         '<div class="atg-statstrip atg-kpi-grid">'
         + _celula_stat(
             "Vendas", vendas_detalhado["total"],
-            f"{faturado_fmt} já faturado", classe="positivo",
+            f"Ano selecionado, todos os meses registrados · {faturado_fmt} já faturado",
+            classe="positivo",
+        )
+        + (
+            _celula_stat(
+                "Mês em andamento", vendas_mes_em_andamento,
+                rotulo_mes_em_andamento,
+            ) if rotulo_mes_em_andamento else ""
         )
         + _celula_stat(
             "Em Aberto", valor_em_aberto,
@@ -448,7 +515,7 @@ def linha_kpis(
     )
     st.markdown(
         '<div class="atg-performance-indicators">'
-        f'<div class="atg-kpi-row">{hero}{strip}</div></div>',
+        f'<div class="atg-kpi-row">{resumo_meta}{hero}</div>{strip}</div>',
         unsafe_allow_html=True,
     )
 
@@ -499,9 +566,20 @@ def _render_radar_conteudo(estado: RadarState) -> None:
         f"{'Valor Líquido' if estado.valor == 'liquido' else 'Valor Bruto'} · "
         f"{ROTULOS_CRITERIO_MES[estado.criterio_mes]}"
     )
+    if estado.meses_comparados:
+        periodo = (
+            f"Crescimento/queda: {rotulo_periodo(estado.meses_comparados, estado.ano)} "
+            f"vs {rotulo_periodo(estado.meses_comparados, estado.ano - 1)} · meses encerrados; "
+            "destaque mensal: último mês fechado vs 12 meses anteriores"
+        )
+    else:
+        periodo = "Sem meses encerrados para crescimento/queda ou destaque mensal"
+    tooltip_periodo = escape(periodo, quote=True)
     st.markdown(
         '<div class="atg-radar-header"><h3 class="atg-radar-title">Radar Executivo</h3>'
-        f'<div class="atg-radar-meta">{escape(metadados)}</div></div>',
+        f'<div class="atg-radar-meta" title="{tooltip_periodo}" '
+        f'aria-label="{escape(metadados + ". " + periodo)}">'
+        f'{escape(metadados)}</div></div>',
         unsafe_allow_html=True,
     )
     if estado.status == "ativo":

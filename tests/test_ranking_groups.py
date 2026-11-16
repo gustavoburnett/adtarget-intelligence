@@ -269,6 +269,25 @@ def test_ano_encerrado_compara_ano_completo_apesar_do_mes_atual():
     assert linha["tendencia"] == 100
 
 
+def test_tendencia_ranking_ignora_mes_em_andamento_com_janela_de_fechados():
+    df = _dados(
+        _linha("G", liquido=100, ano=2025, mes=1),
+        _linha("G", liquido=100, ano=2025, mes=2),
+        _linha("G", liquido=100, ano=2025, mes=11),
+        _linha("G", liquido=100, ano=2026, mes=1),
+        _linha("G", liquido=100, ano=2026, mes=2),
+        _linha("G", liquido=9000, ano=2026, mes=11),
+    )
+    df_ano = df[df[metrics.coluna_mes("veiculacao")].dt.year == 2026]
+
+    resultado = linhas_ranking_grupos(
+        df_ano, df, 2026, hoje=dt.date(2026, 11, 13), meses_fechados=10,
+    )
+
+    assert resultado[0]["valor"] == 9200
+    assert resultado[0]["tendencia"] == pytest.approx(0)
+
+
 def test_filtros_aplicados_preservam_total_e_comparacao_do_mesmo_recorte():
     df = _dados(
         _linha("DISNEY", "DISNEY+", 100), _linha("DISNEY", "ESPN", 50),

@@ -46,20 +46,23 @@ def _indicadores(monkeypatch, *, ytd=None, vazio=False, total=7_654_321.25,
 
 @pytest.mark.parametrize("valores,esperados", [
     ({}, [
-        ("Vendas", "R$ 7,65 Mi", "R$ 7.654.321,25", "R$ 5,43 Mi já faturado"),
+        ("Vendas", "R$ 7,65 Mi", "R$ 7.654.321,25",
+         "Ano selecionado, todos os meses registrados · R$ 5,43 Mi já faturado"),
         ("Em Aberto", "R$ 2,22 Mi", "R$ 2.222.197,78", "vendido, ainda não faturado"),
         ("Ticket Médio", "R$ 76,54 mil", "R$ 76.543,21", "Vendas ÷ PIs da base"),
         ("Campanhas", "1.234", None, "Cliente + Campanha"),
     ]),
     ({"total": 123.45, "faturado": 0, "aberto": 0, "ticket": 12.34, "campanhas": 3}, [
-        ("Vendas", "R$ 123,45", "R$ 123,45", "R$ 0,00 já faturado"),
+        ("Vendas", "R$ 123,45", "R$ 123,45",
+         "Ano selecionado, todos os meses registrados · R$ 0,00 já faturado"),
         ("Em Aberto", "R$ 0,00", "R$ 0,00", "vendido, ainda não faturado"),
         ("Ticket Médio", "R$ 12,34", "R$ 12,34", "Vendas ÷ PIs da base"),
         ("Campanhas", "3", None, "Cliente + Campanha"),
     ]),
     ({"total": -1_500_000, "faturado": -1_234.56, "aberto": 0.25,
       "ticket": None, "campanhas": 0}, [
-        ("Vendas", "-R$ 1,50 Mi", "R$ -1.500.000,00", "-R$ 1,23 mil já faturado"),
+        ("Vendas", "-R$ 1,50 Mi", "R$ -1.500.000,00",
+         "Ano selecionado, todos os meses registrados · -R$ 1,23 mil já faturado"),
         ("Em Aberto", "R$ 0,25", "R$ 0,25", "vendido, ainda não faturado"),
         ("Ticket Médio", "Sem dados no recorte selecionado", "", "Vendas ÷ PIs da base"),
         ("Campanhas", "0", None, "Cliente + Campanha"),
@@ -107,7 +110,9 @@ def test_hero_preserva_sinal_percentual_referencia_e_estados_existentes(
     raiz = _indicadores(monkeypatch, ytd=ytd, vazio=vazio, **valores)
     hero = _unico(raiz, "atg-kpi-hero")
     assert f"atg-hero-{estado}" in hero.get("class").split()
-    assert _texto(_unico(hero, "atg-eyebrow")) == "Comparação com o mesmo período do ano anterior"
+    assert _texto(_unico(hero, "atg-eyebrow")) == (
+        "Variação em meses encerrados vs mesmo período do ano anterior"
+    )
     assert _texto(_unico(hero, "atg-hero-number")) == numero
     assert _texto(_unico(hero, "atg-hero-caption")) == contexto
     sinais = _elementos(hero, "atg-hero-arrow")
@@ -145,6 +150,45 @@ def test_quatro_icones_sao_vetoriais_lineares_distintos_e_decorativos(monkeypatc
     assert len(set(desenhos)) == 4
     assert list(_unico(kpis[1], "atg-kpi-icon"))[0].find("rect") is not None
     assert list(_unico(kpis[2], "atg-kpi-icon"))[0].find("circle") is not None
+
+
+def test_meta_anual_e_card_proprio_antes_da_variacao(monkeypatch):
+    html = []
+    monkeypatch.setattr(cards.st, "markdown", lambda texto, **_: html.append(texto))
+    cards.linha_kpis(
+        {"atual": 6_500_000, "anterior": 5_000_000, "variacao_pct": 30.0, "mes_limite": 9},
+        2026, False, {"total": 7_000_000, "faturado": 4_000_000},
+        2_000_000, 70_000, 100, meta_anual=10_000_000,
+        saldo_meta=3_000_000, meta_percentual=70.0,
+    )
+    raiz = ET.fromstring(html[0])
+    linha = _unico(raiz, "atg-kpi-row")
+    assert [elemento.get("class") for elemento in list(linha)] == [
+        "atg-card atg-meta-card", "atg-card atg-kpi-hero atg-hero-alta",
+    ]
+    meta = list(linha)[0]
+    assert _texto(_unico(meta, "atg-meta-percent")) == "70,0%"
+    assert "R$ 10,00 Mi" in _texto(meta)
+    assert "R$ 3,00 Mi" in _texto(meta)
+    assert _texto(_unico(meta, "atg-meta-note")) == (
+        "Inclui o que já está vendido para os meses restantes."
+    )
+
+
+def test_meta_superada_mostra_valor_absoluto_com_mensagem_clara(monkeypatch):
+    html = []
+    monkeypatch.setattr(cards.st, "markdown", lambda texto, **_: html.append(texto))
+    cards.linha_kpis(
+        {"atual": 1_234_567, "anterior": 1_000_000, "variacao_pct": 23.5, "mes_limite": 9},
+        2026, False, {"total": 1_234_567, "faturado": 1_000_000},
+        234_567, 10_000, 30, meta_anual=1_000_000,
+        saldo_meta=-23_456.78, meta_percentual=123.5,
+    )
+    raiz = ET.fromstring(html[0])
+    meta = _unico(raiz, "atg-meta-card")
+    sobre = _unico(meta, "atg-meta-over")
+    assert _texto(sobre) == "Meta superada em R$ 23,46 mil"
+    assert _texto(_unico(meta, "atg-meta-percent")) == "123,5%"
 
 
 def test_cabecalho_tem_titulo_unico_e_preserva_controles_e_atualizacao(monkeypatch):

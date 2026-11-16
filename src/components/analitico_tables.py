@@ -27,11 +27,32 @@ _TEXTOS = {
     "GRUPO", "VEICULO", "PI", "AGENCIA", "CLIENTE", "CAMPANHA",
     "MÊS (GANHO)", "MÊS (VEICULAÇÃO)", "STATUS", "NOTA FISCAL", "EXECUTIVO",
 }
-_LARGURAS = {
-    "GRUPO": 140, "VEICULO": 180, "PI": 120, "AGENCIA": 170,
-    "CLIENTE": 220, "CAMPANHA": 300, "MÊS (GANHO)": 160,
-    "MÊS (VEICULAÇÃO)": 180, "VENCIMENTO PI": 230, "STATUS": 200,
-    "NOTA FISCAL": 160, "EXECUTIVO": 170,
+_LARGURA_MINIMA_TEXTO = 140
+_ROTULOS = {
+    "GRUPO": "Grupo", "VEICULO": "Veículo", "PI": "PI",
+    "AGENCIA": "Agência", "CLIENTE": "Cliente", "CAMPANHA": "Campanha",
+    "MÊS (GANHO)": "Mês (Ganho)", "MÊS (VEICULAÇÃO)": "Mês (Veiculação)",
+    "INÍCIO": "Início", "FIM": "Fim", "VALOR PI BRUTO": "Valor bruto (PI)",
+    "VALOR PI LIQUIDO": "Valor líquido (PI)", "VENCIMENTO PI": "Vencimento PI",
+    "STATUS": "Status", "NOTA FISCAL": "Nota fiscal", "EXECUTIVO": "Executivo",
+}
+_AJUDAS = {
+    "GRUPO": "Parceiro ou representada associado à venda.",
+    "VEICULO": "Veículo em que a campanha foi contratada.",
+    "PI": "Pedido de Inserção. Identificador registrado na planilha de vendas.",
+    "AGENCIA": "Agência vinculada ao Pedido de Inserção.",
+    "CLIENTE": "Anunciante vinculado ao Pedido de Inserção.",
+    "CAMPANHA": "Nome da campanha registrado na fonte.",
+    "MÊS (GANHO)": "Competência comercial registrada para o ganho da venda.",
+    "MÊS (VEICULAÇÃO)": "Competência da veiculação usada no acompanhamento comercial.",
+    "INÍCIO": "Data de início prevista para a campanha.",
+    "FIM": "Data de término prevista para a campanha.",
+    "VALOR PI BRUTO": "Valor bruto do Pedido de Inserção, em reais.",
+    "VALOR PI LIQUIDO": "Valor líquido do Pedido de Inserção, em reais.",
+    "VENCIMENTO PI": "Data ou condição de vencimento registrada para o PI.",
+    "STATUS": "Status da venda conforme a planilha de origem.",
+    "NOTA FISCAL": "Nota fiscal informada na planilha de vendas.",
+    "EXECUTIVO": "Executivo associado à venda.",
 }
 
 
@@ -145,16 +166,35 @@ def configuracao_colunas(
             ]
             largura = max(190, max((len(v) for v in valores), default=0) * 8 + 40)
             configuracao[coluna] = st.column_config.NumberColumn(
+                label=_ROTULOS.get(coluna, coluna), help=_AJUDAS.get(coluna),
                 width=largura, alignment="right",
             )
         elif coluna in _DATAS:
             valores = [_formatar_data(valor) for valor in df[coluna] if not _ausente(valor)]
             largura = max(160, max((len(v) for v in valores), default=0) * 8 + 40)
             configuracao[coluna] = st.column_config.DatetimeColumn(
-                width=largura,
+                label=_ROTULOS.get(coluna, coluna), help=_AJUDAS.get(coluna), width=largura,
             )
         else:
+            rotulo = _ROTULOS.get(coluna, coluna)
+            if coluna == "VENCIMENTO PI":
+                datas = (
+                    df[COL_VENCIMENTO_DATA]
+                    if COL_VENCIMENTO_DATA in df
+                    else pd.Series(pd.NaT, index=df.index)
+                )
+                valores = [
+                    _vencimento_textual(valor, data)
+                    for valor, data in zip(df[coluna], datas)
+                    if not _ausente(valor)
+                ]
+            else:
+                valores = [str(valor) for valor in df[coluna] if not _ausente(valor)]
+            maior_comprimento = max(
+                [len(rotulo), *(len(valor) for valor in valores)], default=len(rotulo),
+            )
+            largura = max(_LARGURA_MINIMA_TEXTO, maior_comprimento * 8 + 40)
             configuracao[coluna] = st.column_config.TextColumn(
-                width=_LARGURAS.get(coluna, 170),
+                label=rotulo, help=_AJUDAS.get(coluna), width=largura,
             )
     return configuracao

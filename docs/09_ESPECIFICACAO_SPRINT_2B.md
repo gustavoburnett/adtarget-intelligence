@@ -442,3 +442,5 @@ Registrado após a revisão de conflitos entre esta especificação/mockup e a d
 - **C8 (decisão PO)**: microinteração "clique em barra aplica filtro" ADIADA — fora da Sprint 2B.
 - **C9 (aprovado)**: formatação monetária segue a regra oficial v0.5-S1 em todos os elementos (Mi/mil, 2 casas, sem "K"/"M").
 - **C10 (aprovado)**: linha do ano corrente na **cor de marca** (#0B7A66); ano anterior cinza tracejado.
+- **C11 (decisão PO, 2026-11-15)**: a regra de janela comparável do YTD e da tendência de rankings (decisão 33) passa a considerar apenas meses-calendário encerrados, não o mês corrente em andamento. Ver decisão 39 em `00_MEMORIA_OFICIAL.md`.
+- **C12 (decisão PO, 2026-11-15)**: escopo desta branch estendido para incluir Analítico Comercial e Analítico Veículos, além de Performance Comercial. A restrição de “fora de escopo” da seção 3.1 para essas páginas não se aplica mais a esta branch. Ver decisão 40.

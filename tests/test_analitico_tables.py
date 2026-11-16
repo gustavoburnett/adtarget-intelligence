@@ -196,6 +196,35 @@ def test_larguras_monetarias_nao_truncam_valores_extensos():
     assert config["width"] >= len("R$ 1.234.567.890.123,45") * 8 + 40
 
 
+@pytest.mark.parametrize(
+    "coluna", ["GRUPO", "VEICULO", "PI", "AGENCIA", "CLIENTE", "CAMPANHA"],
+)
+def test_larguras_textuais_se_adaptam_ao_maior_valor(coluna):
+    valor_longo = f"{coluna} " + "NOME EXTENSO " * 12
+    original = pd.DataFrame({coluna: ["curto", valor_longo]})
+    config = configuracao_colunas(original)[coluna]
+
+    assert config["width"] >= len(valor_longo) * 8 + 40
+
+
+def test_largura_textual_vazia_mantem_minimo_legivel():
+    config = configuracao_colunas(pd.DataFrame({"GRUPO": pd.Series(dtype="object")}))["GRUPO"]
+    assert config["width"] >= 140
+
+
+def test_cabecalhos_da_tabela_de_pi_explicitam_rotulo_e_significado():
+    original = _fonte()
+    config = configuracao_colunas(original, colunas=COLUNAS)
+    assert list(config) == COLUNAS
+    for coluna in COLUNAS:
+        assert config[coluna]["label"]
+        assert config[coluna]["help"]
+    assert config["PI"]["label"] == "PI"
+    assert "Pedido de Inserção" in config["PI"]["help"]
+    assert config["VALOR PI BRUTO"]["label"] == "Valor bruto (PI)"
+    assert config["VALOR PI LIQUIDO"]["label"] == "Valor líquido (PI)"
+
+
 def test_colunas_selecionadas_respeitam_ordem_do_chamador():
     original = _fonte()
     selecionadas = ["VALOR PI LIQUIDO", "GRUPO", "INÍCIO"]

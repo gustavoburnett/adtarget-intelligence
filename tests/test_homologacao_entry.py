@@ -43,6 +43,24 @@ def test_real_sheet_client_always_blocked():
         app_homologacao.bloquear_cliente_real({})
 
 
+def test_real_homologation_reads_source_and_keeps_only_2024_to_2026(monkeypatch):
+    import pandas as pd
+
+    chamada = {}
+
+    def ler_fonte(spreadsheet_id, credenciais):
+        chamada.update(spreadsheet_id=spreadsheet_id, credenciais=credenciais)
+        return pd.DataFrame({"ANO_ABA": [2023, 2024, "2025", 2026, 2027]})
+
+    monkeypatch.setattr(app_homologacao, "_load_all_sheets_original", ler_fonte)
+    filtrados = app_homologacao.vendas_reais_homologacao("sheet-id", {"type": "service_account"})
+    assert filtrados["ANO_ABA"].astype(str).tolist() == ["2024", "2025", "2026"]
+    assert chamada == {
+        "spreadsheet_id": "sheet-id",
+        "credenciais": {"type": "service_account"},
+    }
+
+
 def test_synthetic_dates_survive_real_cleaning():
     from src.data.cleaning import limpar_dataframe, COL_MES_VEICULACAO_DATA
     frame = limpar_dataframe(app_homologacao.vendas_sinteticas())
